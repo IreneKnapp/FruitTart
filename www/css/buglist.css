@@ -1,0 +1,202 @@
+@import url('/css/navigation.css');
+
+body {
+  margin: 0;
+  padding-bottom: 2em;
+}
+
+body > *, h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0.5em;
+}
+
+
+h1:first-child, h2:first-child, h3:first-child,
+h4:first-child, h5:first-child, h6:first-child {
+  margin-top: 0;
+}
+
+
+table {
+  margin-left: 0.5em;
+  border-collapse: collapse;
+}
+
+tr:nth-child(even) {
+  background: #fff;
+}
+
+tr:nth-child(odd) {
+  background: #eef;
+}
+
+td, th {
+  border: solid black 1px;
+  padding: 0.5em;
+  vertical-align: top;
+}
+
+
+th {
+  background: #ffc;
+  writing-mode: tb-rl;
+}
+
+
+textarea.code, div.code {
+  font-family: 'Courier New', fixed;
+  font-weight: normal;
+  font-size: 100%;
+}
+
+
+input[type=text], textarea {
+  border: solid gray 1px;
+  background: #ccf;
+  padding: 0.25em;
+}
+
+
+input[type=text] {
+  font-size: 100%;
+}
+
+
+select {
+  font-size: 150%;
+  -webkit-appearance: menulist-button;
+}
+
+
+option {
+  font-size: 150%;
+}
+
+
+button {
+  border: none;
+  height: 1.5em;
+  font-family: 'Verdana';
+  font-size: 200%;
+  padding-left: 0.5em;
+  padding-right: 0.75em;
+  -webkit-border-radius: 1.3em;
+  -moz-border-radius: 1.3em;
+  border: solid #888 1px;
+  width: 200px;
+  text-shadow: 0.1em 0.1em 0.05em #ccc;
+}
+
+
+button, select {
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 80%, from(#ccc), to(#fff));
+  background-image: -moz-linear-gradient(0 0, 0 80%, from(#ccc), to(#fff));
+}
+
+
+button:active, select:active, div.foo:active {
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 90%, from(#6bf), to(#269));
+  background-image: -moz-linear-gradient(0% 0%, 0% 90%, from(#6bf), to(#269));
+}
+
+
+table.layout {
+  margin-left: 0.5em;
+}
+
+
+table.layout th, table.layout td {
+  border: none;
+  padding: none;
+}
+
+
+div.comment, div.attachment, div.change {
+  border: dashed black 2px;
+  padding: 1em;
+  margin-left: 0.5em;
+  margin-right: 2.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+div.comment, div.attachment {
+  background: #ffc;
+}
+
+
+div.change {
+  background: black;
+  color: white;
+  font-weight: bold;
+}
+
+
+div.comment > h2, div.attachment > h2, div.change > h2 {
+  margin-left: 0;
+  font-size: 100%;
+  font-weight: bold;
+}
+
+
+div.comment > h2 {
+  margin-bottom: 0.75em;
+}
+
+
+div.code > p {
+  margin: 0;
+  margin-bottom: 1em;
+}
+
+
+div.code > p:last-child {
+  margin-bottom: 0;
+}
+
+
+div.warning {
+  border: dashed red 2px;
+  background: #fcc;
+  padding: 0.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+
+.warning {
+  font-weight: bold;
+}
+
+
+div.note {
+  max-width: 30em;
+}
+
+
+div.form {
+  padding-top: 1em;
+}
+
+
+form {
+  border: dashed black 2px;
+  margin: 0.5em;
+  margin-right: 2.5em;
+  padding: 0.5em;
+}
+
+
+form > div:first-child {
+}
+
+
+form > div {
+  margin: 1em;
+}
