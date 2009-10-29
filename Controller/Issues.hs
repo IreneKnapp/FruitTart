@@ -41,8 +41,8 @@ index = do
          ++ "<body>\n"
          ++ "<h1>Buglist Issues</h1>\n"
          ++ "<table>\n"
-         ++ "<tr><th>ID</th><th>Created</th><th>Modified</th><th>Stat</th><th>Res</th>"
-         ++ "<th>Mod</th><th>Sev</th><th>Pri</th>"
+         ++ "<tr><th>ID</th><th>Date</th><th>Stat</th><th>Res</th>"
+         ++ "<th>Module</th><th>Sev</th><th>Pri</th>"
          ++ "<th>Summary</th></tr>\n"
          ++ (concat $ map (\[SQLInteger id,
                              SQLText status,
@@ -57,8 +57,8 @@ index = do
                              SQLInteger modified] ->
                   "<tr><td><a href=\"/issues/view/" ++ (show id) ++ "/\">"
                   ++ (show id) ++ "</a></td>"
-                  ++ "<td>" ++ (escapeHTML $ timestampToString created) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML $ timestampToString modified) ++ "</td>"
+                  ++ "<td>" ++ (escapeHTML $ timestampToString created) ++ "<br />"
+                  ++ (escapeHTML $ timestampToString modified) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML status) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML resolution) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML module') ++ "</td>"
@@ -226,6 +226,19 @@ view id = do
          ++ "</td></tr>\n"
          ++ "</table>\n"
          ++ (concat $ map (\row -> viewDetail id row) rows)
+         ++ "<b>Comment on this bug?</b><br />\n"
+         ++ "<form method=\"POST\" action=\"/issues/comment/" ++ (show id) ++ "/\">\n"
+         ++ "<textarea name=\"comment\" rows=\"30\" cols=\"50\"></textarea><br />\n"
+         ++ "<b>Full Name:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
+         ++ defaultFullName
+         ++ "\"/><br />\n"
+         ++ "<b>Email:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
+         ++ defaultEmail
+         ++ "\"/><br />\n"
+         ++ "<input type=\"submit\" value=\"Comment\" />\n"
+         ++ "</form>\n"
          ++ "</body></html>"
     _ -> errorInvalidID "issue"
 
@@ -441,11 +454,12 @@ actuallyCreateIssue moduleID summary comment fullName email = do
   timestamp <- getTimestamp
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
     SQLInteger defaultSeverityID, SQLInteger defaultPriorityID]]
-      <- query ("SELECT first(status), first(resolution), first(severity), "
-                ++ "first(priority) FROM defaults")
+      <- query ("SELECT status, resolution, severity, priority "
+                ++ "FROM defaults LIMIT 1")
+               []
   query ("INSERT INTO issues (status, resolution, severity, priority, module, assignee, "
          ++ "reporter, summary, timestamp_created, timestamp_modified) "
-         ++ "VALUES (1, 1, 1, 1, ?, ?, ?, ?, ?, ?)")
+         ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         [SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
          SQLInteger defaultSeverityID, SQLInteger defaultPriorityID,
          SQLInteger moduleID, SQLInteger assigneeID, SQLInteger reporterID,
@@ -488,7 +502,13 @@ doNotCreateComment issueID comment fullName email = do
 
 actuallyCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResult
 actuallyCreateComment issueID comment fullName email = do
-  output "Created comment."
+  commenterID <- getUser fullName email
+  timestamp <- getTimestamp
+  query ("INSERT INTO user_issue_comments (user, issue, timestamp, text) "
+         ++ "VALUES (?, ?, ?, ?)")
+        [SQLInteger commenterID, SQLInteger issueID, SQLInteger timestamp,
+         SQLText comment]
+  seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
 
 
 getUser :: String -> String -> Buglist Int64

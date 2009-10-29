@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Dispatcher (
        		   Buglist,
 		   CGIResult,
@@ -19,6 +20,10 @@ module Dispatcher (
 
 import Control.Concurrent
 import Data.Char
+import Data.Dynamic
+import Data.Int
+import qualified Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Network.FastCGI hiding (output)
@@ -27,6 +32,44 @@ import Prelude hiding (catch)
 import qualified Controller.Issues
 import qualified Controller.Users
 import Types
+
+
+dispatchTable :: Map String
+                     (Map String
+                          (Map String
+                               ([ParameterType], Dynamic)))
+dispatchTable
+    = Map.fromList
+      [("issues",
+        Map.fromList [("index",
+                       Map.fromList [("GET", ([],
+                                              toDyn Controller.Issues.index))]),
+                      ("view",
+                       Map.fromList [("GET", ([IDParameter],
+                                              toDyn Controller.Issues.view))]),
+                      ("create",
+                       Map.fromList [("GET", ([],
+                                              toDyn Controller.Issues.createGET)),
+                                     ("POST", ([],
+                                               toDyn Controller.Issues.createPOST))]),
+                      ("comment",
+                       Map.fromList [("POST", ([IDParameter],
+                                               toDyn Controller.Issues.comment))])]),
+       ("users",
+        Map.fromList [("index",
+                       Map.fromList [("GET", ([],
+                                              toDyn Controller.Users.index))]),
+                      ("view",
+                       Map.fromList [("GET", ([IDParameter],
+                                              toDyn Controller.Users.view))])])]
+
+
+data ParameterType = IDParameter
+                     deriving (Eq)
+
+
+instance Typeable (Buglist CGIResult)
+    where typeOf function = mkTyConApp (mkTyCon "Buglist CGIResult") []
 
 
 processRequest :: Buglist CGIResult
@@ -40,6 +83,38 @@ processRequest = do
     method <- requestMethod
     if url /= canonical
       then permanentRedirect canonical
+      else do
+        maybeControllerData <- return $ Map.lookup controllerName dispatchTable
+        case maybeControllerData of
+          Nothing -> errorControllerUndefined controllerName
+          Just controllerData
+            -> do
+             maybeActionData <- return $ Map.lookup actionName controllerData
+             case maybeActionData of
+               Nothing -> errorActionUndefined controllerName actionName
+               Just actionData
+                   -> do
+                    maybeMethodData <- return $ Map.lookup method actionData
+                    case maybeMethodData of
+                      Nothing -> errorActionMethod controllerName actionName method
+                      Just (urlParameterTypes, dynamicFunction)
+                          -> do
+                           case urlParameterTypes of
+                             [IDParameter] -> do
+                                             case (urlParameters, namedParameters) of
+                                               ([id], [])
+                                                   | length id > 0 && all isDigit id ->
+                                                       (fromJust
+                                                        $ fromDynamic dynamicFunction) 
+                                                       (read id :: Int64)
+                                               _ -> errorActionParameters controllerName
+                                                                          actionName
+                             _ -> do
+                                   case (urlParameters, namedParameters) of
+                                     ([], []) -> (fromJust $ fromDynamic dynamicFunction)
+                                     _ -> errorActionParameters controllerName actionName
+
+{-
       else case controllerName of
              name | name == "issues" ->
                       case actionName of
@@ -113,6 +188,7 @@ processRequest = do
                                                                  method
                              | True -> errorActionUndefined controllerName actionName
                   | True -> errorControllerUndefined controllerName
+-}
 
 output :: String -> Buglist CGIResult
 output string = outputFPS $ UTF8.fromString string

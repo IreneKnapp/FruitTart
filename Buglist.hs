@@ -107,11 +107,12 @@ initDatabase database = do
                  ++ "severity INTEGER,\n"
                  ++ "priority INTEGER\n"
                  ++ ")"
-  defaultsCount <- evalDatabase "SELECT count(*) FROM defaults"
+  defaultsCount <- eval database "SELECT count(*) FROM defaults"
   if defaultsCount == SQL.SQLInteger 0
      then do
        run database ("INSERT INTO defaults (status, resolution, severity, priority) "
-                     "VALUES (1, 1, 3, 2)")
+                     ++ "VALUES (1, 1, 3, 2)")
+     else return ()
   run database $ "CREATE TABLE IF NOT EXISTS users (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "full_name TEXT,\n"
