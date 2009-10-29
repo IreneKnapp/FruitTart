@@ -1,14 +1,20 @@
 module Buglist where
 
 import Control.Monad.State
-import Network.FastCGI
+import Data.Int
+import Network.FastCGI hiding (logCGI)
 import Network.CGI.Monad
 import System.Environment
 
-import qualified Dispatcher
+import Database
+import {-# SOURCE #-} qualified Dispatcher
+import HTML
 import Passwords
 import qualified SQLite3 as SQL
+import SQLite3 (SQLData(..))
 import Types
+
+import Log
 
 
 main :: IO ()
@@ -44,7 +50,7 @@ initDatabase database = do
                  ++ "name TEXT\n"
                  ++ ")"
   statusCount <- eval database "SELECT count(*) FROM statuses"
-  if statusCount == SQL.SQLInteger 0
+  if statusCount == SQLInteger 0
      then do
        run database $ "INSERT INTO statuses (id, name) VALUES (1, 'NEW')"
        run database $ "INSERT INTO statuses (id, name) VALUES (2, 'REOPENED')"
@@ -59,7 +65,7 @@ initDatabase database = do
                  ++ "name TEXT\n"
                  ++ ")"
   resolutionCount <- eval database "SELECT count(*) FROM resolutions"
-  if resolutionCount == SQL.SQLInteger 0
+  if resolutionCount == SQLInteger 0
      then do
        run database $ "INSERT INTO resolutions (id, name) VALUES (1, '---')"
        run database $ "INSERT INTO resolutions (id, name) VALUES (2, 'FIXED')"
@@ -72,7 +78,7 @@ initDatabase database = do
                  ++ "name TEXT\n"
                  ++ ")"
   moduleCount <- eval database "SELECT count(*) FROM modules"
-  if moduleCount == SQL.SQLInteger 0
+  if moduleCount == SQLInteger 0
      then do
        run database $ "INSERT INTO modules (id, name) VALUES (1, 'Program')"
        run database $ "INSERT INTO modules (id, name) VALUES (2, 'Documentation')"
@@ -82,7 +88,7 @@ initDatabase database = do
                  ++ "name TEXT\n"
                  ++ ")"
   severityCount <- eval database "SELECT count(*) FROM severities"
-  if severityCount == SQL.SQLInteger 0
+  if severityCount == SQLInteger 0
      then do
        run database $ "INSERT INTO severities (id, name) VALUES (1, 'critical')"
        run database $ "INSERT INTO severities (id, name) VALUES (2, 'major')"
@@ -95,7 +101,7 @@ initDatabase database = do
                  ++ "name TEXT\n"
                  ++ ")"
   priorityCount <- eval database "SELECT count(*) FROM priorities"
-  if priorityCount == SQL.SQLInteger 0
+  if priorityCount == SQLInteger 0
      then do
        run database $ "INSERT INTO priorities (id, name) VALUES (1, 'high')"
        run database $ "INSERT INTO priorities (id, name) VALUES (2, 'normal')"
@@ -108,7 +114,7 @@ initDatabase database = do
                  ++ "priority INTEGER\n"
                  ++ ")"
   defaultsCount <- eval database "SELECT count(*) FROM defaults"
-  if defaultsCount == SQL.SQLInteger 0
+  if defaultsCount == SQLInteger 0
      then do
        run database ("INSERT INTO defaults (status, resolution, severity, priority) "
                      ++ "VALUES (1, 1, 3, 2)")
@@ -126,21 +132,21 @@ initDatabase database = do
                  ++ "right_comment_issues INTEGER\n"
                  ++ ")"
   userCount <- eval database "SELECT count(*) FROM users"
-  if userCount == SQL.SQLInteger 0
+  if userCount == SQLInteger 0
      then do
        run' database ("INSERT INTO users (id, full_name, email, password_hash, "
                       ++ "right_admin_users, right_see_emails, right_report_issues, "
                       ++ "right_modify_issues, right_upload_files, right_comment_issues) "
                       ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
                       ++ "1, 1, 1, 1, 1, 1)")
-                     [SQL.SQLBlob $ hashPassword "This password must be changed."]
+                     [SQLBlob $ hashPassword "This password must be changed."]
        run database ("INSERT INTO users (id, full_name, email, password_hash, "
                      ++ "right_admin_users, right_see_emails, right_report_issues, "
                      ++ "right_modify_issues, right_upload_files, right_comment_issues) "
                      ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0)")
        run database ("INSERT INTO users (id, full_name, email, password_hash, "
                      ++ "right_admin_users, right_see_emails, right_report_issues, "
-                     ++ "right_modify_issues, right_upload_files) "
+                     ++ "right_modify_issues, right_upload_files, right_comment_issues) "
                      ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 1, 0, 0, 1)")
      else return ()
   run database $ "CREATE TABLE IF NOT EXISTS user_issue_changes (\n"
@@ -186,27 +192,76 @@ initDatabase database = do
                  ++ "CONSTRAINT key1 PRIMARY KEY (user, issue, timestamp),\n"
                  ++ "CONSTRAINT key2 UNIQUE (issue, filename)\n"
                  ++ ")"
+  run database $ "CREATE TABLE IF NOT EXISTS navigation_items (\n"
+                 ++ "id INTEGER PRIMARY KEY,\n"
+                 ++ "name TEXT,\n"
+                 ++ "link TEXT,\n"
+                 ++ "within_buglist_tree INTEGER,\n"
+                 ++ "separator INTEGER,\n"
+                 ++ "always_enabled INTEGER,\n"
+                 ++ "class TEXT\n"
+                 ++ ")"
+  navigationItemCount <- eval database "SELECT count(*) FROM navigation_items"
+  if navigationItemCount == SQLInteger 0
+     then do
+       run database ("INSERT INTO navigation_items "
+                     ++ "(id, name, link, within_buglist_tree, separator, "
+                     ++ "always_enabled, class) "
+                     ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
+       run database ("INSERT INTO navigation_items "
+                     ++ "(id, name, link, within_buglist_tree, separator, "
+                     ++ "always_enabled, class) "
+                     ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
+       run database ("INSERT INTO navigation_items "
+                     ++ "(id, name, link, within_buglist_tree, separator, "
+                     ++ "always_enabled, class) "
+                     ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
+     else return ()
 
 
-run :: SQL.Database -> String -> IO ()
-run database query = do
-  statement <- SQL.prepare database query
-  SQL.step statement
-  SQL.finalize statement
+getUser :: String -> String -> Buglist Int64
+getUser fullName email = do
+  rows <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
+  case rows of
+    [[SQLInteger id]] -> return id
+    _ -> do
+      query ("INSERT INTO users (full_name, email, password_hash, right_admin_users, "
+             ++ "right_see_emails, right_report_issues, right_modify_issues, "
+             ++ "right_upload_files, right_comment_issues) "
+             ++ "VALUES (?, ?, NULL, 0, 0, 1, 0, 0, 1)")
+            [SQLText fullName, SQLText email]
+      [[SQLInteger id]] <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
+      return id
 
 
-run' :: SQL.Database -> String -> [SQL.SQLData] -> IO ()
-run' database query bindings = do
-  statement <- SQL.prepare database query
-  SQL.bind statement bindings
-  SQL.step statement
-  SQL.finalize statement
-
-
-eval :: SQL.Database -> String -> IO SQL.SQLData
-eval database query = do
-  statement <- SQL.prepare database query
-  SQL.step statement
-  result <- SQL.column statement 0
-  SQL.finalize statement
+navigationBar :: String -> Buglist String
+navigationBar currentPage = do
+  items <- query ("SELECT name, link, separator, always_enabled, class "
+                  ++ "FROM navigation_items ORDER BY id")
+                 []
+  let item name link separator alwaysEnabled maybeClass =
+          let class' = case maybeClass of
+                         Nothing -> ""
+                         Just class' -> " class=\"" ++ class' ++ "\""
+          in if separator
+             then "<div " ++ class' ++ "></div>"
+             else if (link /= currentPage) || alwaysEnabled
+                  then "<a href=\"" ++ (escapeAttribute link) ++ "\"" ++ class' ++ ">"
+                       ++ (escapeHTML name) ++ "</a>"
+                  else "<b" ++ class' ++ ">" ++ (escapeHTML name) ++ "</b>"
+  result <- return $ "<div id=\"navigation\">"
+           ++ (concat $ map (\[SQLText name,
+                               SQLText link,
+                               SQLInteger separator,
+                               SQLInteger alwaysEnabled,
+                               maybeClass]
+                             -> item name
+                                     link
+                                     (separator /= 0)
+                                     (alwaysEnabled /= 0)
+                                     (case maybeClass of
+                                        SQLNull -> Nothing
+                                        SQLText class' -> Just class'))
+                             items)
+           ++ "</div>\n"
   return result

@@ -4,6 +4,7 @@ import Data.Int
 import Data.List
 import Network.FastCGI hiding (output)
 
+import Buglist
 import Database
 import {-# SOURCE #-} Dispatcher
 import HTML
@@ -34,11 +35,13 @@ index = do
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                   []
+  navigationBar' <- navigationBar "/issues/index/"
   output  $ "<html><head>\n"
          ++ "<title>Buglist Issues</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
+         ++ navigationBar'
          ++ "<h1>Buglist Issues</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
@@ -63,7 +66,8 @@ index = do
                   ++ "<td>" ++ (escapeHTML module') ++ "</td>"
                   ++ "<td>" ++ (escapeHTML severity) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML priority) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML summary) ++ "</td>"
+                  ++ "<td><a href=\"/issues/view/" ++ (show id) ++ "/\">"
+                  ++ (escapeHTML summary) ++ "</a></td>"
                   ++ "</tr>\n")
                  values)
          ++ "</table>\n"
@@ -197,12 +201,14 @@ view id = do
        rows <- return $ mergeBy (\(SQLInteger a:_) (SQLInteger b:_)
                                   -> compare a b)
                                 [changes, comments, files]
+       navigationBar' <- navigationBar $ "/issues/view/" ++ (show id) ++ "/"
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
+         ++ navigationBar'
          ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
          ++ "<table class=\"layout\">\n"
          ++ "<tr><td>"
@@ -225,19 +231,22 @@ view id = do
          ++ "</td></tr>\n"
          ++ "</table>\n"
          ++ (concat $ map (\row -> viewDetail id row) rows)
-         ++ "<b>Comment on this bug?</b><br />\n"
+         ++ "<div class=\"form\">\n"
+         ++ "<h2>Comment on this issue?</h2>\n"
          ++ "<form method=\"POST\" action=\"/issues/comment/" ++ (show id) ++ "/\">\n"
-         ++ "<textarea name=\"comment\" rows=\"30\" cols=\"50\"></textarea><br />\n"
-         ++ "<b>Full Name:</b> "
+         ++ "<div><textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
+         ++ "</textarea></div>\n"
+         ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
          ++ defaultFullName
-         ++ "\"/><br />\n"
-         ++ "<b>Email:</b> "
+         ++ "\"/></div>\n"
+         ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ defaultEmail
-         ++ "\"/><br />\n"
-         ++ "<input type=\"submit\" value=\"Comment\" />\n"
+         ++ "\"/></div>\n"
+         ++ "<div><button type=\"submit\" value=\"Comment\">Comment</button></div>\n"
          ++ "</form>\n"
+         ++ "</div>\n"
          ++ "</body></html>"
     _ -> errorInvalidID "issue"
 
@@ -280,7 +289,7 @@ viewEditDetail [SQLInteger timestamp,
                 SQLText newAssigneeEmail,
                 SQLText newSummary]
     = "<div class=\"edit\">\n"
-      ++ "At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
+      ++ "<h2>At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
       ++ "<a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
       ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a> "
       ++ "changed "
@@ -323,7 +332,7 @@ viewEditDetail [SQLInteger timestamp,
                           then ["<b>summary</b> from " ++ (escapeHTML oldSummary)
                                 ++ " to " ++ (escapeHTML newSummary)]
                           else []])
-      ++ ".\n"
+      ++ ".</h2>\n"
       ++ "</div>\n"
 
 
@@ -334,11 +343,11 @@ viewCommentDetail [SQLInteger timestamp,
                    _,
                    SQLText text]
     = "<div class=\"comment\">\n"
-      ++ "At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
+      ++ "<h2>At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
       ++ "<a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
       ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a> "
-      ++ "wrote:\n"
-      ++ "<pre>" ++ (escapeHTML text) ++ "</pre>\n"
+      ++ "wrote:</h2>\n"
+      ++ "<div class=\"code\">\n" ++ (newlinesToParagraphs text) ++ "</div>\n"
       ++ "</div>\n"
 
 
@@ -350,7 +359,7 @@ viewAttachmentDetail id [SQLInteger timestamp,
                          SQLText filename,
                          SQLInteger size]
     = "<div class=\"attachment\">\n"
-      ++ "At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
+      ++ "<h2>At " ++ (escapeHTML $ timestampToString timestamp) ++ ", "
       ++ "<a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
       ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a> "
       ++ "attached \n"
@@ -358,7 +367,7 @@ viewAttachmentDetail id [SQLInteger timestamp,
       ++ (escapeAttribute filename) ++ "/\">"
       ++ (escapeHTML filename) ++ "</a> ("
       ++ (escapeHTML $ byteSizeToString size)
-      ++ ").\n"
+      ++ ").</h2>\n"
       ++ "</div>\n"
 
 
@@ -405,17 +414,19 @@ doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe Strin
                  -> Buglist CGIResult
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  navigationBar' <- navigationBar "/issues/create/"
   output $ "<html><head>\n"
-         ++ "<title>Report a Bug</title>\n"
+         ++ "<title>Report an Issue</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
-         ++ "<body\n"
-         ++ "<h1>Report a Bug</h1>\n"
+         ++ "<body>\n"
+         ++ navigationBar'
+         ++ "<h1>Report an Issue</h1>\n"
          ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
          ++ case maybeWarning of
               Just warning -> "<div class=\"warning note\">" ++ warning ++ "</div>\n"
               Nothing -> ""
-         ++ "<b>Module:</b> <select name=\"module\">"
+         ++ "<div><b>Module:</b> <select name=\"module\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if id == fromIntegral moduleID
@@ -426,22 +437,22 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
                                ++ "\">" ++ (escapeHTML name)
                                ++ "</option>")
                           modules)
-         ++ "</select><br />\n"
-         ++ "<b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
-         ++ "value=\"" ++ summary ++ "\" /><br />\n"
-         ++ "<b>Description:</b><br />\n"
-         ++ "<textarea name=\"comment\" rows=\"30\" cols=\"50\">"
+         ++ "</select></div>\n"
+         ++ "<div><b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
+         ++ "value=\"" ++ summary ++ "\" /></div>\n"
+         ++ "<div><b>Description:</b><br />\n"
+         ++ "<textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
          ++ comment
-         ++ "</textarea><br />\n"
-         ++ "<b>Full Name:</b> "
+         ++ "</textarea></div>\n"
+         ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
          ++ fullName
-         ++ "\"/><br />\n"
-         ++ "<b>Email:</b> "
+         ++ "\"/></div>\n"
+         ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ email
-         ++ "\"/><br />\n"
-         ++ "<input type=\"submit\" value=\"Report\" />\n"
+         ++ "\"/></div>\n"
+         ++ "<div><button type=\"submit\" value=\"Report\">Report</button></div>\n"
          ++ "</form>\n"
          ++ "</body></html>"
 
@@ -508,21 +519,6 @@ actuallyCreateComment issueID comment fullName email = do
         [SQLInteger commenterID, SQLInteger issueID, SQLInteger timestamp,
          SQLText comment]
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
-
-
-getUser :: String -> String -> Buglist Int64
-getUser fullName email = do
-  rows <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
-  case rows of
-    [[SQLInteger id]] -> return id
-    _ -> do
-      query ("INSERT INTO users (full_name, email, password_hash, right_admin_users, "
-             ++ "right_see_emails, right_report_issues, right_modify_issues, "
-             ++ "right_upload_files, right_comment_issues) "
-             ++ "VALUES (?, ?, NULL, 0, 0, 1, 0, 0, 1)")
-            [SQLText fullName, SQLText email]
-      [[SQLInteger id]] <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
-      return id
 
 
 defaultSummary :: String

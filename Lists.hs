@@ -1,4 +1,6 @@
-module Lists (merge, mergeBy) where
+module Lists (merge, mergeBy, split) where
+
+import Data.List
 
 merge :: Ord a => [[a]] -> [a]
 merge lists = mergeBy compare lists
@@ -16,3 +18,11 @@ mergeTwoBy function a@(headA:tailA) b@(headB:tailB)
         LT -> headA : mergeTwoBy function tailA b
         GT -> headB : mergeTwoBy function a tailB
         EQ -> headA : headB : mergeTwoBy function tailA tailB
+
+
+split :: (Eq a) => a -> [a] -> [[a]]
+split item list
+    = case elemIndex item list of
+        Just index -> let (first, rest) = splitAt index list in
+                      [first] ++ split item (tail rest)
+        Nothing -> [list]

@@ -12,6 +12,30 @@ import SQLite3 (SQLData(..))
 import Types
 
 
+run :: SQL.Database -> String -> IO ()
+run database query = do
+  statement <- SQL.prepare database query
+  SQL.step statement
+  SQL.finalize statement
+
+
+run' :: SQL.Database -> String -> [SQL.SQLData] -> IO ()
+run' database query bindings = do
+  statement <- SQL.prepare database query
+  SQL.bind statement bindings
+  SQL.step statement
+  SQL.finalize statement
+
+
+eval :: SQL.Database -> String -> IO SQL.SQLData
+eval database query = do
+  statement <- SQL.prepare database query
+  SQL.step statement
+  result <- SQL.column statement 0
+  SQL.finalize statement
+  return result
+
+
 query1 :: String -> [SQL.SQLData] -> Buglist [SQL.SQLData]
 query1 text bindings = do
   BuglistState { database = database } <- get

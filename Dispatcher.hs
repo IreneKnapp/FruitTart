@@ -37,10 +37,7 @@ import Log
 import Types
 
 
-dispatchTable :: Map String
-                     (Map String
-                          (Map String
-                               ([ParameterType], Dynamic)))
+dispatchTable :: DispatchTable
 dispatchTable
     = Map.fromList
       [("issues",
@@ -65,10 +62,6 @@ dispatchTable
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
                                               toDyn Controller.Users.view))])])]
-
-
-data ParameterType = IDParameter
-                     deriving (Eq)
 
 
 instance Typeable (Buglist CGIResult)
