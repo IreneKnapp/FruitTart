@@ -1,16 +1,17 @@
 module Dispatcher (
-       		   CGI,
+       		   Buglist,
 		   CGIResult,
 		   
-                   main,
                    processRequest,
                    output,
                    permanentRedirect,
+                   seeOtherRedirect,
                    error404,
                    errorControllerUndefined,
                    errorActionUndefined,
                    errorActionParameters,
-                   errorTemplateUndefined,
+                   errorActionMethod,
+                   errorInvalidID,
                    parseURL,
                    canonicalURL
                   )
@@ -23,13 +24,12 @@ import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Network.FastCGI hiding (output)
 import Prelude hiding (catch)
 
-import qualified Controller.Tickets
+import qualified Controller.Issues
+import qualified Controller.Users
+import Types
 
 
-main :: IO ()
-main = runFastCGI processRequest
-
-processRequest :: CGI CGIResult
+processRequest :: Buglist CGIResult
 processRequest = do
     setHeader "Content-Type" "text/html; charset=UTF8"
     url <- queryString
@@ -37,28 +37,99 @@ processRequest = do
         <- return $ parseURL url
     canonical <- return
         $ canonicalURL controllerName actionName urlParameters namedParameters
+    method <- requestMethod
     if url /= canonical
       then permanentRedirect canonical
       else case controllerName of
-             name | name == "tickets" ->
+             name | name == "issues" ->
                       case actionName of
-                        name | name == "index" -> Controller.Tickets.index
-                                                  urlParameters namedParameters
-                             | name == "view" -> Controller.Tickets.view
-                                                 urlParameters namedParameters
+                        name | name == "index" ->
+                                 case method of
+                                   _ | method == "GET" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([], []) -> Controller.Issues.index
+                                           _ -> errorActionParameters controllerName
+                                                                      actionName
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
+                             | name == "view" ->
+                                 case method of
+                                   _ | method == "GET" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([id], []) | length id > 0 && all isDigit id
+                                            -> Controller.Issues.view (read id)
+                                           _ -> errorActionParameters controllerName
+                                                                      actionName
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
+                             | name == "create" ->
+                                 case method of
+                                   _ | method == "POST" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([], []) -> Controller.Issues.createPOST
+                                     | method == "GET" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([], []) -> Controller.Issues.createGET
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
+                                   _ -> errorActionParameters controllerName actionName
+                             | name == "comment" ->
+                                 case method of
+                                   _ | method == "POST" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([id], []) | length id > 0 && all isDigit id
+                                            -> Controller.Issues.comment (read id)
+                                           _ -> errorActionParameters controllerName
+                                                                      actionName
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
+                             | True -> errorActionUndefined controllerName actionName
+             name | name == "users" ->
+                      case actionName of
+                        name | name == "index" ->
+                                 case method of
+                                   _ | method == "GET" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([], []) -> Controller.Users.index
+                                           _ -> errorActionParameters controllerName
+                                                                      actionName
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
+                             | name == "view" ->
+                                 case method of
+                                   _ | method == "GET" ->
+                                         case (urlParameters, namedParameters) of
+                                           ([id], []) | length id > 0 && all isDigit id
+                                              -> Controller.Users.view (read id)
+                                           _ -> errorActionParameters controllerName
+                                                                      actionName
+                                     | True -> errorActionMethod controllerName
+                                                                 actionName
+                                                                 method
                              | True -> errorActionUndefined controllerName actionName
                   | True -> errorControllerUndefined controllerName
 
-output :: String -> CGI CGIResult
+output :: String -> Buglist CGIResult
 output string = outputFPS $ UTF8.fromString string
 
-permanentRedirect :: String -> CGI CGIResult
+permanentRedirect :: String -> Buglist CGIResult
 permanentRedirect url = do
   setStatus 301 "Moved Permanently"
   setHeader "Location" url
   output ""
 
-error404 :: String -> CGI CGIResult
+seeOtherRedirect :: String -> Buglist CGIResult
+seeOtherRedirect url = do
+  setStatus 303 "See Other"
+  setHeader "Location" url
+  output ""
+
+error404 :: String -> Buglist CGIResult
 error404 text = do
   setStatus 404 "Not Found"
   setHeader "Content-Type" "text/html; charset=UTF8"
@@ -66,26 +137,31 @@ error404 text = do
          ++ "<body><h1>404 Not Found</h1><p>Buglist encountered an error while "
          ++ "processing this request: " ++ text ++ "</p></body></html>"
 
-errorControllerUndefined :: String -> CGI CGIResult
+errorControllerUndefined :: String -> Buglist CGIResult
 errorControllerUndefined controllerName =
     error404 $ "No controller named " ++ controllerName ++ " is defined."
 
-errorActionUndefined :: String -> String -> CGI CGIResult
+errorActionUndefined :: String -> String -> Buglist CGIResult
 errorActionUndefined controllerName actionName =
     error404 $ "No action named named " ++ actionName ++ " is defined "
              ++ "for the controller " ++ controllerName ++ "."
 
-errorActionParameters :: String -> String -> CGI CGIResult
+errorActionParameters :: String -> String -> Buglist CGIResult
 errorActionParameters controllerName actionName =
     error404 $ "Invalid number of parameters to the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
-errorTemplateUndefined :: String -> CGI CGIResult
-errorTemplateUndefined templateName =
-    error404 $ "No template named " ++ templateName ++ " is defined."
+errorActionMethod :: String -> String -> String -> Buglist CGIResult
+errorActionMethod controllerName actionName method =
+    error404 $ "Invalid HTTP method " ++ method ++ " for the action " ++ actionName
+             ++ " of the controller " ++ controllerName ++ "."
+
+errorInvalidID :: String -> Buglist CGIResult
+errorInvalidID kind =
+    error404 $ "No " ++ kind ++ " by that ID exists." 
 
 defaultController :: String
-defaultController = "tickets"
+defaultController = "issues"
 
 defaultAction :: String
 defaultAction = "index"

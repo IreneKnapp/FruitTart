@@ -3,7 +3,13 @@ module SQLite3 (
                 Database,
                 Statement,
                 Error(..),
-                StepResult(..),
+                StepResult(Row,
+                           Done),
+                SQLData(SQLInteger,
+                        SQLFloat,
+                        SQLText,
+                        SQLBlob,
+                        SQLNull),
                 open,
                 close,
                 prepare,
@@ -15,11 +21,15 @@ module SQLite3 (
                 bindInt,
                 bindInt64,
                 bindNull,
-                bindText
+                bindText,
+                bind,
+                column,
+                columns
                )
     where
 
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Internal as BSI
 import qualified Data.ByteString.UTF8 as UTF8
 import Foreign
 import Foreign.C
@@ -61,6 +71,20 @@ data Error = ErrorOK
              deriving (Eq, Show)
 
 data StepResult = Row | Done deriving (Eq, Show)
+
+data ColumnType = IntegerColumn
+                | FloatColumn
+                | TextColumn
+                | BlobColumn
+                | NullColumn
+                  deriving (Eq, Show)
+
+data SQLData = SQLInteger Int64
+             | SQLFloat Double
+             | SQLText String
+             | SQLBlob BS.ByteString
+             | SQLNull
+               deriving (Eq, Show)
 
 
 encodeError :: Error -> Int
@@ -127,20 +151,41 @@ decodeError 100 = ErrorRow
 decodeError 101 = ErrorDone
 
 
-sqlError :: String -> Error -> IO a
-sqlError functionName error = do
+decodeColumnType :: Int -> ColumnType
+decodeColumnType 1 = IntegerColumn
+decodeColumnType 2 = FloatColumn
+decodeColumnType 3 = TextColumn
+decodeColumnType 4 = BlobColumn
+decodeColumnType 5 = NullColumn
+
+
+foreign import ccall "sqlite3_errmsg"
+  errmsgC :: Ptr () -> IO CString
+errmsg :: Database -> IO String
+errmsg (Database database) = do
+  message <- errmsgC database
+  byteString <- BS.packCString message
+  return $ UTF8.toString byteString
+
+sqlError :: Maybe Database -> String -> Error -> IO a
+sqlError maybeDatabase functionName error = do
+  details <- case maybeDatabase of
+               Just database -> do
+                 details <- errmsg database
+                 return $ ": " ++ details
+               Nothing -> return "."
   fail $ "SQLite3 returned " ++ (show error)
          ++ " while attempting to perform " ++ functionName
-         ++ "."
+         ++ details
 
 foreign import ccall "sqlite3_open"
-  open' :: CString -> Ptr (Ptr ()) -> IO Int
+  openC :: CString -> Ptr (Ptr ()) -> IO Int
 openError :: String -> IO (Either Database Error)
 openError path = do
   BS.useAsCString (UTF8.fromString path)
                   (\path -> do
                      alloca (\database -> do
-                               error <- open' path database
+                               error <- openC path database
                                error <- return $ decodeError error
                                case error of
                                  ErrorOK -> do
@@ -152,29 +197,29 @@ open path = do
   databaseOrError <- openError path
   case databaseOrError of
     Left database -> return database
-    Right error -> sqlError "open" error
+    Right error -> sqlError Nothing ("open " ++ show path) error
 
 foreign import ccall "sqlite3_close"
-  close' :: Ptr () -> IO Int
+  closeC :: Ptr () -> IO Int
 closeError :: Database -> IO Error
 closeError (Database database) = do
-  error <- close' database
+  error <- closeC database
   return $ decodeError error
 close :: Database -> IO ()
 close database = do
   error <- closeError database
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "close" error
+    _ -> sqlError (Just database) "close" error
 
 foreign import ccall "sqlite3_prepare_v2"
-  prepare' :: Ptr () -> CString -> Int -> Ptr (Ptr ()) -> Ptr (Ptr ()) -> IO Int
+  prepareC :: Ptr () -> CString -> Int -> Ptr (Ptr ()) -> Ptr (Ptr ()) -> IO Int
 prepareError :: Database -> String -> IO (Either Statement Error)
 prepareError (Database database) text = do
   BS.useAsCString (UTF8.fromString text)
                   (\text -> do
                      alloca (\statement -> do
-                               error <- prepare' database text (-1) statement nullPtr
+                               error <- prepareC database text (-1) statement nullPtr
                                error <- return $ decodeError error
                                case error of
                                  ErrorOK -> do
@@ -186,13 +231,13 @@ prepare database text = do
   statementOrError <- prepareError database text
   case statementOrError of
     Left statement -> return statement
-    Right error -> sqlError "prepare" error
+    Right error -> sqlError (Just database) ("prepare " ++ (show text)) error
 
 foreign import ccall "sqlite3_step"
-  step' :: Ptr () -> IO Int
+  stepC :: Ptr () -> IO Int
 stepError :: Statement -> IO Error
 stepError (Statement statement) = do
-  error <- step' statement
+  error <- stepC statement
   return $ decodeError error
 step :: Statement -> IO StepResult
 step statement = do
@@ -200,42 +245,42 @@ step statement = do
   case error of
     ErrorRow -> return Row
     ErrorDone -> return Done
-    _ -> sqlError "step" error
+    _ -> sqlError Nothing "step" error
 
 foreign import ccall "sqlite3_reset"
-  reset' :: Ptr () -> IO Int
+  resetC :: Ptr () -> IO Int
 resetError :: Statement -> IO Error
 resetError (Statement statement) = do
-  error <- reset' statement
+  error <- resetC statement
   return $ decodeError error
 reset :: Statement -> IO ()
 reset statement = do
   error <- resetError statement
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "reset" error
+    _ -> sqlError Nothing "reset" error
 
 foreign import ccall "sqlite3_finalize"
-  finalize' :: Ptr () -> IO Int
+  finalizeC :: Ptr () -> IO Int
 finalizeError :: Statement -> IO Error
 finalizeError (Statement statement) = do
-  error <- finalize' statement
+  error <- finalizeC statement
   return $ decodeError error
 finalize :: Statement -> IO ()
 finalize statement = do
   error <- finalizeError statement
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "finalize" error
+    _ -> sqlError Nothing "finalize" error
 
 foreign import ccall "sqlite3_bind_blob"
-  bindBlob' :: Ptr () -> Int -> Ptr () -> Int -> Ptr () -> IO Int
+  bindBlobC :: Ptr () -> Int -> Ptr () -> Int -> Ptr () -> IO Int
 bindBlobError :: Statement -> Int -> BS.ByteString -> IO Error
 bindBlobError (Statement statement) parameterIndex byteString = do
   size <- return $ BS.length byteString
   BS.useAsCString byteString
-                  (\data' -> do
-                     error <- bindBlob' statement parameterIndex (castPtr data') size
+                  (\dataC -> do
+                     error <- bindBlobC statement parameterIndex (castPtr dataC) size
                                         (intPtrToPtr (-1))
                      return $ decodeError error)
 bindBlob :: Statement -> Int -> BS.ByteString -> IO ()
@@ -243,69 +288,69 @@ bindBlob statement parameterIndex byteString = do
   error <- bindBlobError statement parameterIndex byteString
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind blob" error
+    _ -> sqlError Nothing "bind blob" error
 
 foreign import ccall "sqlite3_bind_double"
-  bindDouble' :: Ptr () -> Int -> Double -> IO Int
+  bindDoubleC :: Ptr () -> Int -> Double -> IO Int
 bindDoubleError :: Statement -> Int -> Double -> IO Error
 bindDoubleError (Statement statement) parameterIndex datum = do
-  error <- bindDouble' statement parameterIndex datum
+  error <- bindDoubleC statement parameterIndex datum
   return $ decodeError error
 bindDouble :: Statement -> Int -> Double -> IO ()
 bindDouble statement parameterIndex datum = do
   error <- bindDoubleError statement parameterIndex datum
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind double" error
+    _ -> sqlError Nothing "bind double" error
 
 foreign import ccall "sqlite3_bind_int"
-  bindInt' :: Ptr () -> Int -> Int -> IO Int
+  bindIntC :: Ptr () -> Int -> Int -> IO Int
 bindIntError :: Statement -> Int -> Int -> IO Error
 bindIntError (Statement statement) parameterIndex datum = do
-  error <- bindInt' statement parameterIndex datum
+  error <- bindIntC statement parameterIndex datum
   return $ decodeError error
 bindInt :: Statement -> Int -> Int -> IO ()
 bindInt statement parameterIndex datum = do
   error <- bindIntError statement parameterIndex datum
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind int" error
+    _ -> sqlError Nothing "bind int" error
 
 foreign import ccall "sqlite3_bind_int64"
-  bindInt64' :: Ptr () -> Int -> Int64 -> IO Int
+  bindInt64C :: Ptr () -> Int -> Int64 -> IO Int
 bindInt64Error :: Statement -> Int -> Int64 -> IO Error
 bindInt64Error (Statement statement) parameterIndex datum = do
-  error <- bindInt64' statement parameterIndex datum
+  error <- bindInt64C statement parameterIndex datum
   return $ decodeError error
 bindInt64 :: Statement -> Int -> Int64 -> IO ()
 bindInt64 statement parameterIndex datum = do
   error <- bindInt64Error statement parameterIndex datum
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind int64" error
+    _ -> sqlError Nothing "bind int64" error
 
 foreign import ccall "sqlite3_bind_null"
-  bindNull' :: Ptr () -> Int -> IO Int
+  bindNullC :: Ptr () -> Int -> IO Int
 bindNullError :: Statement -> Int -> IO Error
 bindNullError (Statement statement) parameterIndex = do
-  error <- bindNull' statement parameterIndex
+  error <- bindNullC statement parameterIndex
   return $ decodeError error
 bindNull :: Statement -> Int -> IO ()
 bindNull statement parameterIndex = do
   error <- bindNullError statement parameterIndex
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind null" error
+    _ -> sqlError Nothing "bind null" error
 
 foreign import ccall "sqlite3_bind_text"
-  bindText' :: Ptr () -> Int -> CString -> Int -> Ptr () -> IO Int
+  bindTextC :: Ptr () -> Int -> CString -> Int -> Ptr () -> IO Int
 bindTextError :: Statement -> Int -> String -> IO Error
 bindTextError (Statement statement) parameterIndex text = do
   byteString <- return $ UTF8.fromString text
   size <- return $ BS.length byteString
   BS.useAsCString byteString
-                  (\data' -> do
-                     error <- bindText' statement parameterIndex data' size
+                  (\dataC -> do
+                     error <- bindTextC statement parameterIndex dataC size
                                         (intPtrToPtr (-1))
                      return $ decodeError error)
 bindText :: Statement -> Int -> String -> IO ()
@@ -313,4 +358,86 @@ bindText statement parameterIndex text = do
   error <- bindTextError statement parameterIndex text
   case error of
     ErrorOK -> return ()
-    _ -> sqlError "bind text" error
+    _ -> sqlError Nothing "bind text" error
+
+bind :: Statement -> [SQLData] -> IO ()
+bind statement sqlData = do
+  mapM (\(parameterIndex, datum) -> do
+          case datum of
+            SQLInteger int64 -> bindInt64 statement parameterIndex int64
+            SQLFloat double -> bindDouble statement parameterIndex double
+            SQLText text -> bindText statement parameterIndex text
+            SQLBlob blob -> bindBlob statement parameterIndex blob
+            SQLNull -> bindNull statement parameterIndex)
+       $ zip [1..] sqlData
+  return ()
+
+foreign import ccall "sqlite3_column_type"
+  columnTypeC :: Ptr () -> Int -> IO Int
+columnType :: Statement -> Int -> IO ColumnType
+columnType (Statement statement) columnIndex = do
+  result <- columnTypeC statement columnIndex
+  return $ decodeColumnType result
+
+foreign import ccall "sqlite3_column_bytes"
+  columnBytesC :: Ptr () -> Int -> IO Int
+
+foreign import ccall "sqlite3_column_blob"
+  columnBlobC :: Ptr () -> Int -> IO (Ptr ())
+columnBlob :: Statement -> Int -> IO BS.ByteString
+columnBlob (Statement statement) columnIndex = do
+  size <- columnBytesC statement columnIndex
+  BSI.create size (\resultPtr -> do
+                     dataPtr <- columnBlobC statement columnIndex
+                     if dataPtr /= nullPtr
+                        then BSI.memcpy resultPtr (castPtr dataPtr) (fromIntegral size)
+                        else return ())
+
+foreign import ccall "sqlite3_column_int64"
+  columnInt64C :: Ptr () -> Int -> IO Int64
+columnInt64 :: Statement -> Int -> IO Int64
+columnInt64 (Statement statement) columnIndex = do
+  columnInt64C statement columnIndex
+
+foreign import ccall "sqlite3_column_double"
+  columnDoubleC :: Ptr () -> Int -> IO Double
+columnDouble :: Statement -> Int -> IO Double
+columnDouble (Statement statement) columnIndex = do
+  columnDoubleC statement columnIndex
+
+foreign import ccall "sqlite3_column_text"
+  columnTextC :: Ptr () -> Int -> IO CString
+columnText :: Statement -> Int -> IO String
+columnText (Statement statement) columnIndex = do
+  text <- columnTextC statement columnIndex
+  byteString <- BS.packCString text
+  return $ UTF8.toString byteString
+
+foreign import ccall "sqlite3_column_count"
+  columnCountC :: Ptr () -> IO Int
+columnCount :: Statement -> IO Int
+columnCount (Statement statement) = do
+  columnCountC statement
+
+column :: Statement -> Int -> IO SQLData
+column statement columnIndex = do
+  theType <- columnType statement columnIndex
+  case theType of
+    IntegerColumn -> do
+                 int64 <- columnInt64 statement columnIndex
+                 return $ SQLInteger int64
+    FloatColumn -> do
+                 double <- columnDouble statement columnIndex
+                 return $ SQLFloat double
+    TextColumn -> do
+                 text <- columnText statement columnIndex
+                 return $ SQLText text
+    BlobColumn -> do
+                 byteString <- columnBlob statement columnIndex
+                 return $ SQLBlob byteString
+    NullColumn -> return SQLNull
+
+columns :: Statement -> IO [SQLData]
+columns statement = do
+  count <- columnCount statement
+  mapM (\i -> column statement i) [0..count-1]

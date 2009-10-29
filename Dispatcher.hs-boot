@@ -1,16 +1,17 @@
 module Dispatcher (
-       		   CGI,
+       		   Buglist,
 		   CGIResult,
 		   
-                   main,
                    processRequest,
                    output,
                    permanentRedirect,
+                   seeOtherRedirect,
                    error404,
                    errorControllerUndefined,
                    errorActionUndefined,
                    errorActionParameters,
-                   errorTemplateUndefined,
+                   errorActionMethod,
+		   errorInvalidID,
                    parseURL,
                    canonicalURL
                   )
@@ -24,18 +25,21 @@ import Data.Typeable
 import Network.FastCGI hiding (output)
 import Prelude hiding (catch)
 
+import Types
+
 
 data Abort = Abort
 
-main :: IO ()
-processRequest :: CGI CGIResult
-output :: String -> CGI CGIResult
-abort :: CGI CGIResult
-permanentRedirect :: String -> CGI CGIResult
-error404 :: String -> CGI CGIResult
-errorControllerUndefined :: String -> CGI CGIResult
-errorActionUndefined :: String -> String -> CGI CGIResult
-errorActionParameters :: String -> String -> CGI CGIResult
-errorTemplateUndefined :: String -> CGI CGIResult
+processRequest :: Buglist CGIResult
+output :: String -> Buglist CGIResult
+abort :: Buglist CGIResult
+permanentRedirect :: String -> Buglist CGIResult
+seeOtherRedirect :: String -> Buglist CGIResult
+error404 :: String -> Buglist CGIResult
+errorControllerUndefined :: String -> Buglist CGIResult
+errorActionUndefined :: String -> String -> Buglist CGIResult
+errorActionParameters :: String -> String -> Buglist CGIResult
+errorActionMethod :: String -> String -> String -> Buglist CGIResult
+errorInvalidID :: String -> Buglist CGIResult
 parseURL :: String -> (String, String, [String], [(String, String)])
 canonicalURL :: String -> String -> [String] -> [(String, String)] -> String
