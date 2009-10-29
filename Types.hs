@@ -21,7 +21,10 @@ instance MonadCGI Buglist where
 type DispatchTable = Map String
                          (Map String
                               (Map String
-                                   ([ParameterType], Dynamic)))
+                                   ([ParameterType],
+                                    [(String, ParameterType)],
+                                    Dynamic)))
 
 data ParameterType = IDParameter
+                   | OptionalStringParameter String
                      deriving (Eq)

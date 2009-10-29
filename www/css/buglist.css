@@ -117,7 +117,8 @@ table.layout th, table.layout td {
 }
 
 
-div.comment, div.attachment, div.change {
+div.comment, div.attachment, div.edit {
+  background: #ffc;
   border: dashed black 2px;
   padding: 1em;
   margin-left: 0.5em;
@@ -126,19 +127,8 @@ div.comment, div.attachment, div.change {
   margin-bottom: 0.5em;
 }
 
-div.comment, div.attachment {
-  background: #ffc;
-}
 
-
-div.change {
-  background: black;
-  color: white;
-  font-weight: bold;
-}
-
-
-div.comment > h2, div.attachment > h2, div.change > h2 {
+div.comment > h2, div.attachment > h2, div.edit > h2 {
   margin-left: 0;
   font-size: 100%;
   font-weight: bold;

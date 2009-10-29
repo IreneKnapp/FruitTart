@@ -13,13 +13,13 @@ import SQLite3 (SQLData(..))
 index :: Buglist CGIResult
 index = do
   rows <- query "SELECT id, full_name, email FROM users" []
-  navigationBar' <- navigationBar "/users/index/"
+  navigationBar <- getNavigationBar "/users/index/"
   output  $ "<html><head>\n"
          ++ "<title>Buglist Users</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
-         ++ navigationBar'
+         ++ navigationBar
          ++ "<h1>Buglist Users</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>Full Name</th><th>Email</th></tr>\n"
@@ -91,14 +91,14 @@ view id = do
                                       GT -> LT
                                       EQ -> EQ)
                                 [changes, files, comments, creations]
-       navigationBar' <- navigationBar $ "/users/view/" ++ (show id) ++ "/"
+       navigationBar <- getNavigationBar $ "/users/view/" ++ (show id) ++ "/"
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
-         ++ navigationBar'
+         ++ navigationBar
          ++ "<h1><a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
          ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a></h1>\n"
          ++ "<table>\n"

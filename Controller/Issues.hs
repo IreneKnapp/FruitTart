@@ -12,8 +12,17 @@ import Lists
 import SQLite3 (SQLData(..))
 import Text
 
-index :: Buglist CGIResult
-index = do
+index :: String -> Buglist CGIResult
+index which = do
+  which <- return $ if elem which ["open", "closed", "all"] then which else "all"
+  whereClause <- return $ case which of
+                   _ | which == "open" -> "WHERE statuses.name != 'CLOSED' "
+                     | which == "closed" -> "WHERE statuses.name == 'CLOSED' "
+                     | which == "all" -> ""
+  reportName <- return $ case which of
+                   _ | which == "open" -> "Open Issues"
+                     | which == "closed" -> "Closed Issues"
+                     | which == "all" -> "All Issues"
   values <- query ("SELECT "
                    ++ "issues.id, "
                    ++ "statuses.name, "
@@ -33,16 +42,25 @@ index = do
                    ++ "INNER JOIN priorities ON issues.priority = priorities.id "
                    ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
+                   ++ whereClause
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                   []
-  navigationBar' <- navigationBar "/issues/index/"
+  navigationBar <- getNavigationBar "/issues/index/"
+  subnavigationBar <- getSubnavigationBar ("/issues/index/which:" ++ which ++ "/")
+                      $ [Just ("All Issues", "/issues/index/which:all/"),
+                         Just ("Open Issues", "/issues/index/which:open/"),
+                         Just ("Closed Issues", "/issues/index/which:closed/"),
+                         Nothing,
+                         Just ("All Modules", "/issues/index/which:" ++ which ++ "/")]
   output  $ "<html><head>\n"
-         ++ "<title>Buglist Issues</title>\n"
+         ++ "<title>" ++ reportName ++ "</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
-         ++ navigationBar'
-         ++ "<h1>Buglist Issues</h1>\n"
+         ++ navigationBar
+         ++ subnavigationBar
+         ++ "</div>"
+         ++ "<h1>" ++ reportName ++ "</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
          ++ "<th>Module</th><th>Sev</th><th>Pri</th>"
@@ -77,10 +95,15 @@ index = do
 view :: Int64 -> Buglist CGIResult
 view id = do
   info <- query ("SELECT "
+                 ++ "statuses.id,"
                  ++ "statuses.name, "
+                 ++ "resolutions.id,"
                  ++ "resolutions.name, "
+                 ++ "modules.id,"
                  ++ "modules.name, "
+                 ++ "severities.id,"
                  ++ "severities.name, "
+                 ++ "priorities.id,"
                  ++ "priorities.name, "
                  ++ "assignee.full_name, "
                  ++ "assignee.email, "
@@ -99,10 +122,15 @@ view id = do
                  ++ "WHERE issues.id = ?")
                 [SQLInteger $ fromIntegral id]
   case info of
-    [[SQLText status,
+    [[SQLInteger statusID,
+      SQLText status,
+      SQLInteger resolutionID,
       SQLText resolution,
+      SQLInteger moduleID,
       SQLText module',
+      SQLInteger severityID,
       SQLText severity,
+      SQLInteger priorityID,
       SQLText priority,
       SQLText assigneeFullName,
       SQLText assigneeEmail,
@@ -201,14 +229,19 @@ view id = do
        rows <- return $ mergeBy (\(SQLInteger a:_) (SQLInteger b:_)
                                   -> compare a b)
                                 [changes, comments, files]
-       navigationBar' <- navigationBar $ "/issues/view/" ++ (show id) ++ "/"
+       navigationBar <- getNavigationBar $ "/issues/view/" ++ (show id) ++ "/"
+       statusPopup <- getStatusPopup $ Just statusID
+       resolutionPopup <- getResolutionPopup $ Just resolutionID
+       modulePopup <- getModulePopup $ Just moduleID
+       severityPopup <- getSeverityPopup $ Just severityID
+       priorityPopup <- getPriorityPopup $ Just priorityID
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
-         ++ navigationBar'
+         ++ navigationBar
          ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
          ++ "<table class=\"layout\">\n"
          ++ "<tr><td>"
@@ -245,6 +278,25 @@ view id = do
          ++ defaultEmail
          ++ "\"/></div>\n"
          ++ "<div><button type=\"submit\" value=\"Comment\">Comment</button></div>\n"
+         ++ "</form>\n"
+         ++ "</div>\n"
+         ++ "<div class=\"form\">\n"
+         ++ "<h2>Edit this issue?</h2>\n"
+         ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
+         ++ "<div><b>Status:</b> " ++ statusPopup ++ "</div>\n"
+         ++ "<div><b>Resolution:</b> " ++ resolutionPopup ++ "</div>\n"
+         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>\n"
+         ++ "<div><b>Severity:</b> " ++ severityPopup ++ "</div>\n"
+         ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
+         ++ "<div><b>Assignee:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
+         ++ assigneeEmail
+         ++ "\"/></div>\n"
+         ++ "<div><b>Summary:</b> "
+         ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
+         ++ summary
+         ++ "\"/></div>\n"
+         ++ "<div><button type=\"submit\" value=\"Edit\">Edit</button></div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
          ++ "</body></html>"
@@ -413,31 +465,20 @@ createPOST = do
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
                  -> Buglist CGIResult
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
-  modules <- query "SELECT id, name FROM modules ORDER BY id" []
-  navigationBar' <- navigationBar "/issues/create/"
+  navigationBar <- getNavigationBar "/issues/create/"
+  modulePopup <- getModulePopup $ Just moduleID
   output $ "<html><head>\n"
          ++ "<title>Report an Issue</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "</head>\n"
          ++ "<body>\n"
-         ++ navigationBar'
+         ++ navigationBar
          ++ "<h1>Report an Issue</h1>\n"
          ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
          ++ case maybeWarning of
               Just warning -> "<div class=\"warning note\">" ++ warning ++ "</div>\n"
               Nothing -> ""
-         ++ "<div><b>Module:</b> <select name=\"module\">"
-         ++ (concat $ map (\[SQLInteger id, SQLText name]
-                            -> "<option "
-                               ++ (if id == fromIntegral moduleID
-                                      then "selected "
-                                      else "")
-                               ++ "value=\""
-                               ++ (show id)
-                               ++ "\">" ++ (escapeHTML name)
-                               ++ "</option>")
-                          modules)
-         ++ "</select></div>\n"
+         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>"
          ++ "<div><b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
          ++ "value=\"" ++ summary ++ "\" /></div>\n"
          ++ "<div><b>Description:</b><br />\n"
@@ -519,6 +560,99 @@ actuallyCreateComment issueID comment fullName email = do
         [SQLInteger commenterID, SQLInteger issueID, SQLInteger timestamp,
          SQLText comment]
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
+
+
+edit :: Int64 -> Buglist CGIResult
+edit issueID = do
+  maybeNewStatusID <- getInput "status"
+  newStatusID <- return $ case maybeNewStatusID of
+                               Just newStatusID -> read newStatusID
+                               Nothing -> 1
+  maybeNewResolutionID <- getInput "resolution"
+  newResolutionID <- return $ case maybeNewResolutionID of
+                               Just newResolutionID -> read newResolutionID
+                               Nothing -> 1
+  maybeNewModuleID <- getInput "module"
+  newModuleID <- return $ case maybeNewModuleID of
+                               Just newModuleID -> read newModuleID
+                               Nothing -> 1
+  maybeNewSeverityID <- getInput "severity"
+  newSeverityID <- return $ case maybeNewSeverityID of
+                               Just newSeverityID -> read newSeverityID
+                               Nothing -> 1
+  maybeNewPriorityID <- getInput "priority"
+  newPriorityID <- return $ case maybeNewPriorityID of
+                               Just newPriorityID -> read newPriorityID
+                               Nothing -> 1
+  maybeNewAssigneeEmail <- getInput "assignee-email"
+  newAssigneeEmail <- return $ case maybeNewAssigneeEmail of
+                                    Just newAssigneeEmail -> newAssigneeEmail
+                                    Nothing -> "nobody"
+  maybeNewSummary <- getInput "summary"
+  newSummary <- return $ case maybeNewSummary of
+                           Just newSummary -> newSummary
+                           Nothing -> ""
+  query "BEGIN TRANSACTION" []
+  newAssigneeID <- getUser "" newAssigneeEmail
+  [[SQLInteger oldStatusID,
+    SQLInteger oldResolutionID,
+    SQLInteger oldModuleID,
+    SQLInteger oldSeverityID,
+    SQLInteger oldPriorityID,
+    SQLInteger oldAssigneeID,
+    SQLText oldSummary]]
+      <- query ("SELECT status, resolution, module, severity, priority, assignee, "
+                ++ "summary "
+                ++ "FROM issues WHERE id = ?")
+               [SQLInteger issueID]
+  timestamp <- getTimestamp
+  query ("INSERT INTO user_issue_changes (user, issue, timestamp, "
+         ++ "status_changed, resolution_changed, module_changed, severity_changed, "
+         ++ "priority_changed, assignee_changed, summary_changed, "
+         ++ "old_status, old_resolution, old_module, old_severity, old_priority, "
+         ++ "old_assignee, old_summary, "
+         ++ "new_status, new_resolution, new_module, new_severity, new_priority, "
+         ++ "new_assignee, new_summary) "
+         ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+         ++ "?, ?, ?)")
+        [SQLInteger 1,
+         SQLInteger issueID,
+         SQLInteger timestamp,
+         SQLInteger (if newStatusID /= oldStatusID then 1 else 0),
+         SQLInteger (if newResolutionID /= oldResolutionID then 1 else 0),
+         SQLInteger (if newModuleID /= oldModuleID then 1 else 0),
+         SQLInteger (if newSeverityID /= oldSeverityID then 1 else 0),
+         SQLInteger (if newPriorityID /= oldPriorityID then 1 else 0),
+         SQLInteger (if newAssigneeID /= oldAssigneeID then 1 else 0),
+         SQLInteger (if newSummary /= oldSummary then 1 else 0),
+         SQLInteger oldStatusID,
+         SQLInteger oldResolutionID,
+         SQLInteger oldModuleID,
+         SQLInteger oldSeverityID,
+         SQLInteger oldPriorityID,
+         SQLInteger oldAssigneeID,
+         SQLText oldSummary,
+         SQLInteger newStatusID,
+         SQLInteger newResolutionID,
+         SQLInteger newModuleID,
+         SQLInteger newSeverityID,
+         SQLInteger newPriorityID,
+         SQLInteger newAssigneeID,
+         SQLText newSummary]
+  query ("UPDATE issues SET status = ?, resolution = ?, module = ?, severity = ?, "
+         ++ "priority = ?, assignee = ?, summary = ?, timestamp_modified = ? "
+         ++ "WHERE id = ?")
+        [SQLInteger newStatusID,
+         SQLInteger newResolutionID,
+         SQLInteger newModuleID,
+         SQLInteger newSeverityID,
+         SQLInteger newPriorityID,
+         SQLInteger newAssigneeID,
+         SQLText newSummary,
+         SQLInteger timestamp,
+         SQLInteger issueID]
+  query "COMMIT" []
+  seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
 
 
 defaultSummary :: String

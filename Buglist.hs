@@ -234,8 +234,8 @@ getUser fullName email = do
       return id
 
 
-navigationBar :: String -> Buglist String
-navigationBar currentPage = do
+getNavigationBar :: String -> Buglist String
+getNavigationBar currentPage = do
   items <- query ("SELECT name, link, separator, always_enabled, class "
                   ++ "FROM navigation_items ORDER BY id")
                  []
@@ -265,3 +265,103 @@ navigationBar currentPage = do
                              items)
            ++ "</div>\n"
   return result
+
+
+getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String
+getSubnavigationBar currentPage items = do
+  let item name link =
+          if (link /= currentPage)
+             then "<a href=\"" ++ (escapeAttribute link) ++ "\">"
+                  ++ (escapeHTML name) ++ "</a>"
+             else "<b>" ++ (escapeHTML name) ++ "</b>"
+  return $ "<div class=\"navigation\">"
+         ++ (concat $ map (\maybeItem -> case maybeItem of
+                                           Just (name, link) -> item name link
+                                           Nothing -> "<div class=\"separator\"></div>")
+                          items)
+         ++ "</div>\n"
+
+
+getStatusPopup :: Maybe Int64 -> Buglist String
+getStatusPopup maybeStatusID = do
+  statuses <- query "SELECT id, name FROM statuses ORDER BY id" []
+  return $ "<select name=\"status\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeStatusID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          statuses)
+         ++ "</select>\n"
+
+
+getResolutionPopup :: Maybe Int64 -> Buglist String
+getResolutionPopup maybeResolutionID = do
+  resolutions <- query "SELECT id, name FROM resolutions ORDER BY id" []
+  return $ "<select name=\"resolution\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeResolutionID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          resolutions)
+         ++ "</select>\n"
+
+
+getModulePopup :: Maybe Int64 -> Buglist String
+getModulePopup maybeModuleID = do
+  modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  return $ "<select name=\"module\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeModuleID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          modules)
+         ++ "</select>\n"
+
+
+getSeverityPopup :: Maybe Int64 -> Buglist String
+getSeverityPopup maybeSeverityID = do
+  severities <- query "SELECT id, name FROM severities ORDER BY id" []
+  return $ "<select name=\"severity\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeSeverityID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          severities)
+         ++ "</select>\n"
+
+
+getPriorityPopup :: Maybe Int64 -> Buglist String
+getPriorityPopup maybePriorityID = do
+  priorities <- query "SELECT id, name FROM priorities ORDER BY id" []
+  return $ "<select name=\"priority\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybePriorityID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          priorities)
+         ++ "</select>\n"

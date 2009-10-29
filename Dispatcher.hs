@@ -43,24 +43,35 @@ dispatchTable
       [("issues",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
+                                              [("which", OptionalStringParameter "open")],
                                               toDyn Controller.Issues.index))]),
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
+                                              [],
                                               toDyn Controller.Issues.view))]),
                       ("create",
                        Map.fromList [("GET", ([],
+                                              [],
                                               toDyn Controller.Issues.createGET)),
                                      ("POST", ([],
+                                               [],
                                                toDyn Controller.Issues.createPOST))]),
                       ("comment",
                        Map.fromList [("POST", ([IDParameter],
-                                               toDyn Controller.Issues.comment))])]),
+                                               [],
+                                               toDyn Controller.Issues.comment))]),
+                      ("edit",
+                       Map.fromList [("POST", ([IDParameter],
+                                               [],
+                                               toDyn Controller.Issues.edit))])]),
        ("users",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
+                                              [],
                                               toDyn Controller.Users.index))]),
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
+                                              [],
                                               toDyn Controller.Users.view))])])]
 
 
@@ -103,98 +114,43 @@ processRequest' = do
                     maybeMethodData <- return $ Map.lookup method actionData
                     case maybeMethodData of
                       Nothing -> errorActionMethod controllerName actionName method
-                      Just (urlParameterTypes, dynamicFunction)
-                          -> do
-                           case urlParameterTypes of
-                             [IDParameter] -> do
-                                             case (urlParameters, namedParameters) of
-                                               ([id], [])
-                                                   | length id > 0 && all isDigit id ->
-                                                       (fromJust
-                                                        $ fromDynamic dynamicFunction) 
-                                                       (read id :: Int64)
-                                               _ -> errorActionParameters controllerName
-                                                                          actionName
-                             _ -> do
-                                   case (urlParameters, namedParameters) of
-                                     ([], []) -> (fromJust $ fromDynamic dynamicFunction)
-                                     _ -> errorActionParameters controllerName actionName
+                      Just (urlParameterTypes, namedParameterTypes, dynamicFunction)
+                          -> invokeDynamicFunction controllerName actionName
+                                                   dynamicFunction
+                                                   urlParameters urlParameterTypes
+                                                   namedParameters namedParameterTypes
 
-{-
-      else case controllerName of
-             name | name == "issues" ->
-                      case actionName of
-                        name | name == "index" ->
-                                 case method of
-                                   _ | method == "GET" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([], []) -> Controller.Issues.index
-                                           _ -> errorActionParameters controllerName
-                                                                      actionName
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                             | name == "view" ->
-                                 case method of
-                                   _ | method == "GET" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([id], []) | length id > 0 && all isDigit id
-                                            -> Controller.Issues.view (read id)
-                                           _ -> errorActionParameters controllerName
-                                                                      actionName
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                             | name == "create" ->
-                                 case method of
-                                   _ | method == "POST" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([], []) -> Controller.Issues.createPOST
-                                     | method == "GET" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([], []) -> Controller.Issues.createGET
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                                   _ -> errorActionParameters controllerName actionName
-                             | name == "comment" ->
-                                 case method of
-                                   _ | method == "POST" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([id], []) | length id > 0 && all isDigit id
-                                            -> Controller.Issues.comment (read id)
-                                           _ -> errorActionParameters controllerName
-                                                                      actionName
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                             | True -> errorActionUndefined controllerName actionName
-             name | name == "users" ->
-                      case actionName of
-                        name | name == "index" ->
-                                 case method of
-                                   _ | method == "GET" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([], []) -> Controller.Users.index
-                                           _ -> errorActionParameters controllerName
-                                                                      actionName
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                             | name == "view" ->
-                                 case method of
-                                   _ | method == "GET" ->
-                                         case (urlParameters, namedParameters) of
-                                           ([id], []) | length id > 0 && all isDigit id
-                                              -> Controller.Users.view (read id)
-                                           _ -> errorActionParameters controllerName
-                                                                      actionName
-                                     | True -> errorActionMethod controllerName
-                                                                 actionName
-                                                                 method
-                             | True -> errorActionUndefined controllerName actionName
-                  | True -> errorControllerUndefined controllerName
--}
+invokeDynamicFunction
+    :: String -> String
+    -> Dynamic
+    -> [String] -> [ParameterType]
+    -> [(String, String)] -> [(String, ParameterType)]
+    -> Buglist CGIResult
+invokeDynamicFunction controllerName actionName
+                      dynamicFunction
+                      urlParameters urlParameterTypes
+                      namedParameters namedParameterTypes
+    = case (urlParameterTypes, namedParameterTypes) of
+        ([IDParameter], [])
+            -> case (urlParameters, namedParameters) of
+                 ([id], []) | length id > 0 && all isDigit id
+                                -> (fromJust $ fromDynamic dynamicFunction)
+                                   (read id :: Int64)
+                 _ -> errorActionParameters controllerName actionName
+        ([], [(formalParameterName, OptionalStringParameter defaultValue)])
+            -> case (urlParameters, namedParameters) of
+                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
+                             defaultValue
+                 ([], [(actualParameterName, value)])
+                     | formalParameterName == actualParameterName
+                     -> (fromJust $ fromDynamic dynamicFunction)
+                        value
+                 _ -> errorActionParameters controllerName actionName
+        ([], [])
+            -> case (urlParameters, namedParameters) of
+                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
+                 _ -> errorActionParameters controllerName actionName
+
 
 output :: String -> Buglist CGIResult
 output string = outputFPS $ UTF8.fromString string
