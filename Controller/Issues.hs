@@ -32,7 +32,7 @@ index = do
                    ++ "INNER JOIN priorities ON issues.priority = priorities.id "
                    ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
-                   ++ "ORDER BY issues.timestamp_modified")
+                   ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                   []
   output  $ "<html><head>\n"
          ++ "<title>Buglist Issues</title>\n"
@@ -41,7 +41,7 @@ index = do
          ++ "<body>\n"
          ++ "<h1>Buglist Issues</h1>\n"
          ++ "<table>\n"
-         ++ "<tr><th>ID</th><th>Date</th><th>Stat</th><th>Res</th>"
+         ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
          ++ "<th>Module</th><th>Sev</th><th>Pri</th>"
          ++ "<th>Summary</th></tr>\n"
          ++ (concat $ map (\[SQLInteger id,
@@ -57,8 +57,7 @@ index = do
                              SQLInteger modified] ->
                   "<tr><td><a href=\"/issues/view/" ++ (show id) ++ "/\">"
                   ++ (show id) ++ "</a></td>"
-                  ++ "<td>" ++ (escapeHTML $ timestampToString created) ++ "<br />"
-                  ++ (escapeHTML $ timestampToString modified) ++ "</td>"
+                  ++ "<td>" ++ (escapeHTML $ timestampToString modified) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML status) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML resolution) ++ "</td>"
                   ++ "<td>" ++ (escapeHTML module') ++ "</td>"

@@ -10,6 +10,8 @@ data BuglistState  = BuglistState {
       database :: SQL.Database
     }
 type Buglist = StateT BuglistState (CGIT IO)
+liftCGI :: CGIT IO a -> Buglist a
+liftCGI = lift
 instance MonadCGI Buglist where
-    cgiAddHeader name value = lift $ cgiAddHeader name value
-    cgiGet function = lift $ cgiGet function
+    cgiAddHeader name value = liftCGI $ cgiAddHeader name value
+    cgiGet function = liftCGI $ cgiGet function

@@ -8,6 +8,7 @@ module Dispatcher (
                    permanentRedirect,
                    seeOtherRedirect,
                    error404,
+                   error500,
                    errorControllerUndefined,
                    errorActionUndefined,
                    errorActionParameters,
@@ -19,6 +20,7 @@ module Dispatcher (
     where
 
 import Control.Concurrent
+import Control.Monad.State
 import Data.Char
 import Data.Dynamic
 import Data.Int
@@ -26,11 +28,12 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
-import Network.FastCGI hiding (output)
+import Network.FastCGI hiding (output, logCGI)
 import Prelude hiding (catch)
 
 import qualified Controller.Issues
 import qualified Controller.Users
+import Log
 import Types
 
 
@@ -74,6 +77,16 @@ instance Typeable (Buglist CGIResult)
 
 processRequest :: Buglist CGIResult
 processRequest = do
+  buglistState <- get
+  liftCGI $ catchCGI (evalStateT processRequest' buglistState)
+                     (\e -> evalStateT (do
+                                         logCGI $ "Buglist: " ++ show e
+                                         error500)
+                                       buglistState)
+                              
+
+processRequest' :: Buglist CGIResult
+processRequest' = do
     setHeader "Content-Type" "text/html; charset=UTF8"
     url <- queryString
     (controllerName, actionName, urlParameters, namedParameters)
@@ -212,6 +225,15 @@ error404 text = do
   output $ "<html><head><title>404 Not Found</title></head>"
          ++ "<body><h1>404 Not Found</h1><p>Buglist encountered an error while "
          ++ "processing this request: " ++ text ++ "</p></body></html>"
+
+error500 :: Buglist CGIResult
+error500 = do
+  setStatus 500 "Internal Server Error"
+  setHeader "Content-Type" "text/html; charset=UTF8"
+  output $ "<html><head><title>500 Internal Server Error</title></head>"
+         ++ "<body><h1>500 Internal Server Error</h1><p>"
+         ++ "Buglist encountered an error while "
+         ++ "processing this request.  The logfile has more details.</p></body></html>"
 
 errorControllerUndefined :: String -> Buglist CGIResult
 errorControllerUndefined controllerName =

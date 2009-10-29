@@ -7,6 +7,7 @@ module Dispatcher (
                    permanentRedirect,
                    seeOtherRedirect,
                    error404,
+		   error500,
                    errorControllerUndefined,
                    errorActionUndefined,
                    errorActionParameters,
@@ -36,6 +37,7 @@ abort :: Buglist CGIResult
 permanentRedirect :: String -> Buglist CGIResult
 seeOtherRedirect :: String -> Buglist CGIResult
 error404 :: String -> Buglist CGIResult
+error500 :: Buglist CGIResult
 errorControllerUndefined :: String -> Buglist CGIResult
 errorActionUndefined :: String -> String -> Buglist CGIResult
 errorActionParameters :: String -> String -> Buglist CGIResult
