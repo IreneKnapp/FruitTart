@@ -1,5 +1,6 @@
 module Controller.Users where
 
+import Data.Int
 import Data.List
 
 import Database
@@ -29,13 +30,22 @@ index = do
          ++ "</body></html>"
 
 
-view :: Int -> Buglist CGIResult
+view :: Int64 -> Buglist CGIResult
 view id = do
   rows <- query "SELECT full_name, email FROM users WHERE id = ?"
-                [SQLInteger $ fromIntegral id]
+                [SQLInteger id]
   case rows of
     [[SQLText fullName, SQLText email]]
       -> do
+       creations <- query ("SELECT "
+                         ++ "issues.timestamp_created, "
+                         ++ "'Create', "
+                         ++ "issues.summary, "
+                         ++ "issues.id "
+                         ++ "FROM issues "
+                         ++ "WHERE issues.reporter = ? "
+                         ++ "ORDER BY issues.timestamp_created DESC")
+                        [SQLInteger id]
        changes <- query ("SELECT "
                          ++ "user_issue_changes.timestamp, "
                          ++ "'Edit', "
@@ -46,8 +56,8 @@ view id = do
                          ++ "INNER JOIN issues "
                          ++ "ON user_issue_changes.issue = issues.id "
                          ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_changes.timestamp")
-                        [SQLInteger $ fromIntegral id]
+                         ++ "ORDER BY user_issue_changes.timestamp DESC")
+                        [SQLInteger id]
        comments <- query ("SELECT "
                          ++ "user_issue_comments.timestamp, "
                          ++ "'Comment', "
@@ -58,8 +68,8 @@ view id = do
                          ++ "INNER JOIN issues "
                          ++ "ON user_issue_comments.issue = issues.id "
                          ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_comments.timestamp")
-                        [SQLInteger $ fromIntegral id]
+                         ++ "ORDER BY user_issue_comments.timestamp DESC")
+                        [SQLInteger id]
        files <- query ("SELECT "
                          ++ "user_issue_attachments.timestamp, "
                          ++ "'Attachment', "
@@ -70,11 +80,14 @@ view id = do
                          ++ "INNER JOIN issues ON "
                          ++ "user_issue_attachments.issue = issues.id "
                          ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_attachments.timestamp")
-                        [SQLInteger $ fromIntegral id]
-       rows <- return $ mergeBy (\[SQLInteger a, _, _] [SQLInteger b, _, _]
-                                 -> compare a b)
-                                [changes, comments, files]
+                         ++ "ORDER BY user_issue_attachments.timestamp DESC")
+                        [SQLInteger id]
+       rows <- return $ mergeBy (\[SQLInteger a, _, _, _] [SQLInteger b, _, _, _]
+                                 -> case compare a b of
+                                      LT -> GT
+                                      GT -> LT
+                                      EQ -> EQ)
+                                [changes, files, comments, creations]
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
