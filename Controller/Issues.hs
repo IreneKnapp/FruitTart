@@ -610,7 +610,7 @@ actuallyCreateIssue moduleID summary comment fullName email = do
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
     SQLInteger defaultSeverityID, SQLInteger defaultPriorityID]]
       <- query ("SELECT status, resolution, severity, priority "
-                ++ "FROM defaults LIMIT 1")
+                ++ "FROM issue_defaults LIMIT 1")
                []
   query ("INSERT INTO issues (status, resolution, severity, priority, module, assignee, "
          ++ "reporter, summary, timestamp_created, timestamp_modified) "

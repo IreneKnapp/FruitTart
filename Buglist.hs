@@ -112,16 +112,17 @@ initDatabase database = do
        run database $ "INSERT INTO priorities (id, name) VALUES (2, 'normal')"
        run database $ "INSERT INTO priorities (id, name) VALUES (3, 'low')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS defaults (\n"
+  run database $ "CREATE TABLE IF NOT EXISTS issue_defaults (\n"
                  ++ "status INTEGER,\n"
                  ++ "resolution INTEGER,\n"
                  ++ "severity INTEGER,\n"
                  ++ "priority INTEGER\n"
                  ++ ")"
-  defaultsCount <- eval database "SELECT count(*) FROM defaults"
+  defaultsCount <- eval database "SELECT count(*) FROM issue_defaults"
   if defaultsCount == SQLInteger 0
      then do
-       run database ("INSERT INTO defaults (status, resolution, severity, priority) "
+       run database ("INSERT INTO issue_defaults "
+                     ++ "(status, resolution, severity, priority) "
                      ++ "VALUES (1, 1, 3, 2)")
      else return ()
   run database $ "CREATE TABLE IF NOT EXISTS users (\n"
