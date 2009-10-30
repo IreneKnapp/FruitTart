@@ -465,8 +465,8 @@ viewEditDetail [SQLInteger timestamp,
                                 ++ "&gt;</a>"]
                           else [],
                        if summaryChanged /= 0
-                          then ["<b>summary</b> from " ++ (escapeHTML oldSummary)
-                                ++ " to " ++ (escapeHTML newSummary)]
+                          then ["<b>summary</b> from “" ++ (escapeHTML oldSummary)
+                                ++ "” to “" ++ (escapeHTML newSummary) ++ "”"]
                           else []])
       ++ ".</h2>\n"
       ++ "</div>\n"
