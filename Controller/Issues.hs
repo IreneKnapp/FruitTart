@@ -348,11 +348,11 @@ view id = do
          ++ "</textarea></div>\n"
          ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeHTML defaultFullName)
+         ++ (escapeAttribute defaultFullName)
          ++ "\"/></div>\n"
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeHTML defaultEmail)
+         ++ (escapeAttribute defaultEmail)
          ++ "\"/></div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
@@ -374,11 +374,11 @@ view id = do
          ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
          ++ "<div><b>Assignee:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
-         ++ (escapeHTML assigneeEmail)
+         ++ (escapeAttribute assigneeEmail)
          ++ "\"/></div>\n"
          ++ "<div><b>Summary:</b> "
          ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
-         ++ (escapeHTML summary)
+         ++ (escapeAttribute summary)
          ++ "\"/></div>\n"
          ++ "<div><button type=\"submit\" value=\"Edit\">Edit</button></div>\n"
          ++ "</form>\n"
@@ -578,18 +578,18 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
               Nothing -> ""
          ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>"
          ++ "<div><b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
-         ++ "value=\"" ++ (escapeHTML summary) ++ "\" /></div>\n"
+         ++ "value=\"" ++ (escapeAttribute summary) ++ "\" /></div>\n"
          ++ "<div><b>Description:</b><br />\n"
          ++ "<textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
          ++ (escapeHTML comment)
          ++ "</textarea></div>\n"
          ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeHTML fullName)
+         ++ (escapeAttribute fullName)
          ++ "\"/></div>\n"
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeHTML email)
+         ++ (escapeAttribute email)
          ++ "\"/></div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
