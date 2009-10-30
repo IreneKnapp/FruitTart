@@ -28,6 +28,7 @@ main = do
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ BuglistState {
              database = database,
+             sessionID = Nothing,
              captchaCacheMVar = captchaCacheMVar
            }
   runFastCGIorCGI $ evalStateT Dispatcher.processRequest state
@@ -36,6 +37,13 @@ main = do
 
 initDatabase :: SQL.Database -> IO ()
 initDatabase database = do
+  run database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
+                 ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                 ++ "timestamp_activity INTEGER,\n"
+                 ++ "logged_in_user INTEGER,\n"
+                 ++ "issue_index_filter_which TEXT,\n"
+                 ++ "issue_index_filter_module INTEGER\n"
+                 ++ ")"
   run database $ "CREATE TABLE IF NOT EXISTS issues (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "status INTEGER,\n"
@@ -48,7 +56,7 @@ initDatabase database = do
                  ++ "summary TEXT,\n"
                  ++ "timestamp_created INTEGER,\n"
                  ++ "timestamp_modified INTEGER,\n"
-                 ++ "CONSTRAINT key UNIQUE (reporter, timestamp_created)"
+                 ++ "CONSTRAINT key UNIQUE (reporter, timestamp_created)\n"
                  ++ ")"
   run database $ "CREATE TABLE IF NOT EXISTS statuses (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"

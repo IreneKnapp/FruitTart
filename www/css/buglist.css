@@ -86,8 +86,8 @@ button {
   font-size: 200%;
   padding-left: 0.5em;
   padding-right: 0.75em;
-  -webkit-border-radius: 1.3em;
-  -moz-border-radius: 1.3em;
+  -webkit-border-radius: 0.5em;
+  -moz-border-radius: 0.5em;
   border: solid #888 1px;
   width: 200px;
   text-shadow: 0.1em 0.1em 0.05em #ccc;

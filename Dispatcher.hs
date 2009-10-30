@@ -30,11 +30,15 @@ import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Network.FastCGI hiding (output, logCGI)
 import Prelude hiding (catch)
+import System.Time
 
 import qualified Controller.Issues
 import qualified Controller.Users
 import qualified Controller.Captcha
+import Database
 import Log
+import SQLite3 (SQLData(..))
+import qualified SQLite3 as SQL
 import Types
 
 
@@ -94,18 +98,19 @@ processRequest = do
                                          logCGI $ "Buglist: " ++ show e
                                          error500)
                                        buglistState)
-                              
+
 
 processRequest' :: Buglist CGIResult
 processRequest' = do
-    setHeader "Content-Type" "text/html; charset=UTF8"
-    url <- queryString
-    (controllerName, actionName, urlParameters, namedParameters)
+  initializeSession
+  setHeader "Content-Type" "text/html; charset=UTF8"
+  url <- queryString
+  (controllerName, actionName, urlParameters, namedParameters)
         <- return $ parseURL url
-    canonical <- return
+  canonical <- return
         $ canonicalURL controllerName actionName urlParameters namedParameters
-    method <- requestMethod
-    if url /= canonical
+  method <- requestMethod
+  result <- if url /= canonical
       then permanentRedirect canonical
       else do
         maybeControllerData <- return $ Map.lookup controllerName dispatchTable
@@ -126,6 +131,8 @@ processRequest' = do
                                                    dynamicFunction
                                                    urlParameters urlParameterTypes
                                                    namedParameters namedParameterTypes
+  endSession
+  return result
 
 invokeDynamicFunction
     :: String -> String
@@ -282,3 +289,62 @@ canonicalURL controllerName actionName urlParameters namedParameters =
                                                         "/"])
                               namedParameters
     in concat [basePart, urlParametersPart, namedParametersPart]
+
+
+initializeSession :: Buglist ()
+initializeSession = do
+  timestamp <- getTimestamp
+  query "DELETE FROM sessions WHERE timestamp_activity < ?"
+        [SQLInteger $ timestamp - (60*60*24*30)]
+  maybeSessionCookie <- getCookie "session"
+  sessionID <- case maybeSessionCookie of
+    Nothing -> generateSessionID
+    Just sessionCookie -> do
+                      rows <- query "SELECT id FROM sessions WHERE id = ?"
+                              [SQLInteger $ read sessionCookie]
+                      case rows of
+                        [[SQLInteger _]] -> return sessionCookie
+                        [] -> generateSessionID
+  query "UPDATE sessions SET timestamp_activity = ? WHERE id = ?"
+        [SQLInteger timestamp,
+         SQLInteger $ read sessionID]
+  setCookie $ Cookie {
+                      cookieName = "session",
+                      cookieValue = sessionID,
+                      cookiePath = Just "/",
+                      cookieExpires = Just $ CalendarTime {
+                                        ctYear = 3000,
+                                        ctMonth = January,
+                                        ctDay = 1,
+                                        ctHour = 0,
+                                        ctMin = 0,
+                                        ctSec = 0,
+                                        ctPicosec = 0,
+                                        ctWDay = Monday,
+                                        ctYDay = 1,
+                                        ctTZName = "UTC",
+                                        ctTZ = 0,
+                                        ctIsDST = False
+                                      },
+                      cookieDomain = Nothing,
+                      cookieSecure = False
+                    }
+  buglistState <- get
+  put $ buglistState { sessionID = Just sessionID }
+
+
+endSession :: Buglist ()
+endSession = do
+  buglistState <- get
+  put $ buglistState { sessionID = Nothing }
+
+
+generateSessionID :: Buglist String
+generateSessionID = do
+  timestamp <- getTimestamp
+  query "BEGIN EXCLUSIVE TRANSACTION" []
+  query "INSERT INTO sessions (timestamp_activity, logged_in_user) VALUES (?, 0)"
+        [SQLInteger timestamp]
+  [[SQLInteger sessionIDNumber]] <- query "SELECT max(id) FROM sessions" []
+  query "COMMIT" []
+  return $ show sessionIDNumber

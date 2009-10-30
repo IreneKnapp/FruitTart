@@ -682,10 +682,15 @@ actuallyCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResul
 actuallyCreateComment issueID comment fullName email = do
   commenterID <- getUser fullName email
   timestamp <- getTimestamp
+  query "BEGIN TRANSACTION" []
   query ("INSERT INTO user_issue_comments (user, issue, timestamp, text) "
          ++ "VALUES (?, ?, ?, ?)")
         [SQLInteger commenterID, SQLInteger issueID, SQLInteger timestamp,
          SQLText comment]
+  query ("UPDATE issues SET timestamp_modified = ? WHERE id = ?")
+        [SQLInteger timestamp,
+         SQLInteger issueID]
+  query "COMMIT" []
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
 
 
