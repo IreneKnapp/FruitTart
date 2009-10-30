@@ -348,11 +348,11 @@ view id = do
          ++ "</textarea></div>\n"
          ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ defaultFullName
+         ++ (escapeHTML defaultFullName)
          ++ "\"/></div>\n"
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ defaultEmail
+         ++ (escapeHTML defaultEmail)
          ++ "\"/></div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
@@ -374,11 +374,11 @@ view id = do
          ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
          ++ "<div><b>Assignee:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
-         ++ assigneeEmail
+         ++ (escapeHTML assigneeEmail)
          ++ "\"/></div>\n"
          ++ "<div><b>Summary:</b> "
          ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
-         ++ summary
+         ++ (escapeHTML summary)
          ++ "\"/></div>\n"
          ++ "<div><button type=\"submit\" value=\"Edit\">Edit</button></div>\n"
          ++ "</form>\n"
@@ -573,22 +573,23 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<h1>Report an Issue</h1>\n"
          ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
          ++ case maybeWarning of
-              Just warning -> "<div class=\"warning note\">" ++ warning ++ "</div>\n"
+              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
+                              ++ "</div>\n"
               Nothing -> ""
          ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>"
          ++ "<div><b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
-         ++ "value=\"" ++ summary ++ "\" /></div>\n"
+         ++ "value=\"" ++ (escapeHTML summary) ++ "\" /></div>\n"
          ++ "<div><b>Description:</b><br />\n"
          ++ "<textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
-         ++ comment
+         ++ (escapeHTML comment)
          ++ "</textarea></div>\n"
          ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ fullName
+         ++ (escapeHTML fullName)
          ++ "\"/></div>\n"
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ email
+         ++ (escapeHTML email)
          ++ "\"/></div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
