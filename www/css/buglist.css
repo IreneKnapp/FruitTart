@@ -95,12 +95,18 @@ button {
 
 
 button, select {
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 80%, from(#ccc), to(#fff));
-  background-image: -moz-linear-gradient(0 0, 0 80%, from(#ccc), to(#fff));
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
+				     from(#9c6),
+				     color-stop(50%, #fff),
+				     color-stop(51%, #9c6));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#9c6),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #9c6));
 }
 
 
-button:active, select:active, div.foo:active {
+button:active, select:active {
   background-image: -webkit-gradient(linear, 0% 0%, 0% 90%, from(#6bf), to(#269));
   background-image: -moz-linear-gradient(0% 0%, 0% 90%, from(#6bf), to(#269));
 }

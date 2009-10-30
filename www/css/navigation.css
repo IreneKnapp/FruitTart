@@ -53,6 +53,10 @@ div#navigation > a, div.navigation > a {
 				     from(#9c6),
 				     color-stop(50%, #fff),
 				     color-stop(51%, #9c6));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#9c6),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #9c6));
 }
 
 div#navigation > b, div#navigation > a.disabled, div.navigation > b {
@@ -62,6 +66,10 @@ div#navigation > b, div#navigation > a.disabled, div.navigation > b {
 				     from(#888),
 				     color-stop(50%, #fff),
 				     color-stop(51%, #000));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#888),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #000));
 }
 
 div#navigation > b, div#navigation > b *,
@@ -81,4 +89,8 @@ div#navigation, div#navigation > div.separator, div.navigation > div.separator {
 				     from(#684),
 				     color-stop(50%, #fff),
 				     color-stop(51%, #684));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#684),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #684));
 }
