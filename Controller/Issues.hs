@@ -169,7 +169,11 @@ index maybeWhich maybeModuleID = do
 
 
 view :: Int64 -> Buglist CGIResult
-view id = do
+view id = outputView id "" defaultFullName defaultEmail Nothing
+
+
+outputView :: Int64 -> String -> String -> String -> (Maybe String) -> Buglist CGIResult
+outputView id comment fullName email maybeWarning = do
   info <- query ("SELECT "
                  ++ "statuses.id,"
                  ++ "statuses.name, "
@@ -342,17 +346,23 @@ view id = do
          ++ "</table>\n"
          ++ (concat $ map (\row -> viewDetail id row) rows)
          ++ "<div class=\"form\">\n"
-         ++ "<h2>Comment on this issue?</h2>\n"
-         ++ "<form method=\"POST\" action=\"/issues/comment/" ++ (show id) ++ "/\">\n"
+         ++ "<a name=\"comment\"><h2>Comment on this issue?</h2></a>\n"
+         ++ "<form method=\"POST\" action=\"/issues/comment/"
+         ++ (show id) ++ "/#comment\">\n"
+         ++ case maybeWarning of
+              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
+                              ++ "</div>\n"
+              Nothing -> ""
          ++ "<div><textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
+         ++ (escapeHTML comment)
          ++ "</textarea></div>\n"
          ++ "<div><b>Full Name:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeAttribute defaultFullName)
+         ++ (escapeAttribute fullName)
          ++ "\"/></div>\n"
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeAttribute defaultEmail)
+         ++ (escapeAttribute email)
          ++ "\"/></div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
@@ -665,7 +675,7 @@ comment issueID = do
 
 doNotCreateComment :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
 doNotCreateComment issueID comment fullName email warning = do
-  output $ "Did not create comment: " ++ warning
+  outputView issueID comment fullName email (Just warning)
 
 
 actuallyCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResult
