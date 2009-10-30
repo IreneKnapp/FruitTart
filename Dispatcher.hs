@@ -303,14 +303,14 @@ initializeSession = do
                       rows <- query "SELECT id FROM sessions WHERE id = ?"
                               [SQLInteger $ read sessionCookie]
                       case rows of
-                        [[SQLInteger _]] -> return sessionCookie
+                        [[SQLInteger _]] -> return $ read sessionCookie
                         [] -> generateSessionID
   query "UPDATE sessions SET timestamp_activity = ? WHERE id = ?"
         [SQLInteger timestamp,
-         SQLInteger $ read sessionID]
+         SQLInteger sessionID]
   setCookie $ Cookie {
                       cookieName = "session",
-                      cookieValue = sessionID,
+                      cookieValue = show sessionID,
                       cookiePath = Just "/",
                       cookieExpires = Just $ CalendarTime {
                                         ctYear = 3000,
@@ -339,12 +339,12 @@ endSession = do
   put $ buglistState { sessionID = Nothing }
 
 
-generateSessionID :: Buglist String
+generateSessionID :: Buglist Int64
 generateSessionID = do
   timestamp <- getTimestamp
   query "BEGIN EXCLUSIVE TRANSACTION" []
   query "INSERT INTO sessions (timestamp_activity, logged_in_user) VALUES (?, 0)"
         [SQLInteger timestamp]
-  [[SQLInteger sessionIDNumber]] <- query "SELECT max(id) FROM sessions" []
+  [[SQLInteger sessionID]] <- query "SELECT max(id) FROM sessions" []
   query "COMMIT" []
-  return $ show sessionIDNumber
+  return sessionID

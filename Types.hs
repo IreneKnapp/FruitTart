@@ -13,7 +13,7 @@ import qualified SQLite3 as SQL
 
 data BuglistState  = BuglistState {
       database :: SQL.Database,
-      sessionID :: Maybe String,
+      sessionID :: Maybe Int64,
       captchaCacheMVar :: MVar (Map Int64 (String, ByteString))
     }
 type Buglist = StateT BuglistState (CGIT IO)
