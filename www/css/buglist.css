@@ -190,3 +190,9 @@ form > div:first-child {
 form > div {
   margin: 1em;
 }
+
+
+img.captcha {
+  border: solid gray 2px;
+  vertical-align: middle;
+}

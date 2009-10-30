@@ -20,7 +20,6 @@ div#navigation > a, div#navigation > b, div#navigation > div.separator {
 div.navigation > div.separator {
   display: inline;
   border: none;
-  border-bottom: solid gray 1px;
 }
 
 div#navigation > a, div#navigation > b, div#navigation > div.separator,
@@ -40,6 +39,9 @@ div.navigation > a:first-child, div.navigation > b:first-child {
 
 div.navigation > a, div.navigation > b {
   padding: 0.25em;
+}
+
+div.navigation > a, div.navigation > b, div.navigation > div.separator {
   border-bottom: solid gray 1px;
   border-right: solid gray 1px;
 }

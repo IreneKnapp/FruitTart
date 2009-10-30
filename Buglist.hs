@@ -1,7 +1,10 @@
 module Buglist where
 
+import Control.Concurrent
 import Control.Monad.State
 import Data.Int
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Network.FastCGI hiding (logCGI)
 import Network.CGI.Monad
 import System.Environment
@@ -22,8 +25,10 @@ main = do
   databasePath <- getEnv "BUGLIST_DB"
   database <- SQL.open databasePath
   initDatabase database
+  captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ BuglistState {
-             database = database
+             database = database,
+             captchaCacheMVar = captchaCacheMVar
            }
   runFastCGIorCGI $ evalStateT Dispatcher.processRequest state
   return ()

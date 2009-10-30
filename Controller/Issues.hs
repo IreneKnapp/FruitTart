@@ -2,9 +2,11 @@ module Controller.Issues where
 
 import Data.Int
 import Data.List
+import Data.Maybe
 import Network.FastCGI hiding (output)
 
 import Buglist
+import Controller.Captcha
 import Database
 import {-# SOURCE #-} Dispatcher
 import HTML
@@ -12,17 +14,42 @@ import Lists
 import SQLite3 (SQLData(..))
 import Text
 
-index :: String -> Buglist CGIResult
-index which = do
-  which <- return $ if elem which ["open", "closed", "all"] then which else "all"
-  whereClause <- return $ case which of
-                   _ | which == "open" -> "WHERE statuses.name != 'CLOSED' "
-                     | which == "closed" -> "WHERE statuses.name == 'CLOSED' "
-                     | which == "all" -> ""
-  reportName <- return $ case which of
+index :: Maybe String -> Maybe Int64 -> Buglist CGIResult
+index maybeWhich maybeModuleID = do
+  which <- return $ case maybeWhich of
+                      Nothing -> "open"
+                      Just which | elem which ["open", "closed", "all"] -> which
+                                 | True -> "open"
+  maybeModuleName
+      <- case maybeModuleID of
+           Nothing -> return Nothing
+           Just moduleID -> do
+                [[SQLText moduleName]] <- query "SELECT name FROM modules WHERE id = ?"
+                                                [SQLInteger moduleID]
+                return $ Just moduleName
+  whereClauseBody <- return
+                     $ intercalate " AND "
+                     $ concat [case which of
+                                 _ | which == "open" -> ["statuses.name != 'CLOSED' "]
+                                   | which == "closed" -> ["statuses.name == 'CLOSED' "]
+                                   | which == "all" -> [],
+                               case maybeModuleID of
+                                 Nothing -> []
+                                 Just moduleID -> ["module = ? "]]
+  whereClause <- return $ if whereClauseBody == ""
+                        then ""
+                        else "WHERE " ++ whereClauseBody
+  whereClauseParameters <- return $ case maybeModuleID of
+                                      Nothing -> []
+                                      Just moduleID -> [SQLInteger moduleID]
+  reportNamePart1 <- return $ case which of
                    _ | which == "open" -> "Open Issues"
                      | which == "closed" -> "Closed Issues"
                      | which == "all" -> "All Issues"
+  reportNamePart2 <- return $ case maybeModuleName of
+                                Nothing -> "All Modules"
+                                Just moduleName -> moduleName
+  reportName <- return $ reportNamePart1 ++ " in " ++ reportNamePart2
   values <- query ("SELECT "
                    ++ "issues.id, "
                    ++ "statuses.name, "
@@ -44,14 +71,54 @@ index which = do
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
                    ++ whereClause
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
-                  []
+                  ([] ++ whereClauseParameters)
   navigationBar <- getNavigationBar "/issues/index/"
-  subnavigationBar <- getSubnavigationBar ("/issues/index/which:" ++ which ++ "/")
-                      $ [Just ("All Issues", "/issues/index/which:all/"),
-                         Just ("Open Issues", "/issues/index/which:open/"),
-                         Just ("Closed Issues", "/issues/index/which:closed/"),
+  currentPathWhichPart <- return $ "which:" ++ which ++ "/"
+  currentPathModulePart <- return $ case maybeModuleID of
+                             Nothing -> ""
+                             Just moduleID -> "module:" ++ (show moduleID) ++ "/"
+  currentPath <- return $ "/issues/index/"
+                        ++ currentPathWhichPart
+                        ++ currentPathModulePart
+  subnavigationBar <- getSubnavigationBar
+                      currentPath
+                      $ [Just ("All Issues",
+                               "/issues/index/which:all/" ++ currentPathModulePart),
+                         Just ("Open Issues",
+                               "/issues/index/which:open/" ++ currentPathModulePart),
+                         Just ("Closed Issues",
+                               "/issues/index/which:closed/" ++ currentPathModulePart),
                          Nothing,
                          Just ("All Modules", "/issues/index/which:" ++ which ++ "/")]
+                      ++ (case maybeModuleID of
+                            Nothing -> []
+                            Just moduleID
+                                -> [Just (fromJust $ maybeModuleName,
+                                          "/issues/index/"
+                                          ++ currentPathWhichPart
+                                          ++ "module:" ++ (show moduleID) ++ "/")])
+  let filterItem name link
+          = if currentPath == link
+            then "<b>" ++ (escapeHTML name) ++ "</b>"
+            else "<a href=\"" ++ (escapeAttribute link ) ++ "\">"
+                 ++ (escapeHTML name) ++ "</a>"
+  statusFilterList <- return $ map (\(name, link) -> filterItem name link)
+                          [("All Issues",
+                            "/issues/index/which:all/" ++ currentPathModulePart),
+                           ("Open Issues",
+                            "/issues/index/which:open/" ++ currentPathModulePart),
+                           ("Closed Issues",
+                            "/issues/index/which:closed/" ++ currentPathModulePart)]
+  modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  modulesFilterList <- return $ [filterItem "All Modules"
+                                      ("/issues/index/" ++ currentPathWhichPart)]
+                                 ++ (map (\[SQLInteger id, SQLText name]
+                                              -> filterItem
+                                                   name
+                                                   ("/issues/index/"
+                                                    ++ currentPathWhichPart
+                                                    ++ "module:" ++ (show id) ++ "/"))
+                                           modules)
   output  $ "<html><head>\n"
          ++ "<title>" ++ reportName ++ "</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
@@ -89,6 +156,15 @@ index which = do
                   ++ "</tr>\n")
                  values)
          ++ "</table>\n"
+         ++ "<h1>Filter Options</h1>\n"
+         ++ "<ul>\n"
+         ++ "<li><b>By Status</b><ul>\n"
+         ++ (concat $ map (\item -> "<li>" ++ item ++ "</li>\n") statusFilterList)
+         ++ "</ul></li>\n"
+         ++ "<li><b>By Module</b><ul>\n"
+         ++ (concat $ map (\item -> "<li>" ++ item ++ "</li>\n") modulesFilterList)
+         ++ "</ul></li>\n"
+         ++ "</ul>\n"
          ++ "</body></html>"
 
 
@@ -235,6 +311,7 @@ view id = do
        modulePopup <- getModulePopup $ Just moduleID
        severityPopup <- getSeverityPopup $ Just severityID
        priorityPopup <- getPriorityPopup $ Just priorityID
+       captchaTimestamp <- generateCaptcha
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
@@ -277,6 +354,13 @@ view id = do
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ defaultEmail
          ++ "\"/></div>\n"
+         ++ "<div><b>The letters in this image:</b> "
+         ++ "<img class=\"captcha\" src=\"/captcha/index/"
+         ++ (show captchaTimestamp) ++ "/\"/> "
+         ++ "<input type=\"text\" size=\"6\" name=\"captcha-response\" value=\"\"/>"
+         ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
+         ++ (show captchaTimestamp) ++ "\"/>"
+         ++ "</div>"
          ++ "<div><button type=\"submit\" value=\"Comment\">Comment</button></div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
@@ -453,13 +537,25 @@ createPOST = do
                Just "" -> defaultEmail
                Just email -> fromCRLF email
                Nothing -> defaultEmail
+  maybeCaptchaTimestamp <- getInput "captcha-timestamp"
+  captchaTimestamp <- return $ case maybeCaptchaTimestamp of
+                                 Just captchaTimestamp -> read captchaTimestamp
+                                 Nothing -> 0
+  maybeCaptchaResponse <- getInput "captcha-response"
+  captchaResponse <- return $ case maybeCaptchaResponse of
+                                Just captchaResponse -> captchaResponse
+                                Nothing -> ""
+  captchaValid <- checkCaptcha captchaTimestamp captchaResponse
   if (summary == "") || (summary == defaultSummary) || (elem '\n' summary)
     then doNotCreateIssue moduleID summary comment fullName email
                           (Just "Please enter a one-line summary.")
     else if (comment == "") || (comment == defaultComment)
          then doNotCreateIssue moduleID summary comment fullName email
                                (Just "Please enter a description of the problem.")
-         else actuallyCreateIssue moduleID summary comment fullName email
+         else if not captchaValid
+              then doNotCreateIssue moduleID summary comment fullName email
+                                    (Just "Please enter the letters in the image below.")
+              else actuallyCreateIssue moduleID summary comment fullName email
 
 
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
@@ -467,6 +563,7 @@ doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe Strin
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   navigationBar <- getNavigationBar "/issues/create/"
   modulePopup <- getModulePopup $ Just moduleID
+  captchaTimestamp <- generateCaptcha
   output $ "<html><head>\n"
          ++ "<title>Report an Issue</title>\n"
          ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
@@ -493,6 +590,13 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ email
          ++ "\"/></div>\n"
+         ++ "<div><b>The letters in this image:</b> "
+         ++ "<img class=\"captcha\" src=\"/captcha/index/"
+         ++ (show captchaTimestamp) ++ "/\"/> "
+         ++ "<input type=\"text\" size=\"6\" name=\"captcha-response\" value=\"\"/>"
+         ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
+         ++ (show captchaTimestamp) ++ "\"/>"
+         ++ "</div>"
          ++ "<div><button type=\"submit\" value=\"Report\">Report</button></div>\n"
          ++ "</form>\n"
          ++ "</body></html>"
@@ -541,14 +645,26 @@ comment issueID = do
                Just "" -> defaultEmail
                Just email -> fromCRLF email
                Nothing -> defaultEmail
+  maybeCaptchaTimestamp <- getInput "captcha-timestamp"
+  captchaTimestamp <- return $ case maybeCaptchaTimestamp of
+                                 Just captchaTimestamp -> read captchaTimestamp
+                                 Nothing -> 0
+  maybeCaptchaResponse <- getInput "captcha-response"
+  captchaResponse <- return $ case maybeCaptchaResponse of
+                                Just captchaResponse -> captchaResponse
+                                Nothing -> ""
+  captchaValid <- checkCaptcha captchaTimestamp captchaResponse
   if (comment == "")
-     then doNotCreateComment issueID comment fullName email
-     else actuallyCreateComment issueID comment fullName email
+     then doNotCreateComment issueID comment fullName email "Please enter a comment!"
+     else if not captchaValid
+          then doNotCreateComment issueID comment fullName email
+                                  "Please enter the letters in the image below."
+          else actuallyCreateComment issueID comment fullName email
 
 
-doNotCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResult
-doNotCreateComment issueID comment fullName email = do
-  output "Did not create comment."
+doNotCreateComment :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
+doNotCreateComment issueID comment fullName email warning = do
+  output $ "Did not create comment: " ++ warning
 
 
 actuallyCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResult
@@ -661,16 +777,13 @@ defaultSummary = "Short description of the problem"
 
 defaultComment :: String
 defaultComment
-   =  "Steps to Reproduce\n"
-   ++ "==================\n"
+   =  "STEPS TO REPRODUCE\n"
    ++ "\n"
    ++ "\n"
-   ++ "Expected Behavior\n"
-   ++ "=================\n"
+   ++ "EXPECTED BEHAVIOR\n"
    ++ "\n"
    ++ "\n"
-   ++ "Actual Result\n"
-   ++ "=============\n"
+   ++ "ACTUAL RESULT\n"
 
 
 defaultFullName :: String

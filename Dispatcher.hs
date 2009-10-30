@@ -33,6 +33,7 @@ import Prelude hiding (catch)
 
 import qualified Controller.Issues
 import qualified Controller.Users
+import qualified Controller.Captcha
 import Log
 import Types
 
@@ -43,7 +44,8 @@ dispatchTable
       [("issues",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
-                                              [("which", OptionalStringParameter "open")],
+                                              [("which", OptionalStringParameter),
+                                               ("module", OptionalIDParameter)],
                                               toDyn Controller.Issues.index))]),
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
@@ -72,7 +74,12 @@ dispatchTable
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
                                               [],
-                                              toDyn Controller.Users.view))])])]
+                                              toDyn Controller.Users.view))])]),
+       ("captcha",
+        Map.fromList [("index",
+                       Map.fromList [("GET", ([IDParameter],
+                                              [],
+                                              toDyn Controller.Captcha.index))])])]
 
 
 instance Typeable (Buglist CGIResult)
@@ -137,14 +144,34 @@ invokeDynamicFunction controllerName actionName
                                 -> (fromJust $ fromDynamic dynamicFunction)
                                    (read id :: Int64)
                  _ -> errorActionParameters controllerName actionName
-        ([], [(formalParameterName, OptionalStringParameter defaultValue)])
+        ([], [(formalParameterName, OptionalStringParameter)])
             -> case (urlParameters, namedParameters) of
                  ([], []) -> (fromJust $ fromDynamic dynamicFunction)
-                             defaultValue
+                             (Nothing :: Maybe String)
                  ([], [(actualParameterName, value)])
                      | formalParameterName == actualParameterName
                      -> (fromJust $ fromDynamic dynamicFunction)
-                        value
+                        (Just value)
+                 _ -> errorActionParameters controllerName actionName
+        ([], [(formalParameterName1, OptionalStringParameter),
+              (formalParameterName2, OptionalIDParameter)])
+            -> case (urlParameters, namedParameters) of
+                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
+                             (Nothing :: Maybe String)
+                             (Nothing :: Maybe Int64)
+                 ([], [(actualParameterName1, value)])
+                     | formalParameterName1 == actualParameterName1
+                     -> (fromJust $ fromDynamic dynamicFunction)
+                        (Just value)
+                        (Nothing :: Maybe Int64)
+                 ([], [(actualParameterName1, value1),
+                       (actualParameterName2, value2)])
+                     | (formalParameterName1 == actualParameterName1)
+                       && (formalParameterName2 == actualParameterName2)
+                       && ((length value2 > 0) && (all isDigit value2))
+                     -> (fromJust $ fromDynamic dynamicFunction)
+                        (Just value1 :: Maybe String)
+                        (Just $ read value2 :: Maybe Int64)
                  _ -> errorActionParameters controllerName actionName
         ([], [])
             -> case (urlParameters, namedParameters) of
