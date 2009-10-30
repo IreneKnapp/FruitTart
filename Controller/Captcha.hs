@@ -53,8 +53,10 @@ checkCaptcha :: Int64 -> String -> Buglist Bool
 checkCaptcha timestamp responseString = do
   expireOldCaptchas
   BuglistState { captchaCacheMVar = captchaCacheMVar } <- get
-  captchaCache <- liftIO $ readMVar captchaCacheMVar
+  captchaCache <- liftIO $ takeMVar captchaCacheMVar
   captcha <- return $ Map.lookup timestamp captchaCache
+  captchaCache' <- return $ Map.delete timestamp captchaCache
+  liftIO $ putMVar captchaCacheMVar captchaCache'
   case captcha of
     Nothing -> return False
     Just (challengeString, _) -> return $ (map toUpper responseString)
