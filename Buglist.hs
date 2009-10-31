@@ -254,6 +254,7 @@ getPageHeadItems
     = return 
       ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
        ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+       ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
        ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
 
 
@@ -292,8 +293,7 @@ getNavigationBar currentPage = do
 
 getLoginButton :: Buglist String
 getLoginButton = do
-  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\" "
-          ++ "onclick=\"showLoginBox(); return false;\">Log In</a>"
+  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
           ++ "<div id=\"loginbox\" style=\"display: none;\">"
           ++ "<form method=\"POST\" action=\"/login/login/\">\n"
           ++ "<div><b>Email:</b> "
