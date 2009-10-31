@@ -15,7 +15,8 @@ module Dispatcher (
                    errorActionMethod,
                    errorInvalidID,
                    parseURL,
-                   canonicalURL
+                   canonicalURL,
+                   getSessionID
                   )
     where
 
@@ -348,3 +349,9 @@ generateSessionID = do
   [[SQLInteger sessionID]] <- query "SELECT max(id) FROM sessions" []
   query "COMMIT" []
   return sessionID
+
+
+getSessionID :: Buglist Int64
+getSessionID = do
+  BuglistState { sessionID = sessionID } <- get
+  return $ fromJust sessionID

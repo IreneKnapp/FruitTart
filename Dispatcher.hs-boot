@@ -14,12 +14,14 @@ module Dispatcher (
                    errorActionMethod,
 		   errorInvalidID,
                    parseURL,
-                   canonicalURL
+                   canonicalURL,
+		   getSessionID
                   )
     where
 
 import Control.Exception
 import Data.Char
+import Data.Int
 import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Data.Typeable
@@ -45,3 +47,4 @@ errorActionMethod :: String -> String -> String -> Buglist CGIResult
 errorInvalidID :: String -> Buglist CGIResult
 parseURL :: String -> (String, String, [String], [(String, String)])
 canonicalURL :: String -> String -> [String] -> [(String, String)] -> String
+getSessionID :: Buglist Int64

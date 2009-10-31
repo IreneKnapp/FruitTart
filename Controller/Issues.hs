@@ -16,10 +16,32 @@ import Text
 
 index :: Maybe String -> Maybe Int64 -> Buglist CGIResult
 index maybeWhich maybeModuleID = do
+  sessionID <- getSessionID
+  [[maybeDatabaseWhich, maybeDatabaseModuleID]]
+    <- query ("SELECT issue_index_filter_which, issue_index_filter_module FROM sessions "
+              ++ "WHERE id = ?")
+             [SQLInteger sessionID]
   which <- return $ case maybeWhich of
-                      Nothing -> "open"
-                      Just which | elem which ["open", "closed", "all"] -> which
-                                 | True -> "open"
+             Nothing -> case maybeDatabaseWhich of
+                          SQLText which | elem which ["open", "closed", "all"] -> which
+                          _ -> "open"
+             Just which | elem which ["open", "closed", "all"] -> which
+                        | True -> "open"
+  maybeDatabaseModuleID <- return $ case maybeDatabaseModuleID of
+                             SQLInteger moduleID -> Just moduleID
+                             _ -> Nothing
+  maybeDatabaseModuleName
+    <- case maybeDatabaseModuleID of
+         Nothing -> return Nothing
+         Just databaseModuleID -> do
+             [[maybeDatabaseModuleName]] <- query "SELECT name FROM modules WHERE id = ?"
+                                                  [SQLInteger databaseModuleID]
+             case maybeDatabaseModuleName of
+               SQLText databaseModuleName -> return $ Just databaseModuleName
+               _ -> return Nothing
+  maybeModuleID <- return $ case maybeModuleID of
+                     Nothing -> maybeDatabaseModuleID
+                     _ -> maybeModuleID
   maybeModuleName
       <- case maybeModuleID of
            Nothing -> return Nothing
@@ -27,6 +49,19 @@ index maybeWhich maybeModuleID = do
                 [[SQLText moduleName]] <- query "SELECT name FROM modules WHERE id = ?"
                                                 [SQLInteger moduleID]
                 return $ Just moduleName
+  query ("UPDATE sessions SET issue_index_filter_which = ?, "
+         ++ "issue_index_filter_module = ? WHERE id = ?")
+        [SQLText which,
+         case maybeModuleID of
+           Nothing -> case maybeDatabaseModuleID of
+                        Nothing -> SQLNull
+                        Just moduleID -> SQLInteger moduleID
+           Just moduleID -> SQLInteger moduleID,
+         SQLInteger sessionID]
+  (maybeSubnavigationModuleID, maybeSubnavigationModuleName)
+      <- return $ case maybeModuleID of
+           Nothing -> (maybeDatabaseModuleID, maybeDatabaseModuleName)
+           _ -> (maybeModuleID, maybeModuleName)
   whereClauseBody <- return
                      $ intercalate " AND "
                      $ concat [case which of
@@ -90,10 +125,10 @@ index maybeWhich maybeModuleID = do
                                "/issues/index/which:closed/" ++ currentPathModulePart),
                          Nothing,
                          Just ("All Modules", "/issues/index/which:" ++ which ++ "/")]
-                      ++ (case maybeModuleID of
+                      ++ (case maybeSubnavigationModuleID of
                             Nothing -> []
                             Just moduleID
-                                -> [Just (fromJust $ maybeModuleName,
+                                -> [Just (fromJust $ maybeSubnavigationModuleName,
                                           "/issues/index/"
                                           ++ currentPathWhichPart
                                           ++ "module:" ++ (show moduleID) ++ "/")])
