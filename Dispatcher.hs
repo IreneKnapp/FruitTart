@@ -33,9 +33,10 @@ import Network.FastCGI hiding (output, logCGI)
 import Prelude hiding (catch)
 import System.Time
 
-import qualified Controller.Issues
-import qualified Controller.Users
 import qualified Controller.Captcha
+import qualified Controller.Issues
+import qualified Controller.Login
+import qualified Controller.Users
 import Database
 import Log
 import SQLite3 (SQLData(..))
@@ -46,7 +47,19 @@ import Types
 dispatchTable :: DispatchTable
 dispatchTable
     = Map.fromList
-      [("issues",
+      [("login",
+        Map.fromList [("login",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn Controller.Login.loginGET)),
+                                     ("POST", ([],
+                                               [],
+                                               toDyn Controller.Login.loginPOST))]),
+                      ("logout",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn Controller.Login.logout))])]),
+       ("issues",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
                                               [("which", StringParameter),

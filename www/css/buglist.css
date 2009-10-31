@@ -179,6 +179,13 @@ div.form {
 }
 
 
+div.form.mini {
+  max-width: 20em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
 form {
   border: dashed black 2px;
   margin: 0.5em;

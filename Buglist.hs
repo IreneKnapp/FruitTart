@@ -292,10 +292,10 @@ getNavigationBar currentPage = do
 
 getLoginButton :: Buglist String
 getLoginButton = do
-  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/index/\" "
+  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\" "
           ++ "onclick=\"showLoginBox(); return false;\">Log In</a>"
           ++ "<div id=\"loginbox\" style=\"display: none;\">"
-          ++ "<form method=\"POST\" action=\"/login/index/\">\n"
+          ++ "<form method=\"POST\" action=\"/login/login/\">\n"
           ++ "<div><b>Email:</b> "
           ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
           ++ (escapeAttribute "")
