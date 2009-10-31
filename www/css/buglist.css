@@ -96,11 +96,15 @@ button, select {
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
 				     from(#9c6),
 				     color-stop(50%, #fff),
-				     color-stop(51%, #9c6));
+				     color-stop(51%, #9c6),
+				     color-stop(75%, #9c6),
+				     to(#463));
   background-image: -moz-linear-gradient(0% 0%, 0% 100%,
 					 from(#9c6),
 					 color-stop(50%, #fff),
-					 color-stop(51%, #9c6));
+					 color-stop(51%, #9c6),
+					 color-stop(75%, #9c6),
+					 to(#463));
 }
 
 

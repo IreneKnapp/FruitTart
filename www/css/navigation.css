@@ -53,11 +53,15 @@ div#navigation > a, div.navigation > a, a.login {
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
 				     from(#9c6),
 				     color-stop(50%, #fff),
-				     color-stop(51%, #9c6));
+				     color-stop(51%, #9c6),
+				     color-stop(75%, #9c6),
+				     to(#463));
   background-image: -moz-linear-gradient(0% 0%, 0% 100%,
 					 from(#9c6),
 					 color-stop(50%, #fff),
-					 color-stop(51%, #9c6));
+					 color-stop(51%, #9c6),
+					 color-stop(75%, #9c6),
+					 to(#463));
 }
 
 div#navigation > b, div#navigation > a.disabled, div.navigation > b,
@@ -90,7 +94,9 @@ div#navigation, div#navigation > div.separator, div.navigation > div.separator {
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
 				     from(#684),
 				     color-stop(50%, #fff),
-				     color-stop(51%, #684));
+				     color-stop(51%, #684),
+				     color-stop(75%, #684),
+				     to(#342));
   background-image: -moz-linear-gradient(0% 0%, 0% 100%,
 					 from(#684),
 					 color-stop(50%, #fff),
