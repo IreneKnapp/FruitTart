@@ -176,7 +176,6 @@ index maybeWhich maybeEitherModuleNameModuleID = do
          ++ navigationBar
          ++ subnavigationBar
          ++ loginButton
-         ++ "</div>"
          ++ "<h1>" ++ reportName ++ "</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
