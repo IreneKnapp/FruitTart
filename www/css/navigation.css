@@ -1,4 +1,4 @@
-div#navigation, div.navigation {
+div#navigation, div.navigation, a.login {
   margin: 0;
   padding-top: 0.25em;
   padding-bottom: 0.25em;
@@ -23,7 +23,8 @@ div.navigation > div.separator {
 }
 
 div#navigation > a, div#navigation > b, div#navigation > div.separator,
-div.navigation > a, div.navigation > b, div.navigation > div.separator {
+div.navigation > a, div.navigation > b, div.navigation > div.separator,
+a.login {
   padding: 0.25em;
   padding-left: 1em;
   padding-right: 1em;
@@ -46,7 +47,7 @@ div.navigation > a, div.navigation > b, div.navigation > div.separator {
   border-right: solid gray 1px;
 }
 
-div#navigation > a, div.navigation > a {
+div#navigation > a, div.navigation > a, a.login {
   text-shadow: white 0.1em 0.1em;
   background-color: #9c6;
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
@@ -93,4 +94,33 @@ div#navigation, div#navigation > div.separator, div.navigation > div.separator {
 					 from(#684),
 					 color-stop(50%, #fff),
 					 color-stop(51%, #684));
+}
+         
+a.login {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-left: solid gray 1px;
+}
+
+a.login {
+  cursor: pointer;
+}
+
+
+div#loginbox {
+  position: absolute;
+  top: 1.7em;
+  right: 0;
+  margin: 0;
+  border-top: none;
+  border-right: none;
+  border-left: solid gray 1px;
+  border-bottom: solid gray 1px;
+  background-color: #9c6;
+}
+
+
+div#loginbox > form {
+  margin: 0.5em;
 }

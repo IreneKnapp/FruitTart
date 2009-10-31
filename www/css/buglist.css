@@ -1,5 +1,3 @@
-@import url('/css/navigation.css');
-
 body {
   margin: 0;
   padding-bottom: 2em;
@@ -56,14 +54,14 @@ textarea.code, div.code {
 }
 
 
-input[type=text], textarea {
+input[type=text], input[type=password], textarea {
   border: solid gray 1px;
   background: #ccf;
   padding: 0.25em;
 }
 
 
-input[type=text] {
+input[type=text], input[type=password] {
   font-size: 100%;
 }
 
@@ -195,6 +193,11 @@ form > div:first-child {
 
 form > div {
   margin: 1em;
+}
+
+
+form > div.submit {
+  text-align: right;
 }
 
 

@@ -249,6 +249,14 @@ getUser fullName email = do
       return id
 
 
+getPageHeadItems :: Buglist String
+getPageHeadItems
+    = return 
+      ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+       ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+       ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
+
+
 getNavigationBar :: String -> Buglist String
 getNavigationBar currentPage = do
   items <- query ("SELECT name, link, separator, always_enabled, class "
@@ -280,6 +288,27 @@ getNavigationBar currentPage = do
                              items)
            ++ "</div>\n"
   return result
+
+
+getLoginButton :: Buglist String
+getLoginButton = do
+  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/index/\" "
+          ++ "onclick=\"showLoginBox(); return false;\">Log In</a>"
+          ++ "<div id=\"loginbox\" style=\"display: none;\">"
+          ++ "<form method=\"POST\" action=\"/login/index/\">\n"
+          ++ "<div><b>Email:</b> "
+          ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
+          ++ (escapeAttribute "")
+          ++ "\"/></div>\n"
+          ++ "<div><b>Password:</b> "
+          ++ "<input type=\"password\" size=\"10\" name=\"email\" value=\""
+          ++ (escapeAttribute "")
+          ++ "\"/></div>\n"
+          ++ "<div class=\"submit\">"
+          ++ "<button type=\"submit\" value=\"Log In\">Log In</button>"
+          ++ "</div>\n"
+          ++ "</form>\n"
+          ++ "</div>\n")
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String

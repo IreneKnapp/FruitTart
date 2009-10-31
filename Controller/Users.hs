@@ -13,13 +13,16 @@ import SQLite3 (SQLData(..))
 index :: Buglist CGIResult
 index = do
   rows <- query "SELECT id, full_name, email FROM users" []
+  pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar "/users/index/"
+  loginButton <- getLoginButton
   output  $ "<html><head>\n"
          ++ "<title>Buglist Users</title>\n"
-         ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
+         ++ loginButton
          ++ "<h1>Buglist Users</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>Full Name</th><th>Email</th></tr>\n"
@@ -91,14 +94,17 @@ view id = do
                                       GT -> LT
                                       EQ -> EQ)
                                 [changes, files, comments, creations]
+       pageHeadItems <- getPageHeadItems
        navigationBar <- getNavigationBar $ "/users/view/" ++ (show id) ++ "/"
+       loginButton <- getLoginButton
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
-         ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
+         ++ loginButton
          ++ "<h1><a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
          ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a></h1>\n"
          ++ "<table>\n"

@@ -117,7 +117,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ whereClause
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                   ([] ++ whereClauseParameters)
+  pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar "/issues/index/"
+  loginButton <- getLoginButton
   currentPathWhichPart <- return $ "which:" ++ which ++ "/"
   currentPathModulePart <- return $ case maybeModuleID of
                              Nothing -> "module:all/"
@@ -168,11 +170,12 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                            modules)
   output  $ "<html><head>\n"
          ++ "<title>" ++ reportName ++ "</title>\n"
-         ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
          ++ subnavigationBar
+         ++ loginButton
          ++ "</div>"
          ++ "<h1>" ++ reportName ++ "</h1>\n"
          ++ "<table>\n"
@@ -356,7 +359,9 @@ outputView id comment fullName email maybeWarning = do
        rows <- return $ mergeBy (\(SQLInteger a:_) (SQLInteger b:_)
                                   -> compare a b)
                                 [changes, comments, files]
+       pageHeadItems <- getPageHeadItems
        navigationBar <- getNavigationBar $ "/issues/view/" ++ (show id) ++ "/"
+       loginButton <- getLoginButton
        statusPopup <- getStatusPopup $ Just statusID
        resolutionPopup <- getResolutionPopup $ Just resolutionID
        modulePopup <- getModulePopup $ Just moduleID
@@ -366,10 +371,11 @@ outputView id comment fullName email maybeWarning = do
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
-         ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
+         ++ loginButton
          ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
          ++ "<table class=\"layout\">\n"
          ++ "<tr><td>"
@@ -418,7 +424,9 @@ outputView id comment fullName email maybeWarning = do
          ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
          ++ (show captchaTimestamp) ++ "\"/>"
          ++ "</div>"
-         ++ "<div><button type=\"submit\" value=\"Comment\">Comment</button></div>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Comment\">Comment</button>"
+         ++ "</div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
          ++ "<div class=\"form\">\n"
@@ -437,7 +445,9 @@ outputView id comment fullName email maybeWarning = do
          ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
          ++ (escapeAttribute summary)
          ++ "\"/></div>\n"
-         ++ "<div><button type=\"submit\" value=\"Edit\">Edit</button></div>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Edit\">Edit</button>"
+         ++ "</div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
          ++ "</body></html>"
@@ -618,15 +628,18 @@ createPOST = do
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
                  -> Buglist CGIResult
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
+  pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar "/issues/create/"
+  loginButton <- getLoginButton
   modulePopup <- getModulePopup $ Just moduleID
   captchaTimestamp <- generateCaptcha
   output $ "<html><head>\n"
          ++ "<title>Report an Issue</title>\n"
-         ++ "<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
+         ++ loginButton
          ++ "<h1>Report an Issue</h1>\n"
          ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
          ++ case maybeWarning of
@@ -655,7 +668,9 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
          ++ (show captchaTimestamp) ++ "\"/>"
          ++ "</div>"
-         ++ "<div><button type=\"submit\" value=\"Report\">Report</button></div>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Report\">Report</button>"
+         ++ "</div>\n"
          ++ "</form>\n"
          ++ "</body></html>"
 
