@@ -31,6 +31,6 @@ type DispatchTable = Map String
                                     Dynamic)))
 
 data ParameterType = IDParameter
-                   | OptionalStringParameter
-                   | OptionalIDParameter
+                   | StringParameter
+                   | EitherStringIDParameter
                      deriving (Eq)

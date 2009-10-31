@@ -49,8 +49,8 @@ dispatchTable
       [("issues",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
-                                              [("which", OptionalStringParameter),
-                                               ("module", OptionalIDParameter)],
+                                              [("which", StringParameter),
+                                               ("module", IDParameter)],
                                               toDyn Controller.Issues.index))]),
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
@@ -145,46 +145,99 @@ invokeDynamicFunction controllerName actionName
                       dynamicFunction
                       urlParameters urlParameterTypes
                       namedParameters namedParameterTypes
-    = case (urlParameterTypes, namedParameterTypes) of
-        ([IDParameter], [])
-            -> case (urlParameters, namedParameters) of
-                 ([id], []) | length id > 0 && all isDigit id
-                                -> (fromJust $ fromDynamic dynamicFunction)
-                                   (read id :: Int64)
-                 _ -> errorActionParameters controllerName actionName
-        ([], [(formalParameterName, OptionalStringParameter)])
-            -> case (urlParameters, namedParameters) of
-                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
-                             (Nothing :: Maybe String)
-                 ([], [(actualParameterName, value)])
-                     | formalParameterName == actualParameterName
-                     -> (fromJust $ fromDynamic dynamicFunction)
-                        (Just value)
-                 _ -> errorActionParameters controllerName actionName
-        ([], [(formalParameterName1, OptionalStringParameter),
-              (formalParameterName2, OptionalIDParameter)])
-            -> case (urlParameters, namedParameters) of
-                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
-                             (Nothing :: Maybe String)
-                             (Nothing :: Maybe Int64)
-                 ([], [(actualParameterName1, value)])
-                     | formalParameterName1 == actualParameterName1
-                     -> (fromJust $ fromDynamic dynamicFunction)
-                        (Just value)
-                        (Nothing :: Maybe Int64)
-                 ([], [(actualParameterName1, value1),
-                       (actualParameterName2, value2)])
-                     | (formalParameterName1 == actualParameterName1)
-                       && (formalParameterName2 == actualParameterName2)
-                       && ((length value2 > 0) && (all isDigit value2))
-                     -> (fromJust $ fromDynamic dynamicFunction)
-                        (Just value1 :: Maybe String)
-                        (Just $ read value2 :: Maybe Int64)
-                 _ -> errorActionParameters controllerName actionName
-        ([], [])
-            -> case (urlParameters, namedParameters) of
-                 ([], []) -> (fromJust $ fromDynamic dynamicFunction)
-                 _ -> errorActionParameters controllerName actionName
+    = let handleURLParameters urlParameters urlParameterTypes actualParameters =
+              case urlParameterTypes of
+                [] -> case urlParameters of
+                        [] -> return $ Right $ reverse actualParameters
+                        _ -> do
+                          result <- errorActionParameters controllerName actionName
+                          return $ Left $ result
+                (parameterType:restURLParameterTypes)
+                    -> case urlParameters of
+                         (parameter:restURLParameters)
+                             | validateParameter parameterType parameter
+                             -> handleURLParameters restURLParameters
+                                                    restURLParameterTypes
+                                                    (readParameter parameterType
+                                                                   parameter
+                                                     : actualParameters)
+                         _ -> do
+                           result <- errorActionParameters controllerName actionName
+                           return $ Left $ result
+          handleNamedParameters namedParameters namedParameterTypes actualParameters =
+              case namedParameterTypes of
+                [] -> case namedParameters of
+                        [] -> return $ Right $ reverse actualParameters
+                        _ -> do
+                          result <- errorActionParameters controllerName actionName
+                          return $ Left $ result
+                ((formalParameterName, parameterType):restNamedParameterTypes)
+                    -> case namedParameters of
+                         ((actualParameterName, parameter):restNamedParameters)
+                             | (formalParameterName == actualParameterName)
+                               && (validateParameter parameterType parameter)
+                             -> handleNamedParameters restNamedParameters
+                                                      restNamedParameterTypes
+                                                      ((dynamicJust
+                                                        parameterType
+                                                        $ readParameter parameterType
+                                                                        parameter)
+                                                       : actualParameters)
+                         ((actualParameterName, parameter):restNamedParameters)
+                             | (formalParameterName == actualParameterName)
+                             -> do
+                               result <- errorActionParameters controllerName actionName
+                               return $ Left $ result
+                         _ -> handleNamedParameters namedParameters
+                                                    restNamedParameterTypes
+                                                    (dynamicNothing parameterType
+                                                     : actualParameters)
+          dynApplyAll dynamicFunction [] = dynamicFunction
+          dynApplyAll dynamicFunction (parameter:rest)
+              = dynApplyAll (dynApp dynamicFunction parameter) rest in
+      do
+        eitherErrorActualURLParameters
+            <- handleURLParameters urlParameters urlParameterTypes []
+        case eitherErrorActualURLParameters of
+          Left error -> return error
+          Right actualURLParameters -> do
+            eitherErrorActualNamedParameters
+                <- handleNamedParameters namedParameters namedParameterTypes []
+            case eitherErrorActualNamedParameters of
+              Left error -> return error
+              Right actualNamedParameters -> do
+                fromJust
+                $ fromDynamic
+                  $ dynApplyAll dynamicFunction
+                                (concat [actualURLParameters, actualNamedParameters])
+
+
+validateParameter :: ParameterType -> String -> Bool
+validateParameter IDParameter id = length id > 0 && all isDigit id
+validateParameter StringParameter _ = True
+validateParameter EitherStringIDParameter _ = True
+
+
+readParameter :: ParameterType -> String -> Dynamic
+readParameter IDParameter id = toDyn (read id :: Int64)
+readParameter StringParameter string = toDyn string
+readParameter EitherStringIDParameter string
+    = toDyn $ if length string > 0 && all isDigit string
+              then Right $ (read string :: Int64)
+              else Left string
+
+
+dynamicJust :: ParameterType -> Dynamic -> Dynamic
+dynamicJust IDParameter item = toDyn (fromDynamic item :: Maybe Int64)
+dynamicJust StringParameter item = toDyn (fromDynamic item :: Maybe String)
+dynamicJust EitherStringIDParameter item
+    = toDyn (fromDynamic item :: Maybe (Either String Int64))
+
+
+dynamicNothing :: ParameterType -> Dynamic
+dynamicNothing IDParameter = toDyn (Nothing :: Maybe Int64)
+dynamicNothing StringParameter = toDyn (Nothing :: Maybe String)
+dynamicNothing EitherStringIDParameter = toDyn (Nothing :: Maybe (Either String Int64))
 
 
 output :: String -> Buglist CGIResult
@@ -230,7 +283,7 @@ errorActionUndefined controllerName actionName =
 
 errorActionParameters :: String -> String -> Buglist CGIResult
 errorActionParameters controllerName actionName =
-    error404 $ "Invalid number of parameters to the action " ++ actionName
+    error404 $ "Invalid parameters to the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
 errorActionMethod :: String -> String -> String -> Buglist CGIResult
