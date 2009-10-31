@@ -3,7 +3,7 @@ module Controller.Issues where
 import Data.Int
 import Data.List
 import Data.Maybe
-import Network.FastCGI hiding (output)
+import Network.FastCGI hiding (output, logCGI)
 
 import Buglist
 import Controller.Captcha
@@ -14,11 +14,12 @@ import Lists
 import SQLite3 (SQLData(..))
 import Text
 
-index :: Maybe String -> Maybe Int64 -> Buglist CGIResult
-index maybeWhich maybeModuleID = do
+index :: Maybe String -> Maybe (Either String Int64) -> Buglist CGIResult
+index maybeWhich maybeEitherModuleNameModuleID = do
   sessionID <- getSessionID
-  [[maybeDatabaseWhich, maybeDatabaseModuleID]]
-    <- query ("SELECT issue_index_filter_which, issue_index_filter_module FROM sessions "
+  [[maybeDatabaseWhich, maybeDatabaseAllModules, maybeDatabaseModuleID]]
+    <- query ("SELECT issue_index_filter_which, issue_index_filter_all_modules, "
+              ++ "issue_index_filter_module FROM sessions "
               ++ "WHERE id = ?")
              [SQLInteger sessionID]
   which <- return $ case maybeWhich of
@@ -39,9 +40,13 @@ index maybeWhich maybeModuleID = do
              case maybeDatabaseModuleName of
                SQLText databaseModuleName -> return $ Just databaseModuleName
                _ -> return Nothing
-  maybeModuleID <- return $ case maybeModuleID of
-                     Nothing -> maybeDatabaseModuleID
-                     _ -> maybeModuleID
+  maybeModuleID <- return $ case maybeEitherModuleNameModuleID of
+                     Nothing -> case maybeDatabaseAllModules of
+                                  SQLInteger 1 -> Nothing
+                                  _ -> maybeDatabaseModuleID
+                     Just (Left "all") -> Nothing
+                     Just (Left _) -> maybeDatabaseModuleID
+                     Just (Right moduleID) -> Just moduleID
   maybeModuleName
       <- case maybeModuleID of
            Nothing -> return Nothing
@@ -50,8 +55,13 @@ index maybeWhich maybeModuleID = do
                                                 [SQLInteger moduleID]
                 return $ Just moduleName
   query ("UPDATE sessions SET issue_index_filter_which = ?, "
-         ++ "issue_index_filter_module = ? WHERE id = ?")
+         ++ "issue_index_filter_all_modules = ?, "
+         ++ "issue_index_filter_module = ? "
+         ++ "WHERE id = ?")
         [SQLText which,
+         case maybeModuleID of
+           Nothing -> SQLInteger 1
+           Just _ -> SQLInteger 0,
          case maybeModuleID of
            Nothing -> case maybeDatabaseModuleID of
                         Nothing -> SQLNull
@@ -110,7 +120,7 @@ index maybeWhich maybeModuleID = do
   navigationBar <- getNavigationBar "/issues/index/"
   currentPathWhichPart <- return $ "which:" ++ which ++ "/"
   currentPathModulePart <- return $ case maybeModuleID of
-                             Nothing -> ""
+                             Nothing -> "module:all/"
                              Just moduleID -> "module:" ++ (show moduleID) ++ "/"
   currentPath <- return $ "/issues/index/"
                         ++ currentPathWhichPart
@@ -124,7 +134,8 @@ index maybeWhich maybeModuleID = do
                          Just ("Closed Issues",
                                "/issues/index/which:closed/" ++ currentPathModulePart),
                          Nothing,
-                         Just ("All Modules", "/issues/index/which:" ++ which ++ "/")]
+                         Just ("All Modules", "/issues/index/" ++ currentPathWhichPart
+                               ++ "module:all/")]
                       ++ (case maybeSubnavigationModuleID of
                             Nothing -> []
                             Just moduleID
@@ -146,7 +157,8 @@ index maybeWhich maybeModuleID = do
                             "/issues/index/which:closed/" ++ currentPathModulePart)]
   modules <- query "SELECT id, name FROM modules ORDER BY id" []
   modulesFilterList <- return $ [filterItem "All Modules"
-                                      ("/issues/index/" ++ currentPathWhichPart)]
+                                      ("/issues/index/" ++ currentPathWhichPart
+                                       ++ "module:all/")]
                                  ++ (map (\[SQLInteger id, SQLText name]
                                               -> filterItem
                                                    name

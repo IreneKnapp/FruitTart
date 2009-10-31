@@ -42,6 +42,7 @@ initDatabase database = do
                  ++ "timestamp_activity INTEGER,\n"
                  ++ "logged_in_user INTEGER,\n"
                  ++ "issue_index_filter_which TEXT,\n"
+                 ++ "issue_index_filter_all_modules INTEGER,\n"
                  ++ "issue_index_filter_module INTEGER\n"
                  ++ ")"
   run database $ "CREATE TABLE IF NOT EXISTS issues (\n"

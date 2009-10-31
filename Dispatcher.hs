@@ -50,7 +50,7 @@ dispatchTable
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
                                               [("which", StringParameter),
-                                               ("module", IDParameter)],
+                                               ("module", EitherStringIDParameter)],
                                               toDyn Controller.Issues.index))]),
                       ("view",
                        Map.fromList [("GET", ([IDParameter],
