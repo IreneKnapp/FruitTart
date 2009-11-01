@@ -309,8 +309,8 @@ getLoggedInUser = do
              SQLInteger userID -> Just userID
 
 
-getLoginButton :: Buglist String
-getLoginButton = do
+getLoginButton :: String -> Buglist String
+getLoginButton currentPage = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
     Nothing -> do
@@ -322,7 +322,9 @@ getLoginButton = do
       email <- return $ case maybeEmail of
                           SQLNull -> ""
                           SQLText email -> email
-      return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
+      return ("<div id=\"navigationright\">"
+              ++ "<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
+              ++ "</div>\n"
               ++ "<div id=\"loginbox\" style=\"display: none;\">"
               ++ "<form method=\"POST\" action=\"/login/login/\">\n"
               ++ "<div><b>Email:</b> "
@@ -338,7 +340,12 @@ getLoginButton = do
               ++ "</form>\n"
               ++ "</div>\n")
     Just _ -> do
-      return "<a id=\"loginlink\" class=\"logout\" href=\"/login/logout/\">Log Out</a>\n"
+      return ("<div id=\"navigationright\">"
+              ++ (if currentPage == "/login/account/"
+                     then "<b>Account</b>"
+                     else "<a href=\"/login/account/\">Account</a>")
+              ++ "<a id=\"loginlink\" class=\"logout\" href=\"/login/logout/\">"
+              ++ "Log Out</a></div>\n")
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String

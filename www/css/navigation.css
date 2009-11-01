@@ -1,4 +1,4 @@
-div#navigation, div.navigation, a.login, a.logout {
+div#navigation, div.navigation, div#navigationright {
   margin: 0;
   padding-top: 0.25em;
   padding-bottom: 0.25em;
@@ -17,6 +17,12 @@ div#navigation > a, div#navigation > b, div#navigation > div.separator {
   border-right: solid gray 1px;
 }
 
+div#navigationright > a, div#navigationright > b {
+  display: inline;
+  border: none;
+  border-left: solid gray 1px;
+}
+
 div.navigation > div.separator {
   display: inline;
   border: none;
@@ -24,7 +30,7 @@ div.navigation > div.separator {
 
 div#navigation > a, div#navigation > b, div#navigation > div.separator,
 div.navigation > a, div.navigation > b, div.navigation > div.separator,
-a.login, a.logout {
+div#navigationright > a, div#navigationright > a {
   padding: 0.25em;
   padding-left: 1em;
   padding-right: 1em;
@@ -47,7 +53,7 @@ div.navigation > a, div.navigation > b, div.navigation > div.separator {
   border-right: solid gray 1px;
 }
 
-div#navigation > a, div.navigation > a, a.login, a.logout {
+div#navigation > a, div.navigation > a, div#navigationright > a {
   text-shadow: white 0.1em 0.1em;
   background-color: #9c6;
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
@@ -65,7 +71,7 @@ div#navigation > a, div.navigation > a, a.login, a.logout {
 }
 
 div#navigation > b, div#navigation > a.disabled, div.navigation > b,
-a.login.active {
+div#navigationright > a.login.active {
   text-shadow: white 0.1em 0.1em;
   background-color: black;
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
@@ -103,11 +109,10 @@ div#navigation, div#navigation > div.separator, div.navigation > div.separator {
 					 color-stop(51%, #684));
 }
          
-a.login, a.logout {
+div#navigationright {
   position: absolute;
   top: 0;
   right: 0;
-  border-left: solid gray 1px;
 }
 
 a.login, a.logout {

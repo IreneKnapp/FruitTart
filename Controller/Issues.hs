@@ -118,8 +118,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                   ([] ++ whereClauseParameters)
   pageHeadItems <- getPageHeadItems
-  navigationBar <- getNavigationBar "/issues/index/"
-  loginButton <- getLoginButton
+  currentPage <- return "/issues/index/"
+  navigationBar <- getNavigationBar currentPage
+  loginButton <- getLoginButton currentPage
   currentPathWhichPart <- return $ "which:" ++ which ++ "/"
   currentPathModulePart <- return $ case maybeModuleID of
                              Nothing -> "module:all/"
@@ -359,8 +360,9 @@ outputView id comment fullName email maybeWarning = do
                                   -> compare a b)
                                 [changes, comments, files]
        pageHeadItems <- getPageHeadItems
-       navigationBar <- getNavigationBar $ "/issues/view/" ++ (show id) ++ "/"
-       loginButton <- getLoginButton
+       currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
+       navigationBar <- getNavigationBar currentPage
+       loginButton <- getLoginButton currentPage
        statusPopup <- getStatusPopup $ Just statusID
        resolutionPopup <- getResolutionPopup $ Just resolutionID
        modulePopup <- getModulePopup $ Just moduleID
@@ -628,8 +630,9 @@ doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe Strin
                  -> Buglist CGIResult
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   pageHeadItems <- getPageHeadItems
-  navigationBar <- getNavigationBar "/issues/create/"
-  loginButton <- getLoginButton
+  currentPage <- return "/issues/create/"
+  navigationBar <- getNavigationBar currentPage
+  loginButton <- getLoginButton currentPage
   modulePopup <- getModulePopup $ Just moduleID
   captchaTimestamp <- generateCaptcha
   output $ "<html><head>\n"

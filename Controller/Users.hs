@@ -14,8 +14,9 @@ index :: Buglist CGIResult
 index = do
   rows <- query "SELECT id, full_name, email FROM users" []
   pageHeadItems <- getPageHeadItems
-  navigationBar <- getNavigationBar "/users/index/"
-  loginButton <- getLoginButton
+  currentPage <- return "/users/index/"
+  navigationBar <- getNavigationBar currentPage
+  loginButton <- getLoginButton currentPage
   output  $ "<html><head>\n"
          ++ "<title>Buglist Users</title>\n"
          ++ pageHeadItems
@@ -95,8 +96,9 @@ view id = do
                                       EQ -> EQ)
                                 [changes, files, comments, creations]
        pageHeadItems <- getPageHeadItems
-       navigationBar <- getNavigationBar $ "/users/view/" ++ (show id) ++ "/"
-       loginButton <- getLoginButton
+       currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
+       navigationBar <- getNavigationBar currentPage
+       loginButton <- getLoginButton currentPage
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
