@@ -298,6 +298,66 @@ getEffectiveUser = do
       return anonymousID
 
 
+getRightAdminUsers :: Buglist Bool
+getRightAdminUsers = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_admin_users FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightSeeEmails :: Buglist Bool
+getRightSeeEmails = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_see_emails FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightReportIssues :: Buglist Bool
+getRightReportIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_report_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightModifyIssues :: Buglist Bool
+getRightModifyIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_modify_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightUploadFiles :: Buglist Bool
+getRightUploadFiles = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_upload_files FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightCommentIssues :: Buglist Bool
+getRightCommentIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_comment_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
 getPageHeadItems :: Buglist String
 getPageHeadItems
     = return 
