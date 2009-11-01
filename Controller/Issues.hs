@@ -765,6 +765,7 @@ actuallyCreateComment issueID comment fullName email = do
         [SQLInteger timestamp,
          SQLInteger issueID]
   query "COMMIT" []
+  setPopupMessage $ Just "Added comment."
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
 
 
@@ -858,6 +859,7 @@ edit issueID = do
          SQLInteger timestamp,
          SQLInteger issueID]
   query "COMMIT" []
+  setPopupMessage $ Just "Edited issue."
   seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
 
 

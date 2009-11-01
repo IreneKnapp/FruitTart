@@ -47,7 +47,7 @@ loginPOST = do
   maybeUserIDRows <- query "SELECT id FROM users WHERE email = ?" [SQLText email]
   case maybeUserIDRows of
     [] -> doNotLogIn (Just "Incorrect information.")
-                          maybeEmail
+                     maybeEmail
     [[SQLInteger userID]] -> do
       valid <- validatePassword userID password
       case valid of
@@ -114,6 +114,7 @@ accountGET = do
 
 accountPOST :: Buglist CGIResult
 accountPOST = do
+  setPopupMessage $ Just "Edited details."
   outputAccountPage
 
 
@@ -196,6 +197,7 @@ passwordGET = do
 
 passwordPOST :: Buglist CGIResult
 passwordPOST = do
+  setPopupMessage $ Just "Password changed."
   seeOtherRedirect "/login/account/"
 
 

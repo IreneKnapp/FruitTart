@@ -21,6 +21,21 @@ h4:first-child, h5:first-child, h6:first-child {
 }
 
 
+div#popupmessage {
+    background: #fcc;
+    font-weight: bold;
+    text-align: center;
+    margin-left: 2em;
+    margin-right: auto;
+    padding: 0.5em;
+    width: 15em;
+    -webkit-border-bottom-left-radius: 2.0em;
+    -webkit-border-bottom-right-radius: 2.0em;
+    -moz-border-bottom-left-radius: 2.0em;
+    -moz-border-bottom-right-radius: 2.0em;
+}
+
+
 table {
   margin-left: 0.5em;
   border-collapse: collapse;
