@@ -40,6 +40,7 @@ initDatabase database = do
   run database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "timestamp_activity INTEGER,\n"
+                 ++ "recent_user INTEGER,\n"
                  ++ "logged_in_user INTEGER,\n"
                  ++ "issue_index_filter_which TEXT,\n"
                  ++ "issue_index_filter_all_modules INTEGER,\n"
@@ -291,24 +292,46 @@ getNavigationBar currentPage = do
   return result
 
 
+getLoggedInUser :: Buglist (Maybe Int64)
+getLoggedInUser = do
+  sessionID <- Dispatcher.getSessionID
+  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
+                           [SQLInteger sessionID]
+  return $ case maybeUserID of
+             SQLNull -> Nothing
+             SQLInteger userID -> Just userID
+
+
 getLoginButton :: Buglist String
 getLoginButton = do
-  return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
-          ++ "<div id=\"loginbox\" style=\"display: none;\">"
-          ++ "<form method=\"POST\" action=\"/login/login/\">\n"
-          ++ "<div><b>Email:</b> "
-          ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
-          ++ (escapeAttribute "")
-          ++ "\"/></div>\n"
-          ++ "<div><b>Password:</b> "
-          ++ "<input type=\"password\" size=\"10\" name=\"email\" value=\""
-          ++ (escapeAttribute "")
-          ++ "\"/></div>\n"
-          ++ "<div class=\"submit\">"
-          ++ "<button type=\"submit\" value=\"Log In\">Log In</button>"
-          ++ "</div>\n"
-          ++ "</form>\n"
-          ++ "</div>\n")
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Nothing -> do
+      sessionID <- Dispatcher.getSessionID
+      [[maybeEmail]] <- query ("SELECT users.email FROM sessions LEFT JOIN users "
+                               ++ "ON users.id = sessions.recent_user "
+                               ++ "WHERE sessions.id = ?")
+                              [SQLInteger sessionID]
+      email <- return $ case maybeEmail of
+                          SQLNull -> ""
+                          SQLText email -> email
+      return ("<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
+              ++ "<div id=\"loginbox\" style=\"display: none;\">"
+              ++ "<form method=\"POST\" action=\"/login/login/\">\n"
+              ++ "<div><b>Email:</b> "
+              ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
+              ++ (escapeAttribute email)
+              ++ "\"/></div>\n"
+              ++ "<div><b>Password:</b> "
+              ++ "<input type=\"password\" size=\"10\" name=\"password\" value=\""
+              ++ "\"/></div>\n"
+              ++ "<div class=\"submit\">"
+              ++ "<button type=\"submit\" value=\"Log In\">Log In</button>"
+              ++ "</div>\n"
+              ++ "</form>\n"
+              ++ "</div>\n")
+    Just _ -> do
+      return "<a id=\"loginlink\" class=\"logout\" href=\"/login/logout/\">Log Out</a>\n"
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String

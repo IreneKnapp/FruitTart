@@ -1,6 +1,8 @@
 function init() {
-    $('#loginlink').bind("click", showLoginBox);
-    $('#loginlink').removeAttr("href");
+    if($('#loginlink').hasClass("login")) {
+	$('#loginlink').bind("click", showLoginBox);
+	$('#loginlink').removeAttr("href");
+    }
 }
 
 function showLoginBox() {
