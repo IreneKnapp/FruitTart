@@ -414,7 +414,7 @@ generateSessionID :: Buglist Int64
 generateSessionID = do
   timestamp <- getTimestamp
   query "BEGIN EXCLUSIVE TRANSACTION" []
-  query "INSERT INTO sessions (timestamp_activity, logged_in_user) VALUES (?, 0)"
+  query "INSERT INTO sessions (timestamp_activity, logged_in_user) VALUES (?, NULL)"
         [SQLInteger timestamp]
   [[SQLInteger sessionID]] <- query "SELECT max(id) FROM sessions" []
   query "COMMIT" []
