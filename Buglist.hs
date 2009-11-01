@@ -245,17 +245,57 @@ initDatabase database = do
 
 getUser :: String -> String -> Buglist Int64
 getUser fullName email = do
-  rows <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
-  case rows of
-    [[SQLInteger id]] -> return id
-    _ -> do
-      query ("INSERT INTO users (full_name, email, password_hash, right_admin_users, "
-             ++ "right_see_emails, right_report_issues, right_modify_issues, "
-             ++ "right_upload_files, right_comment_issues) "
-             ++ "VALUES (?, ?, NULL, 0, 0, 1, 0, 0, 1)")
-            [SQLText fullName, SQLText email]
-      [[SQLInteger id]] <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
-      return id
+  if (email == "") || (email == "anonymous")
+     then do
+       rows <- query "SELECT id FROM users WHERE full_name == ? AND email == 'anonymous'"
+                     [SQLText fullName]
+       case rows of
+         [[SQLInteger id]] -> return id
+         _ -> do
+            query ("INSERT INTO users (full_name, email, password_hash, "
+                   ++ "right_admin_users, right_see_emails, right_report_issues, "
+                   ++ "right_modify_issues, right_upload_files, right_comment_issues) "
+                   ++ "VALUES (?, 'anonymous', NULL, 0, 0, 1, 0, 0, 1)")
+                  [SQLText fullName]
+            [[SQLInteger id]]
+                <- query ("SELECT id FROM users WHERE full_name == ? "
+                          ++ "AND email == 'anonymous'")
+                         [SQLText fullName]
+            return id
+     else do
+       rows <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
+       case rows of
+         [[SQLInteger id]] -> return id
+         _ -> do
+            query ("INSERT INTO users (full_name, email, password_hash, "
+                   ++ "right_admin_users, right_see_emails, right_report_issues, "
+                   ++ "right_modify_issues, right_upload_files, right_comment_issues) "
+                   ++ "VALUES (?, ?, NULL, 0, 0, 1, 0, 0, 1)")
+                  [SQLText fullName, SQLText email]
+            [[SQLInteger id]]
+                <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
+            return id
+
+
+getLoggedInUser :: Buglist (Maybe Int64)
+getLoggedInUser = do
+  sessionID <- Dispatcher.getSessionID
+  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
+                           [SQLInteger sessionID]
+  return $ case maybeUserID of
+             SQLNull -> Nothing
+             SQLInteger userID -> Just userID
+
+
+getEffectiveUser :: Buglist Int64
+getEffectiveUser = do
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Just userID -> return userID
+    Nothing -> do
+      [[SQLInteger anonymousID]] <- query "SELECT anonymous_user FROM settings LIMIT 1"
+                                          []
+      return anonymousID
 
 
 getPageHeadItems :: Buglist String
@@ -298,16 +338,6 @@ getNavigationBar currentPage = do
                              items)
            ++ "</div>\n"
   return result
-
-
-getLoggedInUser :: Buglist (Maybe Int64)
-getLoggedInUser = do
-  sessionID <- Dispatcher.getSessionID
-  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
-                           [SQLInteger sessionID]
-  return $ case maybeUserID of
-             SQLNull -> Nothing
-             SQLInteger userID -> Just userID
 
 
 getLoginButton :: String -> Buglist String
