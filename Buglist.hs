@@ -46,6 +46,9 @@ initDatabase database = do
                  ++ "issue_index_filter_all_modules INTEGER,\n"
                  ++ "issue_index_filter_module INTEGER\n"
                  ++ ")"
+  run database $ "CREATE TABLE IF NOT EXISTS settings (\n"
+                 ++ "anonymous_user INTEGER"
+                 ++ ")"
   run database $ "CREATE TABLE IF NOT EXISTS issues (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "status INTEGER,\n"
@@ -164,6 +167,10 @@ initDatabase database = do
                      ++ "right_admin_users, right_see_emails, right_report_issues, "
                      ++ "right_modify_issues, right_upload_files, right_comment_issues) "
                      ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 1, 0, 0, 1)")
+       SQLInteger count <- eval database "SELECT count(*) FROM buglist_settings"
+       case count of
+         0 -> run database "INSERT INTO settings (anonymous_user) VALUES (3)"
+         _ -> run database "UPDATE settings SET anonymous_user = 3"
      else return ()
   run database $ "CREATE TABLE IF NOT EXISTS user_issue_changes (\n"
                  ++ "user INTEGER,\n"
