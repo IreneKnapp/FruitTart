@@ -18,6 +18,7 @@ import HTML
 import Lists
 import Passwords
 import SQLite3 (SQLData(..))
+import Text
 import Types
 
 
@@ -114,8 +115,24 @@ accountGET = do
 
 accountPOST :: Buglist CGIResult
 accountPOST = do
-  setPopupMessage $ Just "Edited details."
-  outputAccountPage
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Nothing -> seeOtherRedirect "/issues/index/"
+    Just userID -> do
+      maybeFullName <- getInput "full-name"
+      fullName <- return $ case maybeFullName of
+                             Just "" -> defaultFullName
+                             Just fullName -> fromCRLF fullName
+                             Nothing -> defaultFullName
+      maybeEmail <- getInput "email"
+      email <- return $ case maybeEmail of
+                          Just "" -> defaultEmail
+                          Just email -> fromCRLF email
+                          Nothing -> defaultEmail
+      query "UPDATE users SET full_name = ?, email = ? WHERE id = ?"
+            [SQLText fullName, SQLText email, SQLInteger userID]
+      setPopupMessage $ Just "Edited details."
+      outputAccountPage
 
 
 outputAccountPage :: Buglist CGIResult
