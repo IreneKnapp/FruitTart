@@ -477,3 +477,11 @@ getPriorityPopup maybePriorityID = do
 privacyNote :: String
 privacyNote
     = "Your email will be visible only to members who have accounts."
+
+
+defaultFullName :: String
+defaultFullName = "Anonymous"
+
+
+defaultEmail :: String
+defaultEmail = "anonymous"

@@ -876,11 +876,3 @@ defaultComment
    ++ "\n"
    ++ "\n"
    ++ "ACTUAL RESULT\n"
-
-
-defaultFullName :: String
-defaultFullName = "Anonymous"
-
-
-defaultEmail :: String
-defaultEmail = "anonymous"
