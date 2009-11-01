@@ -446,3 +446,8 @@ getPriorityPopup maybePriorityID = do
                                ++ "</option>")
                           priorities)
          ++ "</select>\n"
+
+
+privacyNote :: String
+privacyNote
+    = "Your email will be visible only to members who have accounts."

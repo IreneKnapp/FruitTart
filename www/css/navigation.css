@@ -30,7 +30,7 @@ div.navigation > div.separator {
 
 div#navigation > a, div#navigation > b, div#navigation > div.separator,
 div.navigation > a, div.navigation > b, div.navigation > div.separator,
-div#navigationright > a, div#navigationright > a {
+div#navigationright > a, div#navigationright > b {
   padding: 0.25em;
   padding-left: 1em;
   padding-right: 1em;
@@ -71,7 +71,7 @@ div#navigation > a, div.navigation > a, div#navigationright > a {
 }
 
 div#navigation > b, div#navigation > a.disabled, div.navigation > b,
-div#navigationright > a.login.active {
+div#navigationright > b, div#navigationright > a.login.active {
   text-shadow: white 0.1em 0.1em;
   background-color: black;
   background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
@@ -85,7 +85,8 @@ div#navigationright > a.login.active {
 }
 
 div#navigation > b, div#navigation > b *,
-div.navigation > b, div.navigation > b * {
+div.navigation > b, div.navigation > b *,
+div#navigationright > b, div#navigationright > b * {
   cursor: default;
 }
 

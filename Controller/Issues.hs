@@ -378,7 +378,7 @@ outputView id comment fullName email maybeWarning = do
          ++ navigationBar
          ++ loginButton
          ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
-         ++ "<table class=\"layout\">\n"
+         ++ "<table class=\"issuestatus\">\n"
          ++ "<tr><td>"
          ++ "<b>Status:</b> " ++ (escapeHTML status) ++ "<br />\n"
          ++ "<b>Resolution:</b> " ++ (escapeHTML resolution) ++ "<br />\n"
@@ -417,7 +417,9 @@ outputView id comment fullName email maybeWarning = do
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ (escapeAttribute email)
-         ++ "\"/></div>\n"
+         ++ "\"/>"
+         ++ "<br />" ++ (escapeHTML privacyNote)
+         ++ "</div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
          ++ (show captchaTimestamp) ++ "/\"/> "
@@ -662,7 +664,9 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<div><b>Email:</b> "
          ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
          ++ (escapeAttribute email)
-         ++ "\"/></div>\n"
+         ++ "\"/>"
+         ++ "<br />" ++ (escapeHTML privacyNote)
+         ++ "</div>\n"
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
          ++ (show captchaTimestamp) ++ "/\"/> "

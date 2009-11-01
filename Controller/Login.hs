@@ -107,6 +107,76 @@ logout = do
   seeOtherRedirect referrer
 
 
+account :: Buglist CGIResult
+account = do
+  userID <- getLoggedInUser
+  case userID of
+    Nothing -> seeOtherRedirect "/issues/index/"
+    Just userID -> do
+      sessionID <- getSessionID
+      [[SQLText fullName, SQLText email]]
+          <- query ("SELECT users.full_name, users.email "
+                    ++ "FROM sessions LEFT JOIN users "
+                    ++ "ON sessions.logged_in_user = users.id "
+                    ++ "WHERE sessions. id = ?")
+                   [SQLInteger sessionID]
+      pageHeadItems <- getPageHeadItems
+      currentPage <- return "/login/account/"
+      navigationBar <- getNavigationBar currentPage
+      loginButton <- getLoginButton currentPage
+      output $ "<html><head>\n"
+         ++ "<title>Buglist Account</title>\n"
+         ++ pageHeadItems
+         ++ "</head>\n"
+         ++ "<body>\n"
+         ++ navigationBar
+         ++ loginButton
+         ++ "<h1>Account</h1>"
+         ++ "<div class=\"form\">\n"
+         ++ "<h2>Edit Account Details</h2>\n"
+         ++ "<form method=\"POST\" action=\"/login/account/\">\n"
+         ++ "<div><b>Full Name:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
+         ++ (escapeAttribute fullName)
+         ++ "\"/></div>\n"
+         ++ "<div><b>Email:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
+         ++ (escapeAttribute email)
+         ++ "\"/>"
+         ++ "<br />" ++ (escapeHTML privacyNote)
+         ++ "</div>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Save\">Save</button>"
+         ++ "</div>\n"
+         ++ "</form>\n"
+         ++ "</div>\n"
+         ++ "<div class=\"form\">\n"
+         ++ "<h2>Change Password</h2>\n"
+         ++ "<form method=\"POST\" action=\"/login/account/\">\n"
+         ++ "<table class=\"layout\">\n"
+         ++ "<tr>\n"
+         ++ "<td><b>Old Password:</b></td>\n"
+         ++ "<td><input type=\"password\" size=\"10\" name=\"old-password\" value=\""
+         ++ "\"/></td>\n"
+         ++ "</tr>\n"
+         ++ "<tr>\n"
+         ++ "<td><b>New Password:</b></td>\n"
+         ++ "<td><input type=\"password\" size=\"10\" name=\"new-password-1\" value=\""
+         ++ "\"/></td>\n"
+         ++ "</tr>\n"
+         ++ "<tr>\n"
+         ++ "<td><b>New Password Again:</b></td>\n"
+         ++ "<td><input type=\"password\" size=\"10\" name=\"new-password-2\" value=\""
+         ++ "\"/></td>\n"
+         ++ "</tr>\n"
+         ++ "</table>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Change\">Change</button>"
+         ++ "</div>\n"
+         ++ "</form>\n"
+         ++ "</div>\n"
+
+
 getReferrer :: Buglist String
 getReferrer = do
   maybeReferrer <- getInput "referrer"

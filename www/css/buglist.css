@@ -115,11 +115,27 @@ button:active, select:active {
 
 
 table.layout {
-  margin-left: 0.5em;
+  margin-left: 0;
 }
 
 
 table.layout th, table.layout td {
+  border: none;
+  padding: none;
+}
+
+
+table.layout tr {
+  background: transparent;
+}
+
+
+table.issuestatus {
+  margin-left: 0.5em;
+}
+
+
+table.issuestatus th, table.issuestatus td {
   border: none;
   padding: none;
 }
