@@ -365,6 +365,8 @@ getPopupMessage = do
   sessionID <- Dispatcher.getSessionID
   [[maybeMessage]] <- query "SELECT popup_message FROM sessions WHERE id = ?"
                             [SQLInteger sessionID]
+  query "UPDATE sessions SET popup_message = NULL WHERE ID = ?"
+        [SQLInteger sessionID]
   case maybeMessage of
     SQLNull -> return ""
     SQLText message -> return $ "<div id=\"popupmessage\">"
