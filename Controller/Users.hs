@@ -17,6 +17,7 @@ index = do
   currentPage <- return "/users/index/"
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
+  popupMessage <- getPopupMessage
   output  $ "<html><head>\n"
          ++ "<title>Buglist Users</title>\n"
          ++ pageHeadItems
@@ -24,6 +25,7 @@ index = do
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1>Buglist Users</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>Full Name</th><th>Email</th></tr>\n"
@@ -99,6 +101,7 @@ view id = do
        currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
        navigationBar <- getNavigationBar currentPage
        loginButton <- getLoginButton currentPage
+       popupMessage <- getPopupMessage
        output
          $  "<html><head>\n"
          ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
@@ -107,6 +110,7 @@ view id = do
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1><a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
          ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a></h1>\n"
          ++ "<table>\n"

@@ -42,6 +42,7 @@ initDatabase database = do
                  ++ "timestamp_activity INTEGER,\n"
                  ++ "recent_user INTEGER,\n"
                  ++ "logged_in_user INTEGER,\n"
+                 ++ "popup_message TEXT,\n"
                  ++ "issue_index_filter_which TEXT,\n"
                  ++ "issue_index_filter_all_modules INTEGER,\n"
                  ++ "issue_index_filter_module INTEGER\n"
@@ -346,6 +347,29 @@ getLoginButton currentPage = do
                      else "<a href=\"/login/account/\">Account</a>")
               ++ "<a id=\"loginlink\" class=\"logout\" href=\"/login/logout/\">"
               ++ "Log Out</a></div>\n")
+
+
+setPopupMessage :: Maybe String -> Buglist ()
+setPopupMessage maybeMessage = do
+  sessionID <- Dispatcher.getSessionID
+  query "UPDATE sessions SET popup_message = ? WHERE id = ?"
+        [case maybeMessage of
+           Nothing -> SQLNull
+           Just message -> SQLText message,
+         SQLInteger sessionID]
+  return ()
+
+
+getPopupMessage :: Buglist String
+getPopupMessage = do
+  sessionID <- Dispatcher.getSessionID
+  [[maybeMessage]] <- query "SELECT popup_message FROM sessions WHERE id = ?"
+                            [SQLInteger sessionID]
+  case maybeMessage of
+    SQLNull -> return ""
+    SQLText message -> return $ "<div id=\"popupmessage\">"
+                              ++ (escapeHTML message)
+                              ++ "</div>\n"
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String

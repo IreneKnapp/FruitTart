@@ -107,10 +107,20 @@ logout = do
   seeOtherRedirect referrer
 
 
-account :: Buglist CGIResult
-account = do
-  userID <- getLoggedInUser
-  case userID of
+accountGET :: Buglist CGIResult
+accountGET = do
+  outputAccountPage
+
+
+accountPOST :: Buglist CGIResult
+accountPOST = do
+  outputAccountPage
+
+
+outputAccountPage :: Buglist CGIResult
+outputAccountPage = do
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
     Nothing -> seeOtherRedirect "/issues/index/"
     Just userID -> do
       sessionID <- getSessionID
@@ -124,6 +134,7 @@ account = do
       currentPage <- return "/login/account/"
       navigationBar <- getNavigationBar currentPage
       loginButton <- getLoginButton currentPage
+      popupMessage <- getPopupMessage
       output $ "<html><head>\n"
          ++ "<title>Buglist Account</title>\n"
          ++ pageHeadItems
@@ -131,6 +142,7 @@ account = do
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1>Account</h1>"
          ++ "<div class=\"form\">\n"
          ++ "<h2>Edit Account Details</h2>\n"
@@ -152,7 +164,7 @@ account = do
          ++ "</div>\n"
          ++ "<div class=\"form\">\n"
          ++ "<h2>Change Password</h2>\n"
-         ++ "<form method=\"POST\" action=\"/login/account/\">\n"
+         ++ "<form method=\"POST\" action=\"/login/password/\">\n"
          ++ "<table class=\"layout\">\n"
          ++ "<tr>\n"
          ++ "<td><b>Old Password:</b></td>\n"
@@ -175,6 +187,16 @@ account = do
          ++ "</div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
+
+
+passwordGET :: Buglist CGIResult
+passwordGET = do
+  seeOtherRedirect "/login/account/"
+
+
+passwordPOST :: Buglist CGIResult
+passwordPOST = do
+  seeOtherRedirect "/login/account/"
 
 
 getReferrer :: Buglist String

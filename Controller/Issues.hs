@@ -121,6 +121,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   currentPage <- return "/issues/index/"
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
+  popupMessage <- getPopupMessage
   currentPathWhichPart <- return $ "which:" ++ which ++ "/"
   currentPathModulePart <- return $ case maybeModuleID of
                              Nothing -> "module:all/"
@@ -177,6 +178,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
          ++ navigationBar
          ++ subnavigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1>" ++ reportName ++ "</h1>\n"
          ++ "<table>\n"
          ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
@@ -363,6 +365,7 @@ outputView id comment fullName email maybeWarning = do
        currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
        navigationBar <- getNavigationBar currentPage
        loginButton <- getLoginButton currentPage
+       popupMessage <- getPopupMessage
        statusPopup <- getStatusPopup $ Just statusID
        resolutionPopup <- getResolutionPopup $ Just resolutionID
        modulePopup <- getModulePopup $ Just moduleID
@@ -377,6 +380,7 @@ outputView id comment fullName email maybeWarning = do
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
          ++ "<table class=\"issuestatus\">\n"
          ++ "<tr><td>"
@@ -635,6 +639,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   currentPage <- return "/issues/create/"
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
+  popupMessage <- getPopupMessage
   modulePopup <- getModulePopup $ Just moduleID
   captchaTimestamp <- generateCaptcha
   output $ "<html><head>\n"
@@ -644,6 +649,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
+         ++ popupMessage
          ++ "<h1>Report an Issue</h1>\n"
          ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
          ++ case maybeWarning of
