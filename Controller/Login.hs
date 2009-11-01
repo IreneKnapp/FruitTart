@@ -214,8 +214,36 @@ passwordGET = do
 
 passwordPOST :: Buglist CGIResult
 passwordPOST = do
-  setPopupMessage $ Just "Password changed."
-  seeOtherRedirect "/login/account/"
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Nothing -> seeOtherRedirect "/login/account/"
+    Just userID -> do
+      maybeOldPassword <- getInput "old-password"
+      oldPassword <- return $ case maybeOldPassword of
+                      Just oldPassword -> oldPassword
+                      Nothing -> ""
+      maybeNewPassword1 <- getInput "new-password-1"
+      newPassword1 <- return $ case maybeNewPassword1 of
+                      Just newPassword1 -> newPassword1
+                      Nothing -> ""
+      maybeNewPassword2 <- getInput "new-password-2"
+      newPassword2 <- return $ case maybeNewPassword2 of
+                      Just newPassword2 -> newPassword2
+                      Nothing -> ""
+      valid <- validatePassword userID oldPassword
+      performChange <- return $ valid
+                                && (newPassword1 == newPassword2)
+                                && (newPassword1 /= "")
+      if performChange
+         then do
+           query "UPDATE users SET password_hash = ? WHERE id = ?"
+                 [SQLBlob $ hashPassword newPassword1,
+                  SQLInteger userID]
+           setPopupMessage $ Just "Password changed."
+           seeOtherRedirect "/login/account/"
+         else do
+           setPopupMessage $ Just "Password NOT changed."
+           seeOtherRedirect "/login/account/"
 
 
 getReferrer :: Buglist String
