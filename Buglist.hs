@@ -38,7 +38,7 @@ main = do
 initDatabase :: SQL.Database -> IO ()
 initDatabase database = do
   run database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
-                 ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                 ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "timestamp_activity INTEGER,\n"
                  ++ "recent_user INTEGER,\n"
                  ++ "logged_in_user INTEGER,\n"

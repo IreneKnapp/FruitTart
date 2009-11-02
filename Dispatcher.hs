@@ -31,6 +31,7 @@ import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Network.FastCGI hiding (output, logCGI)
 import Prelude hiding (catch)
+import Random
 import System.Time
 
 import qualified Controller.Captcha
@@ -422,12 +423,12 @@ endSession = do
 
 generateSessionID :: Buglist Int64
 generateSessionID = do
+  sessionID <- liftIO $ randomRIO (0, fromIntegral (maxBound :: Int64) :: Integer)
+               >>= return . fromIntegral
   timestamp <- getTimestamp
-  query "BEGIN EXCLUSIVE TRANSACTION" []
-  query "INSERT INTO sessions (timestamp_activity, logged_in_user) VALUES (?, NULL)"
-        [SQLInteger timestamp]
-  [[SQLInteger sessionID]] <- query "SELECT max(id) FROM sessions" []
-  query "COMMIT" []
+  query ("INSERT INTO sessions (id, timestamp_activity, logged_in_user) "
+         ++ "VALUES (?, ?, NULL)")
+        [SQLInteger sessionID, SQLInteger timestamp]
   return sessionID
 
 
