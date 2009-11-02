@@ -7,6 +7,7 @@ import Network.FastCGI hiding (output, logCGI)
 
 import Buglist
 import Controller.Captcha
+import Controller.Login
 import Database
 import {-# SOURCE #-} Dispatcher
 import HTML
@@ -583,53 +584,61 @@ viewAttachmentDetail id [SQLInteger timestamp,
 
 createGET :: Buglist CGIResult
 createGET = do
-  doNotCreateIssue 1 defaultSummary defaultComment defaultFullName defaultEmail
-                   Nothing
+  right <- getRightReportIssues
+  case right of
+    False -> outputMustLoginPage "/issues/create/"
+    True -> doNotCreateIssue 1 defaultSummary defaultComment defaultFullName defaultEmail
+                             Nothing
 
 
 createPOST :: Buglist CGIResult
 createPOST = do
-  maybeModuleID <- getInput "module"
-  moduleID <- return $ case maybeModuleID of
-               Just moduleID -> read moduleID
-               Nothing -> 0
-  maybeSummary <- getInput "summary"
-  summary <- return $ case maybeSummary of
-               Just summary -> fromCRLF summary
-               Nothing -> ""
-  maybeComment <- getInput "comment"
-  comment <- return $ case maybeComment of
-               Just comment -> fromCRLF comment
-               Nothing -> ""
-  maybeFullName <- getInput "full-name"
-  fullName <- return $ case maybeFullName of
-               Just "" -> defaultFullName
-               Just fullName -> fromCRLF fullName
-               Nothing -> defaultFullName
-  maybeEmail <- getInput "email"
-  email <- return $ case maybeEmail of
-               Just "" -> defaultEmail
-               Just email -> fromCRLF email
-               Nothing -> defaultEmail
-  maybeCaptchaTimestamp <- getInput "captcha-timestamp"
-  captchaTimestamp <- return $ case maybeCaptchaTimestamp of
-                                 Just captchaTimestamp -> read captchaTimestamp
-                                 Nothing -> 0
-  maybeCaptchaResponse <- getInput "captcha-response"
-  captchaResponse <- return $ case maybeCaptchaResponse of
-                                Just captchaResponse -> captchaResponse
-                                Nothing -> ""
-  captchaValid <- checkCaptcha captchaTimestamp captchaResponse
-  if (summary == "") || (summary == defaultSummary) || (elem '\n' summary)
-    then doNotCreateIssue moduleID summary comment fullName email
-                          (Just "Please enter a one-line summary.")
-    else if (comment == "") || (comment == defaultComment)
-         then doNotCreateIssue moduleID summary comment fullName email
-                               (Just "Please enter a description of the problem.")
-         else if not captchaValid
-              then doNotCreateIssue moduleID summary comment fullName email
-                                    (Just "Please enter the letters in the image below.")
-              else actuallyCreateIssue moduleID summary comment fullName email
+  right <- getRightReportIssues
+  case right of
+    False -> outputMustLoginPage "/issues/create/"
+    True -> do
+      maybeModuleID <- getInput "module"
+      moduleID <- return $ case maybeModuleID of
+                   Just moduleID -> read moduleID
+                   Nothing -> 0
+      maybeSummary <- getInput "summary"
+      summary <- return $ case maybeSummary of
+                   Just summary -> fromCRLF summary
+                   Nothing -> ""
+      maybeComment <- getInput "comment"
+      comment <- return $ case maybeComment of
+                   Just comment -> fromCRLF comment
+                   Nothing -> ""
+      maybeFullName <- getInput "full-name"
+      fullName <- return $ case maybeFullName of
+                   Just "" -> defaultFullName
+                   Just fullName -> fromCRLF fullName
+                   Nothing -> defaultFullName
+      maybeEmail <- getInput "email"
+      email <- return $ case maybeEmail of
+                   Just "" -> defaultEmail
+                   Just email -> fromCRLF email
+                   Nothing -> defaultEmail
+      maybeCaptchaTimestamp <- getInput "captcha-timestamp"
+      captchaTimestamp <- return $ case maybeCaptchaTimestamp of
+                                     Just captchaTimestamp -> read captchaTimestamp
+                                     Nothing -> 0
+      maybeCaptchaResponse <- getInput "captcha-response"
+      captchaResponse <- return $ case maybeCaptchaResponse of
+                                    Just captchaResponse -> captchaResponse
+                                    Nothing -> ""
+      captchaValid <- checkCaptcha captchaTimestamp captchaResponse
+      if (summary == "") || (summary == defaultSummary) || (elem '\n' summary)
+        then doNotCreateIssue moduleID summary comment fullName email
+                              (Just "Please enter a one-line summary.")
+        else if (comment == "") || (comment == defaultComment)
+             then doNotCreateIssue moduleID summary comment fullName email
+                                   (Just "Please enter a description of the problem.")
+             else if not captchaValid
+                  then doNotCreateIssue moduleID summary comment fullName email
+                                        (Just
+                                         "Please enter the letters in the image below.")
+                  else actuallyCreateIssue moduleID summary comment fullName email
 
 
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
