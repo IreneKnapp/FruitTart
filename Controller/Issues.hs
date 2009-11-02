@@ -439,9 +439,9 @@ outputView id comment fullName email maybeWarning = do
          ++ "</td></tr>\n"
          ++ "</table>\n"
          ++ (concat $ map (\row -> viewDetail id row) rows)
-         ++ if rightComment
-              then commentForm
-              else ""
+         ++ (if rightComment
+               then commentForm
+               else "")
          ++ "<div class=\"form\">\n"
          ++ "<h2>Edit this issue?</h2>\n"
          ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
