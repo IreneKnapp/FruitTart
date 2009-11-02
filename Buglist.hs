@@ -298,6 +298,20 @@ getEffectiveUser = do
       return anonymousID
 
 
+getCanActAsUser :: Int64 -> Buglist Bool
+getCanActAsUser userID = do
+  effectiveUserID <- getEffectiveUser
+  if effectiveUserID == userID
+     then return True
+     else do
+       [[SQLInteger isNull]]
+           <- query "SELECT password_hash IS NULL FROM users WHERE id = ?"
+                    [SQLInteger userID]
+       return $ case isNull of
+                  0 -> False
+                  _ -> True
+
+
 getRightAdminUsers :: Buglist Bool
 getRightAdminUsers = do
   userID <- getEffectiveUser

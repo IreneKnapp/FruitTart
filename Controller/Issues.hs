@@ -631,7 +631,14 @@ createPOST = do
                   then doNotCreateIssue moduleID summary comment fullName email
                                         (Just
                                          "Please enter the letters in the image below.")
-                  else actuallyCreateIssue moduleID summary comment fullName email
+                  else do
+                      reporterID <- getUser fullName email
+                      canActAsReporter <- getCanActAsUser reporterID
+                      case canActAsReporter of
+                        False -> doNotCreateIssue moduleID summary comment fullName email
+                                                  (Just
+                                                   "Please log in to post as that user.")
+                        True -> actuallyCreateIssue moduleID summary comment reporterID
 
 
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
@@ -681,9 +688,8 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "</body></html>"
 
 
-actuallyCreateIssue :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
-actuallyCreateIssue moduleID summary comment fullName email = do
-  reporterID <- getUser fullName email
+actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> Buglist CGIResult
+actuallyCreateIssue moduleID summary comment reporterID = do
   assigneeID <- getUser "Nobody" "nobody"
   timestamp <- getTimestamp
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
@@ -733,7 +739,13 @@ comment issueID = do
          else if not captchaValid
               then doNotCreateComment issueID comment fullName email
                                       "Please enter the letters in the image below."
-              else actuallyCreateComment issueID comment fullName email
+              else do
+                commenterID <- getUser fullName email
+                canActAsCommenter <- getCanActAsUser commenterID
+                case canActAsCommenter of
+                  False -> doNotCreateComment issueID comment fullName email
+                                              "Please log in to post as that user."
+                  True -> actuallyCreateComment issueID comment commenterID
 
 
 doNotCreateComment :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
@@ -741,9 +753,8 @@ doNotCreateComment issueID comment fullName email warning = do
   outputView issueID comment fullName email (Just warning)
 
 
-actuallyCreateComment :: Int64 -> String -> String -> String -> Buglist CGIResult
-actuallyCreateComment issueID comment fullName email = do
-  commenterID <- getUser fullName email
+actuallyCreateComment :: Int64 -> String -> Int64 -> Buglist CGIResult
+actuallyCreateComment issueID comment commenterID = do
   timestamp <- getTimestamp
   query "BEGIN TRANSACTION" []
   query ("INSERT INTO user_issue_comments (user, issue, timestamp, text) "
