@@ -373,38 +373,9 @@ outputView id comment fullName email maybeWarning = do
        severityPopup <- getSeverityPopup $ Just severityID
        priorityPopup <- getPriorityPopup $ Just priorityID
        captchaTimestamp <- generateCaptcha
-       output
-         $  "<html><head>\n"
-         ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
-         ++ "<table class=\"issuestatus\">\n"
-         ++ "<tr><td>"
-         ++ "<b>Status:</b> " ++ (escapeHTML status) ++ "<br />\n"
-         ++ "<b>Resolution:</b> " ++ (escapeHTML resolution) ++ "<br />\n"
-         ++ "<b>Module:</b> " ++ (escapeHTML module') ++ "<br />\n"
-         ++ "<b>Severity:</b> " ++ (escapeHTML severity) ++ "<br />\n"
-         ++ "<b>Priority:</b> " ++ (escapeHTML priority) ++ "<br />\n"
-         ++ "</td><td>"
-         ++ "<b>Assignee:</b> <a href=\"mailto:" ++ (escapeAttribute assigneeEmail)
-         ++ "\">" ++ (escapeHTML assigneeFullName) ++ " &lt;"
-         ++ (escapeHTML assigneeEmail) ++ "&gt;</a><br />\n"
-         ++ "<b>Reporter:</b> <a href=\"mailto:" ++ (escapeAttribute reporterEmail)
-         ++ "\">" ++ (escapeHTML reporterFullName) ++ " &lt;"
-         ++ (escapeHTML reporterEmail) ++ "&gt;</a><br />\n"
-         ++ "<b>Created:</b> " ++ (escapeHTML $ timestampToString timestampCreated)
-         ++ "<br />\n"
-         ++ "<b>Modified:</b> " ++ (escapeHTML $ timestampToString timestampModified)
-         ++ "<br />\n"
-         ++ "</td></tr>\n"
-         ++ "</table>\n"
-         ++ (concat $ map (\row -> viewDetail id row) rows)
-         ++ "<div class=\"form\">\n"
+       rightComment <- getRightCommentIssues
+       commentForm <- return
+         $  "<div class=\"form\">\n"
          ++ "<a name=\"comment\"><h2>Comment on this issue?</h2></a>\n"
          ++ "<form method=\"POST\" action=\"/issues/comment/"
          ++ (show id) ++ "/#comment\">\n"
@@ -437,6 +408,40 @@ outputView id comment fullName email maybeWarning = do
          ++ "</div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
+       output
+         $  "<html><head>\n"
+         ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
+         ++ pageHeadItems
+         ++ "</head>\n"
+         ++ "<body>\n"
+         ++ navigationBar
+         ++ loginButton
+         ++ popupMessage
+         ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
+         ++ "<table class=\"issuestatus\">\n"
+         ++ "<tr><td>"
+         ++ "<b>Status:</b> " ++ (escapeHTML status) ++ "<br />\n"
+         ++ "<b>Resolution:</b> " ++ (escapeHTML resolution) ++ "<br />\n"
+         ++ "<b>Module:</b> " ++ (escapeHTML module') ++ "<br />\n"
+         ++ "<b>Severity:</b> " ++ (escapeHTML severity) ++ "<br />\n"
+         ++ "<b>Priority:</b> " ++ (escapeHTML priority) ++ "<br />\n"
+         ++ "</td><td>"
+         ++ "<b>Assignee:</b> <a href=\"mailto:" ++ (escapeAttribute assigneeEmail)
+         ++ "\">" ++ (escapeHTML assigneeFullName) ++ " &lt;"
+         ++ (escapeHTML assigneeEmail) ++ "&gt;</a><br />\n"
+         ++ "<b>Reporter:</b> <a href=\"mailto:" ++ (escapeAttribute reporterEmail)
+         ++ "\">" ++ (escapeHTML reporterFullName) ++ " &lt;"
+         ++ (escapeHTML reporterEmail) ++ "&gt;</a><br />\n"
+         ++ "<b>Created:</b> " ++ (escapeHTML $ timestampToString timestampCreated)
+         ++ "<br />\n"
+         ++ "<b>Modified:</b> " ++ (escapeHTML $ timestampToString timestampModified)
+         ++ "<br />\n"
+         ++ "</td></tr>\n"
+         ++ "</table>\n"
+         ++ (concat $ map (\row -> viewDetail id row) rows)
+         ++ if rightComment
+              then commentForm
+              else ""
          ++ "<div class=\"form\">\n"
          ++ "<h2>Edit this issue?</h2>\n"
          ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
@@ -725,35 +730,39 @@ actuallyCreateIssue moduleID summary comment fullName email = do
 
 comment :: Int64 -> Buglist CGIResult
 comment issueID = do
-  maybeComment <- getInput "comment"
-  comment <- return $ case maybeComment of
-               Just comment -> fromCRLF comment
-               Nothing -> ""
-  maybeFullName <- getInput "full-name"
-  fullName <- return $ case maybeFullName of
-               Just "" -> defaultFullName
-               Just fullName -> fromCRLF fullName
-               Nothing -> defaultFullName
-  maybeEmail <- getInput "email"
-  email <- return $ case maybeEmail of
-               Just "" -> defaultEmail
-               Just email -> fromCRLF email
-               Nothing -> defaultEmail
-  maybeCaptchaTimestamp <- getInput "captcha-timestamp"
-  captchaTimestamp <- return $ case maybeCaptchaTimestamp of
-                                 Just captchaTimestamp -> read captchaTimestamp
-                                 Nothing -> 0
-  maybeCaptchaResponse <- getInput "captcha-response"
-  captchaResponse <- return $ case maybeCaptchaResponse of
-                                Just captchaResponse -> captchaResponse
-                                Nothing -> ""
-  captchaValid <- checkCaptcha captchaTimestamp captchaResponse
-  if (comment == "")
-     then doNotCreateComment issueID comment fullName email "Please enter a comment!"
-     else if not captchaValid
-          then doNotCreateComment issueID comment fullName email
-                                  "Please enter the letters in the image below."
-          else actuallyCreateComment issueID comment fullName email
+  right <- getRightCommentIssues
+  case right of
+    False -> outputMustLoginPage $ "/issues/comment/" ++ (show issueID) ++ "/"
+    True -> do
+      maybeComment <- getInput "comment"
+      comment <- return $ case maybeComment of
+                   Just comment -> fromCRLF comment
+                   Nothing -> ""
+      maybeFullName <- getInput "full-name"
+      fullName <- return $ case maybeFullName of
+                   Just "" -> defaultFullName
+                   Just fullName -> fromCRLF fullName
+                   Nothing -> defaultFullName
+      maybeEmail <- getInput "email"
+      email <- return $ case maybeEmail of
+                   Just "" -> defaultEmail
+                   Just email -> fromCRLF email
+                   Nothing -> defaultEmail
+      maybeCaptchaTimestamp <- getInput "captcha-timestamp"
+      captchaTimestamp <- return $ case maybeCaptchaTimestamp of
+                                     Just captchaTimestamp -> read captchaTimestamp
+                                     Nothing -> 0
+      maybeCaptchaResponse <- getInput "captcha-response"
+      captchaResponse <- return $ case maybeCaptchaResponse of
+                                    Just captchaResponse -> captchaResponse
+                                    Nothing -> ""
+      captchaValid <- checkCaptcha captchaTimestamp captchaResponse
+      if (comment == "")
+         then doNotCreateComment issueID comment fullName email "Please enter a comment!"
+         else if not captchaValid
+              then doNotCreateComment issueID comment fullName email
+                                      "Please enter the letters in the image below."
+              else actuallyCreateComment issueID comment fullName email
 
 
 doNotCreateComment :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
