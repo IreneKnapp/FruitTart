@@ -425,14 +425,14 @@ outputView id comment fullName email maybeWarning = do
          ++ "</div>\n"
        output
          $  "<html><head>\n"
-         ++ "<title>" ++ (escapeHTML summary) ++ "</title>\n"
+         ++ "<title>Issue " ++ (show id) ++ ": " ++ (escapeHTML summary) ++ "</title>\n"
          ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
          ++ loginButton
          ++ popupMessage
-         ++ "<h1>" ++ (escapeHTML summary) ++ "</h1>\n"
+         ++ "<h1>Issue " ++ (show id) ++ ": " ++ (escapeHTML summary) ++ "</h1>\n"
          ++ "<table class=\"issuestatus\">\n"
          ++ "<tr><td>"
          ++ "<b>Status:</b> " ++ (escapeHTML status) ++ "<br />\n"
