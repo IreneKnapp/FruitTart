@@ -372,6 +372,7 @@ outputView id comment fullName email maybeWarning = do
        modulePopup <- getModulePopup $ Just moduleID
        severityPopup <- getSeverityPopup $ Just severityID
        priorityPopup <- getPriorityPopup $ Just priorityID
+       userSelectionFormControls <- getUserSelectionFormControls fullName email
        captchaTimestamp <- generateCaptcha
        rightComment <- getRightCommentIssues
        commentForm <- return
@@ -386,16 +387,7 @@ outputView id comment fullName email maybeWarning = do
          ++ "<div><textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
          ++ (escapeHTML comment)
          ++ "</textarea></div>\n"
-         ++ "<div><b>Full Name:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeAttribute fullName)
-         ++ "\"/></div>\n"
-         ++ "<div><b>Email:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeAttribute email)
-         ++ "\"/>"
-         ++ "<br />" ++ (escapeHTML privacyNote)
-         ++ "</div>\n"
+         ++ userSelectionFormControls
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
          ++ (show captchaTimestamp) ++ "/\"/> "
@@ -405,6 +397,29 @@ outputView id comment fullName email maybeWarning = do
          ++ "</div>"
          ++ "<div class=\"submit\">"
          ++ "<button type=\"submit\" value=\"Comment\">Comment</button>"
+         ++ "</div>\n"
+         ++ "</form>\n"
+         ++ "</div>\n"
+       rightEdit <- getRightModifyIssues
+       editForm <- return
+         $  "<div class=\"form\">\n"
+         ++ "<h2>Edit this issue?</h2>\n"
+         ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
+         ++ "<div><b>Status:</b> " ++ statusPopup ++ "</div>\n"
+         ++ "<div><b>Resolution:</b> " ++ resolutionPopup ++ "</div>\n"
+         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>\n"
+         ++ "<div><b>Severity:</b> " ++ severityPopup ++ "</div>\n"
+         ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
+         ++ "<div><b>Assignee:</b> "
+         ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
+         ++ (escapeAttribute assigneeEmail)
+         ++ "\"/></div>\n"
+         ++ "<div><b>Summary:</b> "
+         ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
+         ++ (escapeAttribute summary)
+         ++ "\"/></div>\n"
+         ++ "<div class=\"submit\">"
+         ++ "<button type=\"submit\" value=\"Edit\">Edit</button>"
          ++ "</div>\n"
          ++ "</form>\n"
          ++ "</div>\n"
@@ -442,27 +457,9 @@ outputView id comment fullName email maybeWarning = do
          ++ (if rightComment
                then commentForm
                else "")
-         ++ "<div class=\"form\">\n"
-         ++ "<h2>Edit this issue?</h2>\n"
-         ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
-         ++ "<div><b>Status:</b> " ++ statusPopup ++ "</div>\n"
-         ++ "<div><b>Resolution:</b> " ++ resolutionPopup ++ "</div>\n"
-         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>\n"
-         ++ "<div><b>Severity:</b> " ++ severityPopup ++ "</div>\n"
-         ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
-         ++ "<div><b>Assignee:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
-         ++ (escapeAttribute assigneeEmail)
-         ++ "\"/></div>\n"
-         ++ "<div><b>Summary:</b> "
-         ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
-         ++ (escapeAttribute summary)
-         ++ "\"/></div>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Edit\">Edit</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
+         ++ (if rightEdit
+               then editForm
+               else "")
          ++ "</body></html>"
     _ -> errorInvalidID "issue"
 
@@ -614,16 +611,7 @@ createPOST = do
       comment <- return $ case maybeComment of
                    Just comment -> fromCRLF comment
                    Nothing -> ""
-      maybeFullName <- getInput "full-name"
-      fullName <- return $ case maybeFullName of
-                   Just "" -> defaultFullName
-                   Just fullName -> fromCRLF fullName
-                   Nothing -> defaultFullName
-      maybeEmail <- getInput "email"
-      email <- return $ case maybeEmail of
-                   Just "" -> defaultEmail
-                   Just email -> fromCRLF email
-                   Nothing -> defaultEmail
+      (fullName, email) <- getFullNameAndEmail
       maybeCaptchaTimestamp <- getInput "captcha-timestamp"
       captchaTimestamp <- return $ case maybeCaptchaTimestamp of
                                      Just captchaTimestamp -> read captchaTimestamp
@@ -655,6 +643,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   loginButton <- getLoginButton currentPage
   popupMessage <- getPopupMessage
   modulePopup <- getModulePopup $ Just moduleID
+  userSelectionFormControls <- getUserSelectionFormControls fullName email
   captchaTimestamp <- generateCaptcha
   output $ "<html><head>\n"
          ++ "<title>Report an Issue</title>\n"
@@ -677,16 +666,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "<textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
          ++ (escapeHTML comment)
          ++ "</textarea></div>\n"
-         ++ "<div><b>Full Name:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeAttribute fullName)
-         ++ "\"/></div>\n"
-         ++ "<div><b>Email:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeAttribute email)
-         ++ "\"/>"
-         ++ "<br />" ++ (escapeHTML privacyNote)
-         ++ "</div>\n"
+         ++ userSelectionFormControls
          ++ "<div><b>The letters in this image:</b> "
          ++ "<img class=\"captcha\" src=\"/captcha/index/"
          ++ (show captchaTimestamp) ++ "/\"/> "
@@ -738,16 +718,7 @@ comment issueID = do
       comment <- return $ case maybeComment of
                    Just comment -> fromCRLF comment
                    Nothing -> ""
-      maybeFullName <- getInput "full-name"
-      fullName <- return $ case maybeFullName of
-                   Just "" -> defaultFullName
-                   Just fullName -> fromCRLF fullName
-                   Nothing -> defaultFullName
-      maybeEmail <- getInput "email"
-      email <- return $ case maybeEmail of
-                   Just "" -> defaultEmail
-                   Just email -> fromCRLF email
-                   Nothing -> defaultEmail
+      (fullName, email) <- getFullNameAndEmail
       maybeCaptchaTimestamp <- getInput "captcha-timestamp"
       captchaTimestamp <- return $ case maybeCaptchaTimestamp of
                                      Just captchaTimestamp -> read captchaTimestamp
@@ -789,96 +760,147 @@ actuallyCreateComment issueID comment fullName email = do
 
 edit :: Int64 -> Buglist CGIResult
 edit issueID = do
-  maybeNewStatusID <- getInput "status"
-  newStatusID <- return $ case maybeNewStatusID of
-                               Just newStatusID -> read newStatusID
-                               Nothing -> 1
-  maybeNewResolutionID <- getInput "resolution"
-  newResolutionID <- return $ case maybeNewResolutionID of
-                               Just newResolutionID -> read newResolutionID
-                               Nothing -> 1
-  maybeNewModuleID <- getInput "module"
-  newModuleID <- return $ case maybeNewModuleID of
-                               Just newModuleID -> read newModuleID
-                               Nothing -> 1
-  maybeNewSeverityID <- getInput "severity"
-  newSeverityID <- return $ case maybeNewSeverityID of
-                               Just newSeverityID -> read newSeverityID
-                               Nothing -> 1
-  maybeNewPriorityID <- getInput "priority"
-  newPriorityID <- return $ case maybeNewPriorityID of
-                               Just newPriorityID -> read newPriorityID
-                               Nothing -> 1
-  maybeNewAssigneeEmail <- getInput "assignee-email"
-  newAssigneeEmail <- return $ case maybeNewAssigneeEmail of
-                                    Just newAssigneeEmail -> newAssigneeEmail
-                                    Nothing -> "nobody"
-  maybeNewSummary <- getInput "summary"
-  newSummary <- return $ case maybeNewSummary of
-                           Just newSummary -> newSummary
-                           Nothing -> ""
-  query "BEGIN TRANSACTION" []
-  newAssigneeID <- getUser "" newAssigneeEmail
-  [[SQLInteger oldStatusID,
-    SQLInteger oldResolutionID,
-    SQLInteger oldModuleID,
-    SQLInteger oldSeverityID,
-    SQLInteger oldPriorityID,
-    SQLInteger oldAssigneeID,
-    SQLText oldSummary]]
-      <- query ("SELECT status, resolution, module, severity, priority, assignee, "
-                ++ "summary "
-                ++ "FROM issues WHERE id = ?")
-               [SQLInteger issueID]
-  timestamp <- getTimestamp
-  query ("INSERT INTO user_issue_changes (user, issue, timestamp, "
-         ++ "status_changed, resolution_changed, module_changed, severity_changed, "
-         ++ "priority_changed, assignee_changed, summary_changed, "
-         ++ "old_status, old_resolution, old_module, old_severity, old_priority, "
-         ++ "old_assignee, old_summary, "
-         ++ "new_status, new_resolution, new_module, new_severity, new_priority, "
-         ++ "new_assignee, new_summary) "
-         ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-         ++ "?, ?, ?)")
-        [SQLInteger 1,
-         SQLInteger issueID,
-         SQLInteger timestamp,
-         SQLInteger (if newStatusID /= oldStatusID then 1 else 0),
-         SQLInteger (if newResolutionID /= oldResolutionID then 1 else 0),
-         SQLInteger (if newModuleID /= oldModuleID then 1 else 0),
-         SQLInteger (if newSeverityID /= oldSeverityID then 1 else 0),
-         SQLInteger (if newPriorityID /= oldPriorityID then 1 else 0),
-         SQLInteger (if newAssigneeID /= oldAssigneeID then 1 else 0),
-         SQLInteger (if newSummary /= oldSummary then 1 else 0),
-         SQLInteger oldStatusID,
-         SQLInteger oldResolutionID,
-         SQLInteger oldModuleID,
-         SQLInteger oldSeverityID,
-         SQLInteger oldPriorityID,
-         SQLInteger oldAssigneeID,
-         SQLText oldSummary,
-         SQLInteger newStatusID,
-         SQLInteger newResolutionID,
-         SQLInteger newModuleID,
-         SQLInteger newSeverityID,
-         SQLInteger newPriorityID,
-         SQLInteger newAssigneeID,
-         SQLText newSummary]
-  query ("UPDATE issues SET status = ?, resolution = ?, module = ?, severity = ?, "
-         ++ "priority = ?, assignee = ?, summary = ?, timestamp_modified = ? "
-         ++ "WHERE id = ?")
-        [SQLInteger newStatusID,
-         SQLInteger newResolutionID,
-         SQLInteger newModuleID,
-         SQLInteger newSeverityID,
-         SQLInteger newPriorityID,
-         SQLInteger newAssigneeID,
-         SQLText newSummary,
-         SQLInteger timestamp,
-         SQLInteger issueID]
-  query "COMMIT" []
-  setPopupMessage $ Just "Edited issue."
-  seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
+  right <- getRightModifyIssues
+  case right of
+    False -> outputMustLoginPage $ "/issues/edit/" ++ (show issueID) ++ "/"
+    True -> do
+      maybeNewStatusID <- getInput "status"
+      newStatusID <- return $ case maybeNewStatusID of
+                                   Just newStatusID -> read newStatusID
+                                   Nothing -> 1
+      maybeNewResolutionID <- getInput "resolution"
+      newResolutionID <- return $ case maybeNewResolutionID of
+                                   Just newResolutionID -> read newResolutionID
+                                   Nothing -> 1
+      maybeNewModuleID <- getInput "module"
+      newModuleID <- return $ case maybeNewModuleID of
+                                   Just newModuleID -> read newModuleID
+                                   Nothing -> 1
+      maybeNewSeverityID <- getInput "severity"
+      newSeverityID <- return $ case maybeNewSeverityID of
+                                   Just newSeverityID -> read newSeverityID
+                                   Nothing -> 1
+      maybeNewPriorityID <- getInput "priority"
+      newPriorityID <- return $ case maybeNewPriorityID of
+                                   Just newPriorityID -> read newPriorityID
+                                   Nothing -> 1
+      maybeNewAssigneeEmail <- getInput "assignee-email"
+      newAssigneeEmail <- return $ case maybeNewAssigneeEmail of
+                                        Just newAssigneeEmail -> newAssigneeEmail
+                                        Nothing -> "nobody"
+      maybeNewSummary <- getInput "summary"
+      newSummary <- return $ case maybeNewSummary of
+                               Just newSummary -> newSummary
+                               Nothing -> ""
+      query "BEGIN TRANSACTION" []
+      newAssigneeID <- getUser "" newAssigneeEmail
+      [[SQLInteger oldStatusID,
+        SQLInteger oldResolutionID,
+        SQLInteger oldModuleID,
+        SQLInteger oldSeverityID,
+        SQLInteger oldPriorityID,
+        SQLInteger oldAssigneeID,
+        SQLText oldSummary]]
+          <- query ("SELECT status, resolution, module, severity, priority, assignee, "
+                    ++ "summary "
+                    ++ "FROM issues WHERE id = ?")
+                   [SQLInteger issueID]
+      timestamp <- getTimestamp
+      query ("INSERT INTO user_issue_changes (user, issue, timestamp, "
+             ++ "status_changed, resolution_changed, module_changed, severity_changed, "
+             ++ "priority_changed, assignee_changed, summary_changed, "
+             ++ "old_status, old_resolution, old_module, old_severity, old_priority, "
+             ++ "old_assignee, old_summary, "
+             ++ "new_status, new_resolution, new_module, new_severity, new_priority, "
+             ++ "new_assignee, new_summary) "
+             ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+             ++ "?, ?, ?)")
+            [SQLInteger 1,
+             SQLInteger issueID,
+             SQLInteger timestamp,
+             SQLInteger (if newStatusID /= oldStatusID then 1 else 0),
+             SQLInteger (if newResolutionID /= oldResolutionID then 1 else 0),
+             SQLInteger (if newModuleID /= oldModuleID then 1 else 0),
+             SQLInteger (if newSeverityID /= oldSeverityID then 1 else 0),
+             SQLInteger (if newPriorityID /= oldPriorityID then 1 else 0),
+             SQLInteger (if newAssigneeID /= oldAssigneeID then 1 else 0),
+             SQLInteger (if newSummary /= oldSummary then 1 else 0),
+             SQLInteger oldStatusID,
+             SQLInteger oldResolutionID,
+             SQLInteger oldModuleID,
+             SQLInteger oldSeverityID,
+             SQLInteger oldPriorityID,
+             SQLInteger oldAssigneeID,
+             SQLText oldSummary,
+             SQLInteger newStatusID,
+             SQLInteger newResolutionID,
+             SQLInteger newModuleID,
+             SQLInteger newSeverityID,
+             SQLInteger newPriorityID,
+             SQLInteger newAssigneeID,
+             SQLText newSummary]
+      query ("UPDATE issues SET status = ?, resolution = ?, module = ?, severity = ?, "
+             ++ "priority = ?, assignee = ?, summary = ?, timestamp_modified = ? "
+             ++ "WHERE id = ?")
+            [SQLInteger newStatusID,
+             SQLInteger newResolutionID,
+             SQLInteger newModuleID,
+             SQLInteger newSeverityID,
+             SQLInteger newPriorityID,
+             SQLInteger newAssigneeID,
+             SQLText newSummary,
+             SQLInteger timestamp,
+             SQLInteger issueID]
+      query "COMMIT" []
+      setPopupMessage $ Just "Edited issue."
+      seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
+
+
+getUserSelectionFormControls :: String -> String -> Buglist String
+getUserSelectionFormControls providedFullName providedEmail = do
+  maybeUserID <- getLoggedInUser
+  (maybeFullName, maybeEmail) <- case maybeUserID of
+     Nothing -> return (Nothing, Nothing)
+     Just userID -> do
+       [[SQLText maybeFullName, SQLText maybeEmail]]
+           <- query "SELECT full_name, email FROM users WHERE id = ?"
+                    [SQLInteger userID]
+       return (Just maybeFullName, Just maybeEmail)
+  return $ if (isJust maybeUserID)
+           then ("")
+           else ("<div><b>Full Name:</b> "
+                 ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
+                 ++ (escapeAttribute providedFullName)
+                 ++ "\"/></div>\n"
+                 ++ "<div><b>Email:</b> "
+                 ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
+                 ++ (escapeAttribute providedEmail)
+                 ++ "\"/>"
+                 ++ "<br />" ++ (escapeHTML privacyNote)
+                 ++ "</div>\n")
+
+
+getFullNameAndEmail :: Buglist (String, String)
+getFullNameAndEmail = do
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Nothing -> do
+      maybeFullName <- getInput "full-name"
+      fullName <- return $ case maybeFullName of
+                             Just "" -> defaultFullName
+                             Just fullName -> fromCRLF fullName
+                             Nothing -> defaultFullName
+      maybeEmail <- getInput "email"
+      email <- return $ case maybeEmail of
+                          Just "" -> defaultEmail
+                          Just email -> fromCRLF email
+                          Nothing -> defaultEmail
+      return (fullName, email)
+    Just userID -> do
+      [[SQLText fullName, SQLText email]]
+          <- query ("SELECT full_name, email FROM users WHERE id = ?")
+                   [SQLInteger userID]
+      return (fullName, email)
 
 
 defaultSummary :: String
