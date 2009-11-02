@@ -22,6 +22,20 @@ import Text
 import Types
 
 
+outputMustLoginPage :: String -> Buglist CGIResult
+outputMustLoginPage currentPage = do
+  pageHeadItems <- getPageHeadItems
+  navigationBar <- getNavigationBar currentPage
+  output $ "<html><head>\n"
+         ++ "<title>Buglist Users</title>\n"
+         ++ pageHeadItems
+         ++ "</head>\n"
+         ++ "<body>\n"
+         ++ navigationBar
+         ++ "<h1>You must log in to access this page.</h1>\n"
+         ++ "</body></html>"
+
+
 loginGET :: Buglist CGIResult
 loginGET = do
   sessionID <- getSessionID
