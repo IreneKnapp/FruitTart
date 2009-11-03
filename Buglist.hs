@@ -173,6 +173,7 @@ initDatabase' database = do
                  ++ "full_name TEXT,\n"
                  ++ "email TEXT,\n"
                  ++ "password_hash BLOB,\n"
+                 ++ "right_synchronize INTEGER,\n"
                  ++ "right_admin_users INTEGER,\n"
                  ++ "right_see_emails INTEGER,\n"
                  ++ "right_report_issues INTEGER,\n"
@@ -184,19 +185,22 @@ initDatabase' database = do
   if userCount == SQLInteger 0
      then do
        run' database ("INSERT INTO users (id, full_name, email, password_hash, "
-                      ++ "right_admin_users, right_see_emails, right_report_issues, "
-                      ++ "right_modify_issues, right_upload_files, right_comment_issues) "
+                      ++ "right_synchronize, right_admin_users, right_see_emails, "
+                      ++ "right_report_issues, right_modify_issues, right_upload_files, "
+                      ++ "right_comment_issues) "
                       ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
-                      ++ "1, 1, 1, 1, 1, 1)")
+                      ++ "1, 1, 1, 1, 1, 1, 1)")
                      [SQLBlob $ hashPassword "This password must be changed."]
        run database ("INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_admin_users, right_see_emails, right_report_issues, "
-                     ++ "right_modify_issues, right_upload_files, right_comment_issues) "
-                     ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0)")
+                     ++ "right_synchronize, right_admin_users, right_see_emails, "
+                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
+                     ++ "right_comment_issues) "
+                     ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
        run database ("INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_admin_users, right_see_emails, right_report_issues, "
-                     ++ "right_modify_issues, right_upload_files, right_comment_issues) "
-                     ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 1, 0, 0, 1)")
+                     ++ "right_synchronize, right_admin_users, right_see_emails, "
+                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
+                     ++ "right_comment_issues) "
+                     ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
        SQLInteger count <- eval database "SELECT count(*) FROM buglist_settings"
        case count of
          0 -> run database "INSERT INTO settings (anonymous_user) VALUES (3)"
@@ -339,6 +343,16 @@ getCanActAsUser userID = do
        return $ case isNull of
                   0 -> False
                   _ -> True
+
+
+getRightSynchronize :: Buglist Bool
+getRightSynchronize = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_synchronize FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
 
 
 getRightAdminUsers :: Buglist Bool

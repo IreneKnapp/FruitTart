@@ -115,13 +115,42 @@ dispatchTable
                                               [],
                                               toDyn Controller.Captcha.index))])]),
        ("synchronization",
-        Map.fromList [("index",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Synchronization.get)),
-                                     ("POST", ([],
-                                               [],
-                                             toDyn Controller.Synchronization.post))])])]
+        Map.fromList
+               [("index",
+                 Map.fromList [("GET", ([],
+                                        [],
+                                        toDyn Controller.Synchronization.index))]),
+                ("issue",
+                 Map.fromList [("GET", ([IDParameter],
+                                        [],
+                                        toDyn Controller.Synchronization.issueGET)),
+                               ("POST", ([IDParameter],
+                                         [],
+                                         toDyn Controller.Synchronization.issuePOST))]),
+                ("user-issue-change",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueChangeGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                            toDyn Controller.Synchronization.userIssueChangePOST))]),
+                ("user-issue-comment",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueCommentGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                            toDyn Controller.Synchronization.userIssueCommentPOST))]),
+                ("user-issue-attachment",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueAttachmentGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                          toDyn Controller.Synchronization.userIssueAttachmentPOST))])])]
 
 
 instance Typeable (Buglist CGIResult)
