@@ -1,4 +1,4 @@
-module Controller.XML where
+module Controller.Synchronization where
 
 import Control.Concurrent
 import Control.Monad.State

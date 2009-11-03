@@ -38,7 +38,7 @@ import qualified Controller.Captcha
 import qualified Controller.Issues
 import qualified Controller.Login
 import qualified Controller.Users
-import qualified Controller.XML
+import qualified Controller.Synchronization
 import Database
 import Log
 import SQLite3 (SQLData(..))
@@ -114,14 +114,14 @@ dispatchTable
                        Map.fromList [("GET", ([IDParameter],
                                               [],
                                               toDyn Controller.Captcha.index))])]),
-       ("xml",
+       ("synchronization",
         Map.fromList [("index",
                        Map.fromList [("GET", ([],
                                               [],
-                                              toDyn Controller.XML.get)),
+                                              toDyn Controller.Synchronization.get)),
                                      ("POST", ([],
                                                [],
-                                               toDyn Controller.XML.post))])])]
+                                             toDyn Controller.Synchronization.post))])])]
 
 
 instance Typeable (Buglist CGIResult)
