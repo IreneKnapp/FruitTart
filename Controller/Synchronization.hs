@@ -24,6 +24,78 @@ import Types
 
 index :: Buglist CGIResult
 index = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> index'
+
+
+issueGET :: Int64 -> Buglist CGIResult
+issueGET issueID = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> issueGET' issueID
+
+
+userIssueChangeGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangeGET userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueChangeGET' userID issueID timestamp
+
+
+userIssueCommentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentGET userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueCommentGET' userID issueID timestamp
+
+
+userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentGET userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueAttachmentGET' userID issueID timestamp
+
+
+issuePOST :: Int64 -> Buglist CGIResult
+issuePOST issueID = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> issuePOST' issueID
+
+
+userIssueChangePOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangePOST userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueChangePOST' userID issueID timestamp
+
+
+userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentPOST userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueCommentPOST' userID issueID timestamp
+
+
+userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentPOST userID issueID timestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> userIssueAttachmentPOST' userID issueID timestamp
+
+
+index' :: Buglist CGIResult
+index' = do
   users <- query "SELECT id, full_name, email FROM users ORDER BY id"
                  []
   issues <- query ("SELECT id, reporter, timestamp_created "
@@ -98,8 +170,8 @@ index = do
          ++ "</buglist>\n"
 
 
-issueGET :: Int64 -> Buglist CGIResult
-issueGET issueID = do
+issueGET' :: Int64 -> Buglist CGIResult
+issueGET' issueID = do
   [[SQLInteger id,
     SQLInteger status,
     SQLInteger resolution,
@@ -131,8 +203,8 @@ issueGET issueID = do
          ++ "</issue>\n"
 
 
-userIssueChangeGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueChangeGET userID issueID timestamp = do
+userIssueChangeGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangeGET' userID issueID timestamp = do
   [[SQLInteger statusChanged,
     SQLInteger resolutionChanged,
     SQLInteger moduleChanged,
@@ -189,8 +261,8 @@ userIssueChangeGET userID issueID timestamp = do
          ++ "</user_issue_change>\n"
 
 
-userIssueCommentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueCommentGET userID issueID timestamp = do
+userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentGET' userID issueID timestamp = do
   [[SQLText text]]
       <- query ("SELECT text "
                 ++ "FROM user_issue_comments "
@@ -202,28 +274,28 @@ userIssueCommentGET userID issueID timestamp = do
          ++ "</user_issue_comment>\n"
 
 
-userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueAttachmentGET userID issueID timestamp = do
+userIssueAttachmentGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentGET' userID issueID timestamp = do
   output $ ""
 
 
-issuePOST :: Int64 -> Buglist CGIResult
-issuePOST issueID = do
+issuePOST' :: Int64 -> Buglist CGIResult
+issuePOST' issueID = do
   output $ ""
 
 
-userIssueChangePOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueChangePOST userID issueID timestamp = do
+userIssueChangePOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangePOST' userID issueID timestamp = do
   output $ ""
 
 
-userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueCommentPOST userID issueID timestamp = do
+userIssueCommentPOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentPOST' userID issueID timestamp = do
   output $ ""
 
 
-userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
-userIssueAttachmentPOST userID issueID timestamp = do
+userIssueAttachmentPOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentPOST' userID issueID timestamp = do
   output $ ""
 
 
