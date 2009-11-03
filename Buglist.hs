@@ -8,6 +8,7 @@ import qualified Data.Map as Map
 import Network.FastCGI hiding (logCGI)
 import Network.CGI.Monad
 import System.Environment
+import System.Exit
 
 import Database
 import {-# SOURCE #-} qualified Dispatcher
@@ -35,8 +36,36 @@ main = do
   return ()
 
 
+schemaVersion :: Int64
+schemaVersion = 1
+
+
 initDatabase :: SQL.Database -> IO ()
 initDatabase database = do
+  run database $ "CREATE TABLE IF NOT EXISTS schema_version (\n"
+                 ++ "version INTEGER\n"
+                 ++ ")"
+  schemaVersionCount <- eval database "SELECT count(*) FROM schema_version"
+  if schemaVersionCount == SQLInteger 0
+     then do
+       run' database
+            "INSERT INTO schema_version (version) VALUES (?)"
+            [SQLInteger schemaVersion]
+       initDatabase' database
+     else do
+       SQLInteger databaseSchemaVersion
+           <- eval database "SELECT version FROM schema_version LIMIT 1"
+       if databaseSchemaVersion /= schemaVersion
+          then do
+            logCGI $ "Schema mismatch: Program version " ++ (show schemaVersion)
+                     ++ ", database version " ++ (show databaseSchemaVersion)
+                     ++ "."
+            exitFailure
+          else do initDatabase' database
+
+
+initDatabase' :: SQL.Database -> IO ()
+initDatabase' database = do
   run database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "timestamp_activity INTEGER,\n"
