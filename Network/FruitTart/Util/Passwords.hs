@@ -1,4 +1,4 @@
-module Passwords where
+module Network.FruitTart.Util.Passwords (hashPassword, validatePassword) where
 
 import Data.Bits
 import Data.ByteString as BS
@@ -6,9 +6,9 @@ import Data.ByteString.UTF8 as UTF8
 import Data.Digest.SHA1 as SHA1
 import Foreign
 
-import Database
-import SQLite3
-import Types
+import Data.SQLite3
+import Network.FruitTart.Util.Database
+import Network.FruitTart.Util.Types
 
 
 hashPassword :: String -> BS.ByteString

@@ -1,5 +1,5 @@
-module Controller.Login (actionTable,
-                         outputMustLoginPage)
+module Network.FruitTart.Controller.Login (actionTable,
+                                           outputMustLoginPage)
     where
 
 import Control.Concurrent
@@ -15,14 +15,8 @@ import Data.List
 import Network.FastCGI hiding (output)
 
 import {-# SOURCE #-} Buglist
-import Database
-import Dispatcher
-import HTML
-import Lists
-import Passwords
-import SQLite3 (SQLData(..))
-import Text
-import Types
+import Network.FruitTart.Dispatcher
+import Network.FruitTart.Util
 
 
 actionTable :: ActionTable

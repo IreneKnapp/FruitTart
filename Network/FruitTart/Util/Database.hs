@@ -1,4 +1,4 @@
-module Database where
+module Network.FruitTart.Util.Database where
 
 import Control.Monad.State
 import Data.Time
@@ -7,43 +7,32 @@ import Foreign
 import Numeric
 import System.Locale
 
-import qualified SQLite3 as SQL
-import SQLite3 (SQLData(..))
-import Types
+import qualified Data.SQLite3 as SQL
+import Data.SQLite3 (SQLData(..))
+import Network.FruitTart.Util.Types
 
 
-run :: SQL.Database -> String -> IO ()
-run database query = do
+earlyRun :: SQL.Database -> String -> IO ()
+earlyRun database query = do
   statement <- SQL.prepare database query
   SQL.step statement
   SQL.finalize statement
 
 
-run' :: SQL.Database -> String -> [SQL.SQLData] -> IO ()
-run' database query bindings = do
+earlyRun' :: SQL.Database -> String -> [SQL.SQLData] -> IO ()
+earlyRun' database query bindings = do
   statement <- SQL.prepare database query
   SQL.bind statement bindings
   SQL.step statement
   SQL.finalize statement
 
 
-eval :: SQL.Database -> String -> IO SQL.SQLData
-eval database query = do
+earlyEval :: SQL.Database -> String -> IO SQL.SQLData
+earlyEval database query = do
   statement <- SQL.prepare database query
   SQL.step statement
   result <- SQL.column statement 0
   SQL.finalize statement
-  return result
-
-
-query1 :: String -> [SQL.SQLData] -> FruitTart [SQL.SQLData]
-query1 text bindings = do
-  FruitTartState { database = database } <- get
-  statement <- liftIO $ SQL.prepare database text
-  liftIO $ SQL.bind statement bindings
-  liftIO $ SQL.step statement
-  result <- liftIO $ SQL.columns statement
-  liftIO $ SQL.finalize statement
   return result
 
 

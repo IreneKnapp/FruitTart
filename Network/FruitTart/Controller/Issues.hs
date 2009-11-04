@@ -1,4 +1,4 @@
-module Controller.Issues (actionTable) where
+module Network.FruitTart.Controller.Issues (actionTable) where
 
 import Data.Dynamic
 import Data.Int
@@ -9,15 +9,10 @@ import Data.Maybe
 import Network.FastCGI hiding (output, logCGI)
 
 import {-# SOURCE #-} Buglist
-import Controller.Captcha hiding (actionTable)
-import Controller.Login hiding (actionTable)
-import Database
-import Dispatcher
-import HTML
-import Lists
-import SQLite3 (SQLData(..))
-import Text
-import Types
+import Network.FruitTart.Controller.Captcha hiding (actionTable)
+import Network.FruitTart.Controller.Login hiding (actionTable)
+import Network.FruitTart.Dispatcher
+import Network.FruitTart.Util
 
 
 actionTable :: ActionTable

@@ -38,20 +38,14 @@ import Network.CGI.Monad
 import System.Environment
 import System.Exit
 
-import qualified Controller.Captcha
-import qualified Controller.Issues
-import qualified Controller.Login
-import qualified Controller.Users
-import qualified Controller.Synchronization
-import Database
-import qualified Dispatcher
-import HTML
-import Passwords
-import qualified SQLite3 as SQL
-import SQLite3 (SQLData(..))
-import Types
-
-import Log
+import qualified Network.FruitTart.Controller.Captcha
+import qualified Network.FruitTart.Controller.Issues
+import qualified Network.FruitTart.Controller.Login
+import qualified Network.FruitTart.Controller.Users
+import qualified Network.FruitTart.Controller.Synchronization
+import qualified Network.FruitTart.Dispatcher as Dispatcher
+import qualified Data.SQLite3 as SQL
+import Network.FruitTart.Util
 
 
 main :: IO ()
@@ -72,11 +66,11 @@ main = do
 dispatchTable :: ControllerTable
 dispatchTable
     = Map.fromList
-      [("login", Controller.Login.actionTable),
-       ("issues", Controller.Issues.actionTable),
-       ("users", Controller.Users.actionTable),
-       ("captcha", Controller.Captcha.actionTable),
-       ("synchronization", Controller.Synchronization.actionTable)]
+      [("login", Network.FruitTart.Controller.Login.actionTable),
+       ("issues", Network.FruitTart.Controller.Issues.actionTable),
+       ("users", Network.FruitTart.Controller.Users.actionTable),
+       ("captcha", Network.FruitTart.Controller.Captcha.actionTable),
+       ("synchronization", Network.FruitTart.Controller.Synchronization.actionTable)]
 
 
 schemaVersion :: Int64
@@ -85,19 +79,19 @@ schemaVersion = 1
 
 initDatabase :: SQL.Database -> IO ()
 initDatabase database = do
-  run database $ "CREATE TABLE IF NOT EXISTS schema_version (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS schema_version (\n"
                  ++ "version INTEGER\n"
                  ++ ")"
-  schemaVersionCount <- eval database "SELECT count(*) FROM schema_version"
+  schemaVersionCount <- earlyEval database "SELECT count(*) FROM schema_version"
   if schemaVersionCount == SQLInteger 0
      then do
-       run' database
+       earlyRun' database
             "INSERT INTO schema_version (version) VALUES (?)"
             [SQLInteger schemaVersion]
        initDatabase' database
      else do
        SQLInteger databaseSchemaVersion
-           <- eval database "SELECT version FROM schema_version LIMIT 1"
+           <- earlyEval database "SELECT version FROM schema_version LIMIT 1"
        if databaseSchemaVersion /= schemaVersion
           then do
             logCGI $ "Schema mismatch: Program version " ++ (show schemaVersion)
@@ -109,7 +103,7 @@ initDatabase database = do
 
 initDatabase' :: SQL.Database -> IO ()
 initDatabase' database = do
-  run database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "timestamp_activity INTEGER,\n"
                  ++ "recent_user INTEGER,\n"
@@ -119,10 +113,10 @@ initDatabase' database = do
                  ++ "issue_index_filter_all_modules INTEGER,\n"
                  ++ "issue_index_filter_module INTEGER\n"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS settings (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS settings (\n"
                  ++ "anonymous_user INTEGER"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS issues (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS issues (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "status INTEGER,\n"
                  ++ "resolution INTEGER,\n"
@@ -136,82 +130,82 @@ initDatabase' database = do
                  ++ "timestamp_modified INTEGER,\n"
                  ++ "CONSTRAINT key UNIQUE (reporter, timestamp_created)\n"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS statuses (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS statuses (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")"
-  statusCount <- eval database "SELECT count(*) FROM statuses"
+  statusCount <- earlyEval database "SELECT count(*) FROM statuses"
   if statusCount == SQLInteger 0
      then do
-       run database $ "INSERT INTO statuses (id, name) VALUES (1, 'NEW')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (2, 'REOPENED')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (3, 'UNCONFIRMED')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (4, 'CONFIRMED')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (5, 'ASSIGNED')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (6, 'RESOLVED')"
-       run database $ "INSERT INTO statuses (id, name) VALUES (7, 'CLOSED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (1, 'NEW')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (2, 'REOPENED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (3, 'UNCONFIRMED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (4, 'CONFIRMED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (5, 'ASSIGNED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (6, 'RESOLVED')"
+       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (7, 'CLOSED')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS resolutions (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS resolutions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")"
-  resolutionCount <- eval database "SELECT count(*) FROM resolutions"
+  resolutionCount <- earlyEval database "SELECT count(*) FROM resolutions"
   if resolutionCount == SQLInteger 0
      then do
-       run database $ "INSERT INTO resolutions (id, name) VALUES (1, '---')"
-       run database $ "INSERT INTO resolutions (id, name) VALUES (2, 'FIXED')"
-       run database $ "INSERT INTO resolutions (id, name) VALUES (3, 'WONTFIX')"
-       run database $ "INSERT INTO resolutions (id, name) VALUES (4, 'WORKSFORME')"
-       run database $ "INSERT INTO resolutions (id, name) VALUES (5, 'DUPLICATE')"
+       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (1, '---')"
+       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (2, 'FIXED')"
+       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (3, 'WONTFIX')"
+       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (4, 'WORKSFORME')"
+       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (5, 'DUPLICATE')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS modules (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS modules (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")"
-  moduleCount <- eval database "SELECT count(*) FROM modules"
+  moduleCount <- earlyEval database "SELECT count(*) FROM modules"
   if moduleCount == SQLInteger 0
      then do
-       run database $ "INSERT INTO modules (id, name) VALUES (1, 'Program')"
-       run database $ "INSERT INTO modules (id, name) VALUES (2, 'Documentation')"
+       earlyRun database $ "INSERT INTO modules (id, name) VALUES (1, 'Program')"
+       earlyRun database $ "INSERT INTO modules (id, name) VALUES (2, 'Documentation')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS severities (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS severities (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")"
-  severityCount <- eval database "SELECT count(*) FROM severities"
+  severityCount <- earlyEval database "SELECT count(*) FROM severities"
   if severityCount == SQLInteger 0
      then do
-       run database $ "INSERT INTO severities (id, name) VALUES (1, 'critical')"
-       run database $ "INSERT INTO severities (id, name) VALUES (2, 'major')"
-       run database $ "INSERT INTO severities (id, name) VALUES (3, 'normal')"
-       run database $ "INSERT INTO severities (id, name) VALUES (4, 'minor')"
-       run database $ "INSERT INTO severities (id, name) VALUES (5, 'enhancement')"
+       earlyRun database $ "INSERT INTO severities (id, name) VALUES (1, 'critical')"
+       earlyRun database $ "INSERT INTO severities (id, name) VALUES (2, 'major')"
+       earlyRun database $ "INSERT INTO severities (id, name) VALUES (3, 'normal')"
+       earlyRun database $ "INSERT INTO severities (id, name) VALUES (4, 'minor')"
+       earlyRun database $ "INSERT INTO severities (id, name) VALUES (5, 'enhancement')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS priorities (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS priorities (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")"
-  priorityCount <- eval database "SELECT count(*) FROM priorities"
+  priorityCount <- earlyEval database "SELECT count(*) FROM priorities"
   if priorityCount == SQLInteger 0
      then do
-       run database $ "INSERT INTO priorities (id, name) VALUES (1, 'high')"
-       run database $ "INSERT INTO priorities (id, name) VALUES (2, 'normal')"
-       run database $ "INSERT INTO priorities (id, name) VALUES (3, 'low')"
+       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (1, 'high')"
+       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (2, 'normal')"
+       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (3, 'low')"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS issue_defaults (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS issue_defaults (\n"
                  ++ "status INTEGER,\n"
                  ++ "resolution INTEGER,\n"
                  ++ "severity INTEGER,\n"
                  ++ "priority INTEGER\n"
                  ++ ")"
-  defaultsCount <- eval database "SELECT count(*) FROM issue_defaults"
+  defaultsCount <- earlyEval database "SELECT count(*) FROM issue_defaults"
   if defaultsCount == SQLInteger 0
      then do
-       run database ("INSERT INTO issue_defaults "
+       earlyRun database ("INSERT INTO issue_defaults "
                      ++ "(status, resolution, severity, priority) "
                      ++ "VALUES (1, 1, 3, 2)")
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS users (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS users (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "full_name TEXT,\n"
                  ++ "email TEXT,\n"
@@ -224,32 +218,32 @@ initDatabase' database = do
                  ++ "right_upload_files INTEGER,\n"
                  ++ "right_comment_issues INTEGER\n"
                  ++ ")"
-  userCount <- eval database "SELECT count(*) FROM users"
+  userCount <- earlyEval database "SELECT count(*) FROM users"
   if userCount == SQLInteger 0
      then do
-       run' database ("INSERT INTO users (id, full_name, email, password_hash, "
+       earlyRun' database ("INSERT INTO users (id, full_name, email, password_hash, "
                       ++ "right_synchronize, right_admin_users, right_see_emails, "
                       ++ "right_report_issues, right_modify_issues, right_upload_files, "
                       ++ "right_comment_issues) "
                       ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
                       ++ "1, 1, 1, 1, 1, 1, 1)")
                      [SQLBlob $ hashPassword "This password must be changed."]
-       run database ("INSERT INTO users (id, full_name, email, password_hash, "
+       earlyRun database ("INSERT INTO users (id, full_name, email, password_hash, "
                      ++ "right_synchronize, right_admin_users, right_see_emails, "
                      ++ "right_report_issues, right_modify_issues, right_upload_files, "
                      ++ "right_comment_issues) "
                      ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
-       run database ("INSERT INTO users (id, full_name, email, password_hash, "
+       earlyRun database ("INSERT INTO users (id, full_name, email, password_hash, "
                      ++ "right_synchronize, right_admin_users, right_see_emails, "
                      ++ "right_report_issues, right_modify_issues, right_upload_files, "
                      ++ "right_comment_issues) "
                      ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
-       SQLInteger count <- eval database "SELECT count(*) FROM settings"
+       SQLInteger count <- earlyEval database "SELECT count(*) FROM settings"
        case count of
-         0 -> run database "INSERT INTO settings (anonymous_user) VALUES (3)"
-         _ -> run database "UPDATE settings SET anonymous_user = 3"
+         0 -> earlyRun database "INSERT INTO settings (anonymous_user) VALUES (3)"
+         _ -> earlyRun database "UPDATE settings SET anonymous_user = 3"
      else return ()
-  run database $ "CREATE TABLE IF NOT EXISTS user_issue_changes (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_changes (\n"
                  ++ "user INTEGER,\n"
                  ++ "issue INTEGER,\n"
                  ++ "timestamp INTEGER,\n"
@@ -276,14 +270,14 @@ initDatabase' database = do
                  ++ "new_summary TEXT,\n"
                  ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS user_issue_comments (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_comments (\n"
                  ++ "user INTEGER,\n"
                  ++ "issue INTEGER,\n"
                  ++ "timestamp INTEGER,\n"
                  ++ "text TEXT,\n"
                  ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS user_issue_attachments (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_attachments (\n"
                  ++ "user INTEGER,\n"
                  ++ "issue INTEGER,\n"
                  ++ "timestamp INTEGER,\n"
@@ -292,7 +286,7 @@ initDatabase' database = do
                  ++ "CONSTRAINT key1 PRIMARY KEY (user, issue, timestamp),\n"
                  ++ "CONSTRAINT key2 UNIQUE (issue, filename)\n"
                  ++ ")"
-  run database $ "CREATE TABLE IF NOT EXISTS navigation_items (\n"
+  earlyRun database $ "CREATE TABLE IF NOT EXISTS navigation_items (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT,\n"
                  ++ "link TEXT,\n"
@@ -301,18 +295,18 @@ initDatabase' database = do
                  ++ "always_enabled INTEGER,\n"
                  ++ "class TEXT\n"
                  ++ ")"
-  navigationItemCount <- eval database "SELECT count(*) FROM navigation_items"
+  navigationItemCount <- earlyEval database "SELECT count(*) FROM navigation_items"
   if navigationItemCount == SQLInteger 0
      then do
-       run database ("INSERT INTO navigation_items "
+       earlyRun database ("INSERT INTO navigation_items "
                      ++ "(id, name, link, within_buglist_tree, separator, "
                      ++ "always_enabled, class) "
                      ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
-       run database ("INSERT INTO navigation_items "
+       earlyRun database ("INSERT INTO navigation_items "
                      ++ "(id, name, link, within_buglist_tree, separator, "
                      ++ "always_enabled, class) "
                      ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
-       run database ("INSERT INTO navigation_items "
+       earlyRun database ("INSERT INTO navigation_items "
                      ++ "(id, name, link, within_buglist_tree, separator, "
                      ++ "always_enabled, class) "
                      ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")

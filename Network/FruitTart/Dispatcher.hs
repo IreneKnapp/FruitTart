@@ -1,23 +1,20 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-module Dispatcher (
-       		   FruitTart,
-		   CGIResult,
-		   
-                   processRequest,
-                   output,
-                   permanentRedirect,
-                   seeOtherRedirect,
-                   error404,
-                   error500,
-                   errorControllerUndefined,
-                   errorActionUndefined,
-                   errorActionParameters,
-                   errorActionMethod,
-                   errorInvalidID,
-                   parseURL,
-                   canonicalURL,
-                   getSessionID
-                  )
+module Network.FruitTart.Dispatcher (
+                                     processRequest,
+                                     output,
+                                     permanentRedirect,
+                                     seeOtherRedirect,
+                                     error404,
+                                     error500,
+                                     errorControllerUndefined,
+                                     errorActionUndefined,
+                                     errorActionParameters,
+                                     errorActionMethod,
+                                     errorInvalidID,
+                                     parseURL,
+                                     canonicalURL,
+                                     getSessionID
+                                    )
     where
 
 import Control.Concurrent
@@ -34,11 +31,8 @@ import Prelude hiding (catch)
 import Random
 import System.Time
 
-import Database
-import Log
-import SQLite3 (SQLData(..))
-import qualified SQLite3 as SQL
-import Types
+import qualified Data.SQLite3 as SQL
+import Network.FruitTart.Util
 
 
 instance Typeable (FruitTart CGIResult)

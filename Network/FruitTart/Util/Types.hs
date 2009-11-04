@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
-module Types where
+module Network.FruitTart.Util.Types where
 
 import Control.Concurrent
 import Control.Monad.State
@@ -9,7 +9,7 @@ import Data.Map (Map)
 import Data.Dynamic
 import Network.CGI.Monad
 
-import qualified SQLite3 as SQL
+import qualified Data.SQLite3 as SQL
 
 data FruitTartState  = FruitTartState {
       database :: SQL.Database,

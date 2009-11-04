@@ -1,8 +1,8 @@
-module HTML where
+module Network.FruitTart.Util.HTML where
 
 import Data.List
 
-import Lists
+import Network.FruitTart.Util.Lists
 
 escapeHTML :: String -> String
 escapeHTML ('&':rest) = "&amp;" ++ escapeHTML rest

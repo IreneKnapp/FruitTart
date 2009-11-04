@@ -29,7 +29,7 @@ module Buglist (main,
 
 import Data.Int
 
-import Types
+import Network.FruitTart.Util.Types
 
 
 main :: IO ()

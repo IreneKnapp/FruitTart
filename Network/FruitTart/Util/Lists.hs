@@ -1,4 +1,4 @@
-module Lists (merge, mergeBy, split) where
+module Network.FruitTart.Util.Lists (merge, mergeBy, split) where
 
 import Data.List
 

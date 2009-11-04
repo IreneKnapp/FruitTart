@@ -1,8 +1,9 @@
-module Controller.Captcha (actionTable, generateCaptcha, checkCaptcha) where
+module Network.FruitTart.Controller.Captcha
+    (actionTable, generateCaptcha, checkCaptcha) where
 
 import Control.Concurrent
 import Control.Monad.State
-import Data.ByteString hiding (map)
+import Data.ByteString hiding (map, concat, index)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
 import Data.Dynamic
@@ -14,13 +15,8 @@ import Network.FastCGI
 
 import Graphics.Captcha
 
-import {-# SOURCE #-} Buglist
-import Database
-import Dispatcher
-import HTML
-import Lists
-import SQLite3 (SQLData(..))
-import Types
+import Network.FruitTart.Dispatcher
+import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
@@ -28,7 +24,7 @@ actionTable
     = Map.fromList [("index",
                        Map.fromList [("GET", ([IDParameter],
                                               [],
-                                              toDyn Controller.Captcha.index))])]
+                                              toDyn index))])]
 
 
 index :: Int64 -> FruitTart CGIResult

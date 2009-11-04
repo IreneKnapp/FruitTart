@@ -1,8 +1,8 @@
-module Controller.Synchronization where
+module Network.FruitTart.Controller.Synchronization where
 
 import Control.Concurrent
 import Control.Monad.State
-import Data.ByteString hiding (map, concat)
+import Data.ByteString hiding (map, concat, index)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
 import Data.Dynamic
@@ -13,14 +13,8 @@ import Data.List
 import Network.FastCGI hiding (output)
 
 import {-# SOURCE #-} Buglist
-import Database
-import Dispatcher
-import HTML
-import Lists
-import Passwords
-import SQLite3 (SQLData(..))
-import Text
-import Types
+import Network.FruitTart.Dispatcher
+import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
@@ -29,42 +23,42 @@ actionTable
                [("now",
                  Map.fromList [("GET", ([],
                                         [],
-                                        toDyn Controller.Synchronization.now))]),
+                                        toDyn now))]),
                 ("index",
                  Map.fromList [("GET", ([IDParameter],
                                         [],
-                                        toDyn Controller.Synchronization.index))]),
+                                        toDyn index))]),
                 ("issue",
                  Map.fromList [("GET", ([IDParameter],
                                         [],
-                                        toDyn Controller.Synchronization.issueGET)),
+                                        toDyn issueGET)),
                                ("POST", ([IDParameter],
                                          [],
-                                         toDyn Controller.Synchronization.issuePOST))]),
+                                         toDyn issuePOST))]),
                 ("user-issue-change",
                  Map.fromList
                  [("GET", ([IDParameter, IDParameter, IDParameter],
                            [],
-                           toDyn Controller.Synchronization.userIssueChangeGET)),
+                           toDyn userIssueChangeGET)),
                   ("POST", ([IDParameter, IDParameter, IDParameter],
                             [],
-                            toDyn Controller.Synchronization.userIssueChangePOST))]),
+                            toDyn userIssueChangePOST))]),
                 ("user-issue-comment",
                  Map.fromList
                  [("GET", ([IDParameter, IDParameter, IDParameter],
                            [],
-                           toDyn Controller.Synchronization.userIssueCommentGET)),
+                           toDyn userIssueCommentGET)),
                   ("POST", ([IDParameter, IDParameter, IDParameter],
                             [],
-                            toDyn Controller.Synchronization.userIssueCommentPOST))]),
+                            toDyn userIssueCommentPOST))]),
                 ("user-issue-attachment",
                  Map.fromList
                  [("GET", ([IDParameter, IDParameter, IDParameter],
                            [],
-                           toDyn Controller.Synchronization.userIssueAttachmentGET)),
+                           toDyn userIssueAttachmentGET)),
                   ("POST", ([IDParameter, IDParameter, IDParameter],
                             [],
-                          toDyn Controller.Synchronization.userIssueAttachmentPOST))])]
+                          toDyn userIssueAttachmentPOST))])]
 
 
 now :: FruitTart CGIResult

@@ -1,4 +1,4 @@
-module Controller.Users (actionTable) where
+module Network.FruitTart.Controller.Users (actionTable) where
 
 import Data.Dynamic
 import Data.Int
@@ -7,12 +7,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 
 import {-# SOURCE #-} Buglist
-import Database
-import Dispatcher
-import HTML
-import Lists
-import SQLite3 (SQLData(..))
-import Types
+import Network.FruitTart.Dispatcher
+import Network.FruitTart.Util
 
 
 actionTable :: ActionTable

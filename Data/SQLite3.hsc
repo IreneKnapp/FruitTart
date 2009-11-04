@@ -1,31 +1,31 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module SQLite3 (
-                Database,
-                Statement,
-                Error(..),
-                StepResult(Row,
-                           Done),
-                SQLData(SQLInteger,
-                        SQLFloat,
-                        SQLText,
-                        SQLBlob,
-                        SQLNull),
-                open,
-                close,
-                prepare,
-                step,
-                reset,
-                finalize,
-                bindBlob,
-                bindDouble,
-                bindInt,
-                bindInt64,
-                bindNull,
-                bindText,
-                bind,
-                column,
-                columns
-               )
+module Data.SQLite3 (
+                     Database,
+                     Statement,
+                     Error(..),
+                     StepResult(Row,
+                                Done),
+                     SQLData(SQLInteger,
+                             SQLFloat,
+                             SQLText,
+                             SQLBlob,
+                             SQLNull),
+                     open,
+                     close,
+                     prepare,
+                     step,
+                     reset,
+                     finalize,
+                     bindBlob,
+                     bindDouble,
+                     bindInt,
+                     bindInt64,
+                     bindNull,
+                     bindText,
+                     bind,
+                     column,
+                     columns
+                    )
     where
 
 import qualified Data.ByteString as BS
