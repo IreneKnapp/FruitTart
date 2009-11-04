@@ -1,10 +1,13 @@
-module Controller.Login where
+module Controller.Login (actionTable,
+                         outputMustLoginPage)
+    where
 
 import Control.Concurrent
 import Control.Monad.State
 import Data.ByteString hiding (map)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
+import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
@@ -20,6 +23,35 @@ import Passwords
 import SQLite3 (SQLData(..))
 import Text
 import Types
+
+
+actionTable :: ActionTable
+actionTable
+    = Map.fromList [("login",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn loginGET)),
+                                     ("POST", ([],
+                                               [],
+                                               toDyn loginPOST))]),
+                      ("logout",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn logout))]),
+                      ("account",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn accountGET)),
+                                     ("POST", ([],
+                                               [],
+                                               toDyn accountPOST))]),
+                      ("password",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn passwordGET)),
+                                     ("POST", ([],
+                                               [],
+                                               toDyn passwordPOST))])]
 
 
 outputMustLoginPage :: String -> FruitTart CGIResult

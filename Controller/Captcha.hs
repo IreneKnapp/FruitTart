@@ -1,10 +1,11 @@
-module Controller.Captcha where
+module Controller.Captcha (actionTable, generateCaptcha, checkCaptcha) where
 
 import Control.Concurrent
 import Control.Monad.State
 import Data.ByteString hiding (map)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
+import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
@@ -20,6 +21,14 @@ import HTML
 import Lists
 import SQLite3 (SQLData(..))
 import Types
+
+
+actionTable :: ActionTable
+actionTable
+    = Map.fromList [("index",
+                       Map.fromList [("GET", ([IDParameter],
+                                              [],
+                                              toDyn Controller.Captcha.index))])]
 
 
 index :: Int64 -> FruitTart CGIResult

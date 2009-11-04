@@ -1,7 +1,10 @@
-module Controller.Users where
+module Controller.Users (actionTable) where
 
+import Data.Dynamic
 import Data.Int
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as Map
 
 import {-# SOURCE #-} Buglist
 import Database
@@ -9,6 +12,20 @@ import Dispatcher
 import HTML
 import Lists
 import SQLite3 (SQLData(..))
+import Types
+
+
+actionTable :: ActionTable
+actionTable
+    = Map.fromList [("index",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn index))]),
+                      ("view",
+                       Map.fromList [("GET", ([IDParameter],
+                                              [],
+                                              toDyn view))])]
+
 
 index :: FruitTart CGIResult
 index = do

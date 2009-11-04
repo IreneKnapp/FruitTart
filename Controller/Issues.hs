@@ -1,19 +1,52 @@
-module Controller.Issues where
+module Controller.Issues (actionTable) where
 
+import Data.Dynamic
 import Data.Int
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 import Network.FastCGI hiding (output, logCGI)
 
 import {-# SOURCE #-} Buglist
-import Controller.Captcha
-import Controller.Login
+import Controller.Captcha hiding (actionTable)
+import Controller.Login hiding (actionTable)
 import Database
 import Dispatcher
 import HTML
 import Lists
 import SQLite3 (SQLData(..))
 import Text
+import Types
+
+
+actionTable :: ActionTable
+actionTable
+    = Map.fromList [("index",
+                       Map.fromList [("GET", ([],
+                                              [("which", StringParameter),
+                                               ("module", EitherStringIDParameter)],
+                                              toDyn index))]),
+                      ("view",
+                       Map.fromList [("GET", ([IDParameter],
+                                              [],
+                                              toDyn view))]),
+                      ("create",
+                       Map.fromList [("GET", ([],
+                                              [],
+                                              toDyn createGET)),
+                                     ("POST", ([],
+                                               [],
+                                               toDyn createPOST))]),
+                      ("comment",
+                       Map.fromList [("POST", ([IDParameter],
+                                               [],
+                                               toDyn comment))]),
+                      ("edit",
+                       Map.fromList [("POST", ([IDParameter],
+                                               [],
+                                               toDyn edit))])]
+
 
 index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult
 index maybeWhich maybeEitherModuleNameModuleID = do

@@ -5,6 +5,7 @@ import Control.Monad.State
 import Data.ByteString hiding (map, concat)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
+import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
@@ -20,6 +21,50 @@ import Passwords
 import SQLite3 (SQLData(..))
 import Text
 import Types
+
+
+actionTable :: ActionTable
+actionTable
+    = Map.fromList
+               [("now",
+                 Map.fromList [("GET", ([],
+                                        [],
+                                        toDyn Controller.Synchronization.now))]),
+                ("index",
+                 Map.fromList [("GET", ([IDParameter],
+                                        [],
+                                        toDyn Controller.Synchronization.index))]),
+                ("issue",
+                 Map.fromList [("GET", ([IDParameter],
+                                        [],
+                                        toDyn Controller.Synchronization.issueGET)),
+                               ("POST", ([IDParameter],
+                                         [],
+                                         toDyn Controller.Synchronization.issuePOST))]),
+                ("user-issue-change",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueChangeGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                            toDyn Controller.Synchronization.userIssueChangePOST))]),
+                ("user-issue-comment",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueCommentGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                            toDyn Controller.Synchronization.userIssueCommentPOST))]),
+                ("user-issue-attachment",
+                 Map.fromList
+                 [("GET", ([IDParameter, IDParameter, IDParameter],
+                           [],
+                           toDyn Controller.Synchronization.userIssueAttachmentGET)),
+                  ("POST", ([IDParameter, IDParameter, IDParameter],
+                            [],
+                          toDyn Controller.Synchronization.userIssueAttachmentPOST))])]
 
 
 now :: FruitTart CGIResult
