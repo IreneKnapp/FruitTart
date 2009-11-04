@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Dispatcher (
-       		   Buglist,
+       		   FruitTart,
 		   CGIResult,
 		   
                    processRequest,
@@ -41,21 +41,21 @@ import qualified SQLite3 as SQL
 import Types
 
 
-instance Typeable (Buglist CGIResult)
-    where typeOf function = mkTyConApp (mkTyCon "Buglist CGIResult") []
+instance Typeable (FruitTart CGIResult)
+    where typeOf function = mkTyConApp (mkTyCon "FruitTart CGIResult") []
 
 
-processRequest :: DispatchTable -> Buglist CGIResult
+processRequest :: ControllerTable -> FruitTart CGIResult
 processRequest dispatchTable  = do
-  buglistState <- get
-  liftCGI $ catchCGI (evalStateT (processRequest' dispatchTable) buglistState)
+  fruitTartState <- get
+  liftCGI $ catchCGI (evalStateT (processRequest' dispatchTable) fruitTartState)
                      (\e -> evalStateT (do
-                                         logCGI $ "Buglist: " ++ show e
+                                         logCGI $ "FruitTart: " ++ show e
                                          error500)
-                                       buglistState)
+                                       fruitTartState)
 
 
-processRequest' :: DispatchTable -> Buglist CGIResult
+processRequest' :: ControllerTable -> FruitTart CGIResult
 processRequest' dispatchTable = do
   initializeSession
   setHeader "Content-Type" "text/html; charset=UTF8"
@@ -94,7 +94,7 @@ invokeDynamicFunction
     -> Dynamic
     -> [String] -> [ParameterType]
     -> [(String, String)] -> [(String, ParameterType)]
-    -> Buglist CGIResult
+    -> FruitTart CGIResult
 invokeDynamicFunction controllerName actionName
                       dynamicFunction
                       urlParameters urlParameterTypes
@@ -194,58 +194,58 @@ dynamicNothing StringParameter = toDyn (Nothing :: Maybe String)
 dynamicNothing EitherStringIDParameter = toDyn (Nothing :: Maybe (Either String Int64))
 
 
-output :: String -> Buglist CGIResult
+output :: String -> FruitTart CGIResult
 output string = outputFPS $ UTF8.fromString string
 
-permanentRedirect :: String -> Buglist CGIResult
+permanentRedirect :: String -> FruitTart CGIResult
 permanentRedirect url = do
   setStatus 301 "Moved Permanently"
   setHeader "Location" url
   output ""
 
-seeOtherRedirect :: String -> Buglist CGIResult
+seeOtherRedirect :: String -> FruitTart CGIResult
 seeOtherRedirect url = do
   setStatus 303 "See Other"
   setHeader "Location" url
   output ""
 
-error404 :: String -> Buglist CGIResult
+error404 :: String -> FruitTart CGIResult
 error404 text = do
   setStatus 404 "Not Found"
   setHeader "Content-Type" "text/html; charset=UTF8"
   output $ "<html><head><title>404 Not Found</title></head>"
-         ++ "<body><h1>404 Not Found</h1><p>Buglist encountered an error while "
+         ++ "<body><h1>404 Not Found</h1><p>FruitTart encountered an error while "
          ++ "processing this request: " ++ text ++ "</p></body></html>"
 
-error500 :: Buglist CGIResult
+error500 :: FruitTart CGIResult
 error500 = do
   setStatus 500 "Internal Server Error"
   setHeader "Content-Type" "text/html; charset=UTF8"
   output $ "<html><head><title>500 Internal Server Error</title></head>"
          ++ "<body><h1>500 Internal Server Error</h1><p>"
-         ++ "Buglist encountered an error while "
+         ++ "FruitTart encountered an error while "
          ++ "processing this request.  The logfile has more details.</p></body></html>"
 
-errorControllerUndefined :: String -> Buglist CGIResult
+errorControllerUndefined :: String -> FruitTart CGIResult
 errorControllerUndefined controllerName =
     error404 $ "No controller named " ++ controllerName ++ " is defined."
 
-errorActionUndefined :: String -> String -> Buglist CGIResult
+errorActionUndefined :: String -> String -> FruitTart CGIResult
 errorActionUndefined controllerName actionName =
     error404 $ "No action named named " ++ actionName ++ " is defined "
              ++ "for the controller " ++ controllerName ++ "."
 
-errorActionParameters :: String -> String -> Buglist CGIResult
+errorActionParameters :: String -> String -> FruitTart CGIResult
 errorActionParameters controllerName actionName =
     error404 $ "Invalid parameters to the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
-errorActionMethod :: String -> String -> String -> Buglist CGIResult
+errorActionMethod :: String -> String -> String -> FruitTart CGIResult
 errorActionMethod controllerName actionName method =
     error404 $ "Invalid HTTP method " ++ method ++ " for the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
-errorInvalidID :: String -> Buglist CGIResult
+errorInvalidID :: String -> FruitTart CGIResult
 errorInvalidID kind =
     error404 $ "No " ++ kind ++ " by that ID exists." 
 
@@ -299,7 +299,7 @@ canonicalURL controllerName actionName urlParameters namedParameters =
     in concat [basePart, urlParametersPart, namedParametersPart]
 
 
-initializeSession :: Buglist ()
+initializeSession :: FruitTart ()
 initializeSession = do
   timestamp <- getTimestamp
   query "DELETE FROM sessions WHERE timestamp_activity < ?"
@@ -337,17 +337,17 @@ initializeSession = do
                       cookieDomain = Nothing,
                       cookieSecure = False
                     }
-  buglistState <- get
-  put $ buglistState { sessionID = Just sessionID }
+  fruitTartState <- get
+  put $ fruitTartState { sessionID = Just sessionID }
 
 
-endSession :: Buglist ()
+endSession :: FruitTart ()
 endSession = do
-  buglistState <- get
-  put $ buglistState { sessionID = Nothing }
+  fruitTartState <- get
+  put $ fruitTartState { sessionID = Nothing }
 
 
-generateSessionID :: Buglist Int64
+generateSessionID :: FruitTart Int64
 generateSessionID = do
   sessionID <- liftIO $ randomRIO (0, fromIntegral (maxBound :: Int64) :: Integer)
                >>= return . fromIntegral
@@ -358,7 +358,7 @@ generateSessionID = do
   return sessionID
 
 
-getSessionID :: Buglist Int64
+getSessionID :: FruitTart Int64
 getSessionID = do
-  BuglistState { sessionID = sessionID } <- get
+  FruitTartState { sessionID = sessionID } <- get
   return $ fromJust sessionID

@@ -15,7 +15,7 @@ import Lists
 import SQLite3 (SQLData(..))
 import Text
 
-index :: Maybe String -> Maybe (Either String Int64) -> Buglist CGIResult
+index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult
 index maybeWhich maybeEitherModuleNameModuleID = do
   sessionID <- getSessionID
   [[maybeDatabaseWhich, maybeDatabaseAllModules, maybeDatabaseModuleID]]
@@ -221,11 +221,11 @@ index maybeWhich maybeEitherModuleNameModuleID = do
          ++ "</body></html>"
 
 
-view :: Int64 -> Buglist CGIResult
+view :: Int64 -> FruitTart CGIResult
 view id = outputView id "" defaultFullName defaultEmail Nothing
 
 
-outputView :: Int64 -> String -> String -> String -> (Maybe String) -> Buglist CGIResult
+outputView :: Int64 -> String -> String -> String -> (Maybe String) -> FruitTart CGIResult
 outputView id comment fullName email maybeWarning = do
   info <- query ("SELECT "
                  ++ "statuses.id,"
@@ -584,7 +584,7 @@ viewAttachmentDetail id [SQLInteger timestamp,
       ++ "</div>\n"
 
 
-createGET :: Buglist CGIResult
+createGET :: FruitTart CGIResult
 createGET = do
   right <- getRightReportIssues
   case right of
@@ -593,7 +593,7 @@ createGET = do
                              Nothing
 
 
-createPOST :: Buglist CGIResult
+createPOST :: FruitTart CGIResult
 createPOST = do
   right <- getRightReportIssues
   case right of
@@ -642,7 +642,7 @@ createPOST = do
 
 
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
-                 -> Buglist CGIResult
+                 -> FruitTart CGIResult
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   pageHeadItems <- getPageHeadItems
   currentPage <- return "/issues/create/"
@@ -688,7 +688,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
          ++ "</body></html>"
 
 
-actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> Buglist CGIResult
+actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart CGIResult
 actuallyCreateIssue moduleID summary comment reporterID = do
   assigneeID <- getUser "Nobody" "nobody"
   timestamp <- getTimestamp
@@ -714,7 +714,7 @@ actuallyCreateIssue moduleID summary comment reporterID = do
   seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
 
 
-comment :: Int64 -> Buglist CGIResult
+comment :: Int64 -> FruitTart CGIResult
 comment issueID = do
   right <- getRightCommentIssues
   case right of
@@ -748,12 +748,12 @@ comment issueID = do
                   True -> actuallyCreateComment issueID comment commenterID
 
 
-doNotCreateComment :: Int64 -> String -> String -> String -> String -> Buglist CGIResult
+doNotCreateComment :: Int64 -> String -> String -> String -> String -> FruitTart CGIResult
 doNotCreateComment issueID comment fullName email warning = do
   outputView issueID comment fullName email (Just warning)
 
 
-actuallyCreateComment :: Int64 -> String -> Int64 -> Buglist CGIResult
+actuallyCreateComment :: Int64 -> String -> Int64 -> FruitTart CGIResult
 actuallyCreateComment issueID comment commenterID = do
   timestamp <- getTimestamp
   query "BEGIN TRANSACTION" []
@@ -769,7 +769,7 @@ actuallyCreateComment issueID comment commenterID = do
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
 
 
-edit :: Int64 -> Buglist CGIResult
+edit :: Int64 -> FruitTart CGIResult
 edit issueID = do
   right <- getRightModifyIssues
   case right of
@@ -867,7 +867,7 @@ edit issueID = do
       seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
 
 
-getUserSelectionFormControls :: String -> String -> Buglist String
+getUserSelectionFormControls :: String -> String -> FruitTart String
 getUserSelectionFormControls providedFullName providedEmail = do
   maybeUserID <- getLoggedInUser
   (maybeFullName, maybeEmail) <- case maybeUserID of
@@ -891,7 +891,7 @@ getUserSelectionFormControls providedFullName providedEmail = do
                  ++ "</div>\n")
 
 
-getFullNameAndEmail :: Buglist (String, String)
+getFullNameAndEmail :: FruitTart (String, String)
 getFullNameAndEmail = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of

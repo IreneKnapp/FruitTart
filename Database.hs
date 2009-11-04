@@ -36,9 +36,9 @@ eval database query = do
   return result
 
 
-query1 :: String -> [SQL.SQLData] -> Buglist [SQL.SQLData]
+query1 :: String -> [SQL.SQLData] -> FruitTart [SQL.SQLData]
 query1 text bindings = do
-  BuglistState { database = database } <- get
+  FruitTartState { database = database } <- get
   statement <- liftIO $ SQL.prepare database text
   liftIO $ SQL.bind statement bindings
   liftIO $ SQL.step statement
@@ -47,9 +47,9 @@ query1 text bindings = do
   return result
 
 
-query :: String -> [SQL.SQLData] -> Buglist [[SQL.SQLData]]
+query :: String -> [SQL.SQLData] -> FruitTart [[SQL.SQLData]]
 query text bindings = do
-  BuglistState { database = database } <- get
+  FruitTartState { database = database } <- get
   statement <- liftIO $ SQL.prepare database text
   liftIO $ SQL.bind statement bindings
   result <- query' statement

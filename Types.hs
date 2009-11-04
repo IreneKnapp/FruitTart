@@ -11,24 +11,25 @@ import Network.CGI.Monad
 
 import qualified SQLite3 as SQL
 
-data BuglistState  = BuglistState {
+data FruitTartState  = FruitTartState {
       database :: SQL.Database,
       sessionID :: Maybe Int64,
       captchaCacheMVar :: MVar (Map Int64 (String, ByteString))
     }
-type Buglist = StateT BuglistState (CGIT IO)
-liftCGI :: CGIT IO a -> Buglist a
+type FruitTart = StateT FruitTartState (CGIT IO)
+liftCGI :: CGIT IO a -> FruitTart a
 liftCGI = lift
-instance MonadCGI Buglist where
+instance MonadCGI FruitTart where
     cgiAddHeader name value = liftCGI $ cgiAddHeader name value
     cgiGet function = liftCGI $ cgiGet function
 
-type DispatchTable = Map String
-                         (Map String
-                              (Map String
-                                   ([ParameterType],
-                                    [(String, ParameterType)],
-                                    Dynamic)))
+type ActionTable = Map String
+                       (Map String
+                            ([ParameterType],
+                             [(String, ParameterType)],
+                             Dynamic))
+type ControllerTable = Map String ActionTable
+
 
 data ParameterType = IDParameter
                    | StringParameter

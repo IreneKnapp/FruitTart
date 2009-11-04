@@ -10,7 +10,7 @@ import HTML
 import Lists
 import SQLite3 (SQLData(..))
 
-index :: Buglist CGIResult
+index :: FruitTart CGIResult
 index = do
   rows <- query "SELECT id, full_name, email FROM users" []
   pageHeadItems <- getPageHeadItems
@@ -39,7 +39,7 @@ index = do
          ++ "</body></html>"
 
 
-view :: Int64 -> Buglist CGIResult
+view :: Int64 -> FruitTart CGIResult
 view id = do
   rows <- query "SELECT full_name, email FROM users WHERE id = ?"
                 [SQLInteger id]

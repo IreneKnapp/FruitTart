@@ -29,7 +29,7 @@ word32ToByteString word = BS.pack [fromIntegral $ (word `shiftR` 24) .&. 0xFF,
                                    fromIntegral $ (word `shiftR` 8) .&. 0xFF,
                                    fromIntegral $ (word `shiftR` 0) .&. 0xFF]
 
-validatePassword :: Int64 -> String -> Buglist Bool
+validatePassword :: Int64 -> String -> FruitTart Bool
 validatePassword userID cleartext = do
   hashed <- return $ hashPassword cleartext
   [[SQLInteger valid]] <- query ("SELECT coalesce(password_hash = ?, 0) "

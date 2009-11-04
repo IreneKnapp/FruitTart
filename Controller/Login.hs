@@ -22,7 +22,7 @@ import Text
 import Types
 
 
-outputMustLoginPage :: String -> Buglist CGIResult
+outputMustLoginPage :: String -> FruitTart CGIResult
 outputMustLoginPage currentPage = do
   pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar currentPage
@@ -36,7 +36,7 @@ outputMustLoginPage currentPage = do
          ++ "</body></html>"
 
 
-loginGET :: Buglist CGIResult
+loginGET :: FruitTart CGIResult
 loginGET = do
   sessionID <- getSessionID
   [[maybeRecentUserEmail]]
@@ -49,7 +49,7 @@ loginGET = do
   doNotLogIn Nothing maybeRecentUserEmail
 
 
-loginPOST :: Buglist CGIResult
+loginPOST :: FruitTart CGIResult
 loginPOST = do
   maybeEmail <- getInput "email"
   email <- return $ case maybeEmail of
@@ -76,7 +76,7 @@ loginPOST = do
                             maybeEmail
 
 
-doNotLogIn :: Maybe String -> Maybe String -> Buglist CGIResult
+doNotLogIn :: Maybe String -> Maybe String -> FruitTart CGIResult
 doNotLogIn maybeWarning maybeEmail = do
   referrer <- getReferrer
   pageHeadItems <- getPageHeadItems
@@ -113,7 +113,7 @@ doNotLogIn maybeWarning maybeEmail = do
          ++ "</body></html>"
 
 
-logout :: Buglist CGIResult
+logout :: FruitTart CGIResult
 logout = do
   sessionID <- getSessionID
   query "UPDATE sessions SET logged_in_user = NULL WHERE id = ?"
@@ -122,12 +122,12 @@ logout = do
   seeOtherRedirect referrer
 
 
-accountGET :: Buglist CGIResult
+accountGET :: FruitTart CGIResult
 accountGET = do
   outputAccountPage
 
 
-accountPOST :: Buglist CGIResult
+accountPOST :: FruitTart CGIResult
 accountPOST = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
@@ -149,7 +149,7 @@ accountPOST = do
       outputAccountPage
 
 
-outputAccountPage :: Buglist CGIResult
+outputAccountPage :: FruitTart CGIResult
 outputAccountPage = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
@@ -221,12 +221,12 @@ outputAccountPage = do
          ++ "</div>\n"
 
 
-passwordGET :: Buglist CGIResult
+passwordGET :: FruitTart CGIResult
 passwordGET = do
   seeOtherRedirect "/login/account/"
 
 
-passwordPOST :: Buglist CGIResult
+passwordPOST :: FruitTart CGIResult
 passwordPOST = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
@@ -260,7 +260,7 @@ passwordPOST = do
            seeOtherRedirect "/login/account/"
 
 
-getReferrer :: Buglist String
+getReferrer :: FruitTart String
 getReferrer = do
   maybeReferrer <- getInput "referrer"
   case maybeReferrer of

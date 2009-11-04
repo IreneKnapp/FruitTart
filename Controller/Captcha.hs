@@ -22,10 +22,10 @@ import SQLite3 (SQLData(..))
 import Types
 
 
-index :: Int64 -> Buglist CGIResult
+index :: Int64 -> FruitTart CGIResult
 index timestamp = do
   expireOldCaptchas
-  BuglistState { captchaCacheMVar = captchaCacheMVar } <- get
+  FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
   captchaCache <- liftIO $ readMVar captchaCacheMVar
   maybeCaptcha <- return $ Map.lookup timestamp captchaCache
   case maybeCaptcha of
@@ -37,10 +37,10 @@ index timestamp = do
                       outputFPS lazyByteString
 
 
-generateCaptcha :: Buglist Int64
+generateCaptcha :: FruitTart Int64
 generateCaptcha = do
   expireOldCaptchas
-  BuglistState { captchaCacheMVar = captchaCacheMVar } <- get
+  FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
   captchaCache <- liftIO $ takeMVar captchaCacheMVar
   timestamp <- getTimestamp
   (string, byteString) <- liftIO $ makeCaptcha
@@ -49,10 +49,10 @@ generateCaptcha = do
   return timestamp
 
 
-checkCaptcha :: Int64 -> String -> Buglist Bool
+checkCaptcha :: Int64 -> String -> FruitTart Bool
 checkCaptcha timestamp responseString = do
   expireOldCaptchas
-  BuglistState { captchaCacheMVar = captchaCacheMVar } <- get
+  FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
   captchaCache <- liftIO $ takeMVar captchaCacheMVar
   captcha <- return $ Map.lookup timestamp captchaCache
   captchaCache' <- return $ Map.delete timestamp captchaCache
@@ -63,10 +63,10 @@ checkCaptcha timestamp responseString = do
                                           == challengeString
 
 
-expireOldCaptchas :: Buglist ()
+expireOldCaptchas :: FruitTart ()
 expireOldCaptchas = do
   currentTimestamp <- getTimestamp
-  BuglistState { captchaCacheMVar = captchaCacheMVar } <- get
+  FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
   captchaCache <- liftIO $ takeMVar captchaCacheMVar
   captchaCache' <- return $ Map.filterWithKey (\captchaTimestamp _
                                                -> currentTimestamp - captchaTimestamp

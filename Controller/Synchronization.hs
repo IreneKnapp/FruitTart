@@ -22,7 +22,7 @@ import Text
 import Types
 
 
-now :: Buglist CGIResult
+now :: FruitTart CGIResult
 now = do
   right <- getRightSynchronize
   case right of
@@ -30,7 +30,7 @@ now = do
     True -> now'
 
 
-index :: Int64 -> Buglist CGIResult
+index :: Int64 -> FruitTart CGIResult
 index startTimestamp = do
   right <- getRightSynchronize
   case right of
@@ -38,7 +38,7 @@ index startTimestamp = do
     True -> index' startTimestamp
 
 
-issueGET :: Int64 -> Buglist CGIResult
+issueGET :: Int64 -> FruitTart CGIResult
 issueGET issueID = do
   right <- getRightSynchronize
   case right of
@@ -46,7 +46,7 @@ issueGET issueID = do
     True -> issueGET' issueID
 
 
-userIssueChangeGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangeGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueChangeGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -54,7 +54,7 @@ userIssueChangeGET userID issueID timestamp = do
     True -> userIssueChangeGET' userID issueID timestamp
 
 
-userIssueCommentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueCommentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -62,7 +62,7 @@ userIssueCommentGET userID issueID timestamp = do
     True -> userIssueCommentGET' userID issueID timestamp
 
 
-userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueAttachmentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -70,7 +70,7 @@ userIssueAttachmentGET userID issueID timestamp = do
     True -> userIssueAttachmentGET' userID issueID timestamp
 
 
-issuePOST :: Int64 -> Buglist CGIResult
+issuePOST :: Int64 -> FruitTart CGIResult
 issuePOST issueID = do
   right <- getRightSynchronize
   case right of
@@ -78,7 +78,7 @@ issuePOST issueID = do
     True -> issuePOST' issueID
 
 
-userIssueChangePOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangePOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueChangePOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -86,7 +86,7 @@ userIssueChangePOST userID issueID timestamp = do
     True -> userIssueChangePOST' userID issueID timestamp
 
 
-userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueCommentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -94,7 +94,7 @@ userIssueCommentPOST userID issueID timestamp = do
     True -> userIssueCommentPOST' userID issueID timestamp
 
 
-userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueAttachmentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -102,12 +102,12 @@ userIssueAttachmentPOST userID issueID timestamp = do
     True -> userIssueAttachmentPOST' userID issueID timestamp
 
 
-now' :: Buglist CGIResult
+now' :: FruitTart CGIResult
 now' = do
   output "Testing."
 
 
-index' :: Int64 -> Buglist CGIResult
+index' :: Int64 -> FruitTart CGIResult
 index' startTimestamp = do
   users <- query "SELECT id, full_name, email FROM users ORDER BY id"
                  []
@@ -186,7 +186,7 @@ index' startTimestamp = do
          ++ "</buglist>\n"
 
 
-issueGET' :: Int64 -> Buglist CGIResult
+issueGET' :: Int64 -> FruitTart CGIResult
 issueGET' issueID = do
   [[SQLInteger id,
     SQLInteger status,
@@ -219,7 +219,7 @@ issueGET' issueID = do
          ++ "</issue>\n"
 
 
-userIssueChangeGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangeGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueChangeGET' userID issueID timestamp = do
   [[SQLInteger statusChanged,
     SQLInteger resolutionChanged,
@@ -277,7 +277,7 @@ userIssueChangeGET' userID issueID timestamp = do
          ++ "</user_issue_change>\n"
 
 
-userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueCommentGET' userID issueID timestamp = do
   [[SQLText text]]
       <- query ("SELECT text "
@@ -290,27 +290,27 @@ userIssueCommentGET' userID issueID timestamp = do
          ++ "</user_issue_comment>\n"
 
 
-userIssueAttachmentGET' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueAttachmentGET' userID issueID timestamp = do
   output $ ""
 
 
-issuePOST' :: Int64 -> Buglist CGIResult
+issuePOST' :: Int64 -> FruitTart CGIResult
 issuePOST' issueID = do
   output $ ""
 
 
-userIssueChangePOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueChangePOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueChangePOST' userID issueID timestamp = do
   output $ ""
 
 
-userIssueCommentPOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueCommentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueCommentPOST' userID issueID timestamp = do
   output $ ""
 
 
-userIssueAttachmentPOST' :: Int64 -> Int64 -> Int64 -> Buglist CGIResult
+userIssueAttachmentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueAttachmentPOST' userID issueID timestamp = do
   output $ ""
 

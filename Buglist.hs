@@ -56,11 +56,11 @@ import Log
 
 main :: IO ()
 main = do
-  databasePath <- getEnv "BUGLIST_DB"
+  databasePath <- getEnv "FRUITTART_DB"
   database <- SQL.open databasePath
   initDatabase database
   captchaCacheMVar <- newMVar $ Map.empty
-  state <- return $ BuglistState {
+  state <- return $ FruitTartState {
              database = database,
              sessionID = Nothing,
              captchaCacheMVar = captchaCacheMVar
@@ -69,7 +69,7 @@ main = do
   return ()
 
 
-dispatchTable :: DispatchTable
+dispatchTable :: ControllerTable
 dispatchTable
     = Map.fromList
       [("login",
@@ -420,7 +420,7 @@ initDatabase' database = do
      else return ()
 
 
-getUser :: String -> String -> Buglist Int64
+getUser :: String -> String -> FruitTart Int64
 getUser fullName email = do
   if (email == "") || (email == "anonymous")
      then do
@@ -454,7 +454,7 @@ getUser fullName email = do
             return id
 
 
-getLoggedInUser :: Buglist (Maybe Int64)
+getLoggedInUser :: FruitTart (Maybe Int64)
 getLoggedInUser = do
   sessionID <- Dispatcher.getSessionID
   [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
@@ -464,7 +464,7 @@ getLoggedInUser = do
              SQLInteger userID -> Just userID
 
 
-getEffectiveUser :: Buglist Int64
+getEffectiveUser :: FruitTart Int64
 getEffectiveUser = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
@@ -475,7 +475,7 @@ getEffectiveUser = do
       return anonymousID
 
 
-getCanActAsUser :: Int64 -> Buglist Bool
+getCanActAsUser :: Int64 -> FruitTart Bool
 getCanActAsUser userID = do
   effectiveUserID <- getEffectiveUser
   if effectiveUserID == userID
@@ -489,7 +489,7 @@ getCanActAsUser userID = do
                   _ -> True
 
 
-getRightSynchronize :: Buglist Bool
+getRightSynchronize :: FruitTart Bool
 getRightSynchronize = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_synchronize FROM users WHERE id = ?"
@@ -499,7 +499,7 @@ getRightSynchronize = do
              _ -> True
 
 
-getRightAdminUsers :: Buglist Bool
+getRightAdminUsers :: FruitTart Bool
 getRightAdminUsers = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_admin_users FROM users WHERE id = ?"
@@ -509,7 +509,7 @@ getRightAdminUsers = do
              _ -> True
 
 
-getRightSeeEmails :: Buglist Bool
+getRightSeeEmails :: FruitTart Bool
 getRightSeeEmails = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_see_emails FROM users WHERE id = ?"
@@ -519,7 +519,7 @@ getRightSeeEmails = do
              _ -> True
 
 
-getRightReportIssues :: Buglist Bool
+getRightReportIssues :: FruitTart Bool
 getRightReportIssues = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_report_issues FROM users WHERE id = ?"
@@ -529,7 +529,7 @@ getRightReportIssues = do
              _ -> True
 
 
-getRightModifyIssues :: Buglist Bool
+getRightModifyIssues :: FruitTart Bool
 getRightModifyIssues = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_modify_issues FROM users WHERE id = ?"
@@ -539,7 +539,7 @@ getRightModifyIssues = do
              _ -> True
 
 
-getRightUploadFiles :: Buglist Bool
+getRightUploadFiles :: FruitTart Bool
 getRightUploadFiles = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_upload_files FROM users WHERE id = ?"
@@ -549,7 +549,7 @@ getRightUploadFiles = do
              _ -> True
 
 
-getRightCommentIssues :: Buglist Bool
+getRightCommentIssues :: FruitTart Bool
 getRightCommentIssues = do
   userID <- getEffectiveUser
   [[SQLInteger right]] <- query "SELECT right_comment_issues FROM users WHERE id = ?"
@@ -559,7 +559,7 @@ getRightCommentIssues = do
              _ -> True
 
 
-getPageHeadItems :: Buglist String
+getPageHeadItems :: FruitTart String
 getPageHeadItems
     = return 
       ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
@@ -568,7 +568,7 @@ getPageHeadItems
        ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
 
 
-getNavigationBar :: String -> Buglist String
+getNavigationBar :: String -> FruitTart String
 getNavigationBar currentPage = do
   items <- query ("SELECT name, link, separator, always_enabled, class "
                   ++ "FROM navigation_items ORDER BY id")
@@ -601,7 +601,7 @@ getNavigationBar currentPage = do
   return result
 
 
-getLoginButton :: String -> Buglist String
+getLoginButton :: String -> FruitTart String
 getLoginButton currentPage = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
@@ -640,7 +640,7 @@ getLoginButton currentPage = do
               ++ "Log Out</a></div>\n")
 
 
-setPopupMessage :: Maybe String -> Buglist ()
+setPopupMessage :: Maybe String -> FruitTart ()
 setPopupMessage maybeMessage = do
   sessionID <- Dispatcher.getSessionID
   query "UPDATE sessions SET popup_message = ? WHERE id = ?"
@@ -651,7 +651,7 @@ setPopupMessage maybeMessage = do
   return ()
 
 
-getPopupMessage :: Buglist String
+getPopupMessage :: FruitTart String
 getPopupMessage = do
   sessionID <- Dispatcher.getSessionID
   [[maybeMessage]] <- query "SELECT popup_message FROM sessions WHERE id = ?"
@@ -665,7 +665,7 @@ getPopupMessage = do
                               ++ "</div>\n"
 
 
-getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String
+getSubnavigationBar :: String -> [Maybe (String, String)] -> FruitTart String
 getSubnavigationBar currentPage items = do
   let item name link =
           if (link /= currentPage)
@@ -680,7 +680,7 @@ getSubnavigationBar currentPage items = do
          ++ "</div>\n"
 
 
-getStatusPopup :: Maybe Int64 -> Buglist String
+getStatusPopup :: Maybe Int64 -> FruitTart String
 getStatusPopup maybeStatusID = do
   statuses <- query "SELECT id, name FROM statuses ORDER BY id" []
   return $ "<select name=\"status\">"
@@ -697,7 +697,7 @@ getStatusPopup maybeStatusID = do
          ++ "</select>\n"
 
 
-getResolutionPopup :: Maybe Int64 -> Buglist String
+getResolutionPopup :: Maybe Int64 -> FruitTart String
 getResolutionPopup maybeResolutionID = do
   resolutions <- query "SELECT id, name FROM resolutions ORDER BY id" []
   return $ "<select name=\"resolution\">"
@@ -714,7 +714,7 @@ getResolutionPopup maybeResolutionID = do
          ++ "</select>\n"
 
 
-getModulePopup :: Maybe Int64 -> Buglist String
+getModulePopup :: Maybe Int64 -> FruitTart String
 getModulePopup maybeModuleID = do
   modules <- query "SELECT id, name FROM modules ORDER BY id" []
   return $ "<select name=\"module\">"
@@ -731,7 +731,7 @@ getModulePopup maybeModuleID = do
          ++ "</select>\n"
 
 
-getSeverityPopup :: Maybe Int64 -> Buglist String
+getSeverityPopup :: Maybe Int64 -> FruitTart String
 getSeverityPopup maybeSeverityID = do
   severities <- query "SELECT id, name FROM severities ORDER BY id" []
   return $ "<select name=\"severity\">"
@@ -748,7 +748,7 @@ getSeverityPopup maybeSeverityID = do
          ++ "</select>\n"
 
 
-getPriorityPopup :: Maybe Int64 -> Buglist String
+getPriorityPopup :: Maybe Int64 -> FruitTart String
 getPriorityPopup maybePriorityID = do
   priorities <- query "SELECT id, name FROM priorities ORDER BY id" []
   return $ "<select name=\"priority\">"

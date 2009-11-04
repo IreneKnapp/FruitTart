@@ -33,28 +33,28 @@ import Types
 
 
 main :: IO ()
-getUser :: String -> String -> Buglist Int64
-getLoggedInUser :: Buglist (Maybe Int64)
-getEffectiveUser :: Buglist Int64
-getCanActAsUser :: Int64 -> Buglist Bool
-getRightSynchronize :: Buglist Bool
-getRightAdminUsers :: Buglist Bool
-getRightSeeEmails :: Buglist Bool
-getRightReportIssues :: Buglist Bool
-getRightModifyIssues :: Buglist Bool
-getRightUploadFiles :: Buglist Bool
-getRightCommentIssues :: Buglist Bool
-getPageHeadItems :: Buglist String
-getNavigationBar :: String -> Buglist String
-getLoginButton :: String -> Buglist String
-setPopupMessage :: Maybe String -> Buglist ()
-getPopupMessage :: Buglist String
-getSubnavigationBar :: String -> [Maybe (String, String)] -> Buglist String
-getStatusPopup :: Maybe Int64 -> Buglist String
-getResolutionPopup :: Maybe Int64 -> Buglist String
-getModulePopup :: Maybe Int64 -> Buglist String
-getSeverityPopup :: Maybe Int64 -> Buglist String
-getPriorityPopup :: Maybe Int64 -> Buglist String
+getUser :: String -> String -> FruitTart Int64
+getLoggedInUser :: FruitTart (Maybe Int64)
+getEffectiveUser :: FruitTart Int64
+getCanActAsUser :: Int64 -> FruitTart Bool
+getRightSynchronize :: FruitTart Bool
+getRightAdminUsers :: FruitTart Bool
+getRightSeeEmails :: FruitTart Bool
+getRightReportIssues :: FruitTart Bool
+getRightModifyIssues :: FruitTart Bool
+getRightUploadFiles :: FruitTart Bool
+getRightCommentIssues :: FruitTart Bool
+getPageHeadItems :: FruitTart String
+getNavigationBar :: String -> FruitTart String
+getLoginButton :: String -> FruitTart String
+setPopupMessage :: Maybe String -> FruitTart ()
+getPopupMessage :: FruitTart String
+getSubnavigationBar :: String -> [Maybe (String, String)] -> FruitTart String
+getStatusPopup :: Maybe Int64 -> FruitTart String
+getResolutionPopup :: Maybe Int64 -> FruitTart String
+getModulePopup :: Maybe Int64 -> FruitTart String
+getSeverityPopup :: Maybe Int64 -> FruitTart String
+getPriorityPopup :: Maybe Int64 -> FruitTart String
 privacyNote :: String
 defaultFullName :: String
 defaultEmail :: String
