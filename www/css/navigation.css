@@ -1,31 +1,28 @@
 div#navigation, div.navigation, div#navigationright {
   margin: 0;
-  padding-top: 0.25em;
-  padding-bottom: 0.25em;
   font-size: 100%;
+  line-height: 150%;
   -webkit-user-select: none;
 }
 
 div#navigation {
-  background: #99cc66;
   border-bottom: solid gray 1px;
 }
 
-div#navigation > a, div#navigation > b, div#navigation > div.separator {
+div#navigation > a, div#navigation > b, div#navigation > div.separator,
+div#navigationright > a, div#navigationright > b,
+div.navigation > div.separator {
   display: inline;
   border: none;
+}
+
+
+div#navigation > a, div#navigation > b, div#navigation > div.separator {
   border-right: solid gray 1px;
 }
 
 div#navigationright > a, div#navigationright > b {
-  display: inline;
-  border: none;
   border-left: solid gray 1px;
-}
-
-div.navigation > div.separator {
-  display: inline;
-  border: none;
 }
 
 div#navigation > a, div#navigation > b, div#navigation > div.separator,
@@ -53,35 +50,8 @@ div.navigation > a, div.navigation > b, div.navigation > div.separator {
   border-right: solid gray 1px;
 }
 
-div#navigation > a, div.navigation > a, div#navigationright > a {
-  text-shadow: white 0.1em 0.1em;
-  background-color: #9c6;
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
-				     from(#9c6),
-				     color-stop(50%, #fff),
-				     color-stop(51%, #9c6),
-				     color-stop(75%, #9c6),
-				     to(#463));
-  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
-					 from(#9c6),
-					 color-stop(50%, #fff),
-					 color-stop(51%, #9c6),
-					 color-stop(75%, #9c6),
-					 to(#463));
-}
-
-div#navigation > b, div#navigation > a.disabled, div.navigation > b,
-div#navigationright > b, div#navigationright > a.login.active {
-  text-shadow: white 0.1em 0.1em;
-  background-color: black;
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
-				     from(#888),
-				     color-stop(50%, #fff),
-				     color-stop(51%, #000));
-  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
-					 from(#888),
-					 color-stop(50%, #fff),
-					 color-stop(51%, #000));
+a.login, a.logout {
+  cursor: pointer;
 }
 
 div#navigation > b, div#navigation > b *,
@@ -96,30 +66,12 @@ div#navigation > div.separator, div.navigation > div.separator {
   padding-right: 0;
 }
 
-div#navigation, div#navigation > div.separator, div.navigation > div.separator {
-  background-color: #684;
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
-				     from(#684),
-				     color-stop(50%, #fff),
-				     color-stop(51%, #684),
-				     color-stop(75%, #684),
-				     to(#342));
-  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
-					 from(#684),
-					 color-stop(50%, #fff),
-					 color-stop(51%, #684));
-}
          
 div#navigationright {
   position: absolute;
   top: 0;
   right: 0;
 }
-
-a.login, a.logout {
-  cursor: pointer;
-}
-
 
 div#loginbox {
   position: absolute;
@@ -136,4 +88,51 @@ div#loginbox {
 
 div#loginbox > form {
   margin: 0.5em;
+}
+
+
+div#navigation > a, div.navigation > a, div#navigationright > a {
+  background-color: #cf9;
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
+				     from(#cf9),
+				     color-stop(50%, #fff),
+				     color-stop(51%, #cf9),
+				     color-stop(75%, #cf9),
+				     to(#674));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#cf9),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #cf9),
+					 color-stop(75%, #cf9),
+					 to(#674));
+}
+
+div#navigation > b, div#navigation > a.disabled, div.navigation > b,
+div#navigationright > b, div#navigationright > a.login.active {
+  background-color: #000;
+  color: #fff;
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
+				     from(#000),
+				     color-stop(50%, #777),
+				     color-stop(51%, #000));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#000),
+					 color-stop(50%, #777),
+					 color-stop(51%, #000));
+}
+
+div#navigation, div#navigation > div.separator, div.navigation > div.separator {
+  background-color: #9c6;
+  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
+				     from(#9c6),
+				     color-stop(50%, #fff),
+				     color-stop(51%, #9c6),
+				     color-stop(75%, #9c6),
+				     to(#463));
+  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
+					 from(#9c6),
+					 color-stop(50%, #fff),
+					 color-stop(51%, #9c6),
+					 color-stop(75%, #9c6),
+					 to(#463));
 }
