@@ -1,0 +1,38 @@
+name: Buglist
+version: 1.0
+cabal-version: >= 1.2
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: Copyright (c) 2009 Dan Knapp
+author: Dan Knapp
+maintainer: dankna@gmail.com
+homepage: http://www.dankna.com/software/
+bug-reports: http://www.dankna.com/issues/create/
+category: Network
+synopsis: Issue-tracking database, for managing software projects.
+description:
+  Buglist is an issue-tracking database, for managing software projects.  It is
+  implemented in pure Haskell and has a web-facing interface.  It uses SQLite3 for all
+  storage, and connects to a webserver using FastCGI.  It is intended to be more suited
+  to small-scale development than a huge thing like Bugzilla would be.
+
+Executable Buglist
+  main-is: Main.hs
+  build-depends: base >= 4.1 && < 5,
+                 bytestring >= 0.9.1.5,
+                 containers >= 0.2.0.1,
+                 mtl >= 1.1.0.2,
+                 old-locale >= 1.0.0.1,
+                 time >= 1.1.4,
+                 old-time >= 1.0.0.2,
+                 haskell98,
+                 
+                 Crypto >= 4.2.0,
+                 fastcgi >= 3001.0.2.2,
+                 cgi >= 3001.1.7.1,
+                 utf8-string >= 0.3.5,
+                 
+                 direct-sqlite >= 1.0,
+                 hs-captcha >= 1.0
+  extra-libraries: sqlite3

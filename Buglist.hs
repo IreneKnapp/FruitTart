@@ -1,4 +1,4 @@
-module Buglist (main,
+module Buglist (
                 getUser,
                 getLoggedInUser,
                 getEffectiveUser,
@@ -38,279 +38,9 @@ import Network.CGI.Monad
 import System.Environment
 import System.Exit
 
-import qualified Network.FruitTart.Controller.Captcha
-import qualified Network.FruitTart.Controller.Issues
-import qualified Network.FruitTart.Controller.Login
-import qualified Network.FruitTart.Controller.Users
-import qualified Network.FruitTart.Controller.Synchronization
-import qualified Network.FruitTart.Dispatcher as Dispatcher
 import qualified Database.SQLite3 as SQL
+import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
-
-
-main :: IO ()
-main = do
-  databasePath <- getEnv "FRUITTART_DB"
-  database <- SQL.open databasePath
-  initDatabase database
-  captchaCacheMVar <- newMVar $ Map.empty
-  state <- return $ FruitTartState {
-             database = database,
-             sessionID = Nothing,
-             captchaCacheMVar = captchaCacheMVar
-           }
-  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest dispatchTable) state
-  return ()
-
-
-dispatchTable :: ControllerTable
-dispatchTable
-    = Map.fromList
-      [("login", Network.FruitTart.Controller.Login.actionTable),
-       ("issues", Network.FruitTart.Controller.Issues.actionTable),
-       ("users", Network.FruitTart.Controller.Users.actionTable),
-       ("captcha", Network.FruitTart.Controller.Captcha.actionTable),
-       ("synchronization", Network.FruitTart.Controller.Synchronization.actionTable)]
-
-
-schemaVersion :: Int64
-schemaVersion = 1
-
-
-initDatabase :: SQL.Database -> IO ()
-initDatabase database = do
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS schema_version (\n"
-                 ++ "version INTEGER\n"
-                 ++ ")"
-  schemaVersionCount <- earlyEval database "SELECT count(*) FROM schema_version"
-  if schemaVersionCount == SQLInteger 0
-     then do
-       earlyRun' database
-            "INSERT INTO schema_version (version) VALUES (?)"
-            [SQLInteger schemaVersion]
-       initDatabase' database
-     else do
-       SQLInteger databaseSchemaVersion
-           <- earlyEval database "SELECT version FROM schema_version LIMIT 1"
-       if databaseSchemaVersion /= schemaVersion
-          then do
-            logCGI $ "Schema mismatch: Program version " ++ (show schemaVersion)
-                     ++ ", database version " ++ (show databaseSchemaVersion)
-                     ++ "."
-            exitFailure
-          else do initDatabase' database
-
-
-initDatabase' :: SQL.Database -> IO ()
-initDatabase' database = do
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS sessions (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "timestamp_activity INTEGER,\n"
-                 ++ "recent_user INTEGER,\n"
-                 ++ "logged_in_user INTEGER,\n"
-                 ++ "popup_message TEXT,\n"
-                 ++ "issue_index_filter_which TEXT,\n"
-                 ++ "issue_index_filter_all_modules INTEGER,\n"
-                 ++ "issue_index_filter_module INTEGER\n"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS settings (\n"
-                 ++ "anonymous_user INTEGER"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS issues (\n"
-                 ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                 ++ "status INTEGER,\n"
-                 ++ "resolution INTEGER,\n"
-                 ++ "module INTEGER,\n"
-                 ++ "severity INTEGER,\n"
-                 ++ "priority INTEGER,\n"
-                 ++ "assignee INTEGER,\n"
-                 ++ "reporter INTEGER,\n"
-                 ++ "summary TEXT,\n"
-                 ++ "timestamp_created INTEGER,\n"
-                 ++ "timestamp_modified INTEGER,\n"
-                 ++ "CONSTRAINT key UNIQUE (reporter, timestamp_created)\n"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS statuses (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")"
-  statusCount <- earlyEval database "SELECT count(*) FROM statuses"
-  if statusCount == SQLInteger 0
-     then do
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (1, 'NEW')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (2, 'REOPENED')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (3, 'UNCONFIRMED')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (4, 'CONFIRMED')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (5, 'ASSIGNED')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (6, 'RESOLVED')"
-       earlyRun database $ "INSERT INTO statuses (id, name) VALUES (7, 'CLOSED')"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS resolutions (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")"
-  resolutionCount <- earlyEval database "SELECT count(*) FROM resolutions"
-  if resolutionCount == SQLInteger 0
-     then do
-       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (1, '---')"
-       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (2, 'FIXED')"
-       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (3, 'WONTFIX')"
-       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (4, 'WORKSFORME')"
-       earlyRun database $ "INSERT INTO resolutions (id, name) VALUES (5, 'DUPLICATE')"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS modules (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")"
-  moduleCount <- earlyEval database "SELECT count(*) FROM modules"
-  if moduleCount == SQLInteger 0
-     then do
-       earlyRun database $ "INSERT INTO modules (id, name) VALUES (1, 'Program')"
-       earlyRun database $ "INSERT INTO modules (id, name) VALUES (2, 'Documentation')"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS severities (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")"
-  severityCount <- earlyEval database "SELECT count(*) FROM severities"
-  if severityCount == SQLInteger 0
-     then do
-       earlyRun database $ "INSERT INTO severities (id, name) VALUES (1, 'critical')"
-       earlyRun database $ "INSERT INTO severities (id, name) VALUES (2, 'major')"
-       earlyRun database $ "INSERT INTO severities (id, name) VALUES (3, 'normal')"
-       earlyRun database $ "INSERT INTO severities (id, name) VALUES (4, 'minor')"
-       earlyRun database $ "INSERT INTO severities (id, name) VALUES (5, 'enhancement')"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS priorities (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")"
-  priorityCount <- earlyEval database "SELECT count(*) FROM priorities"
-  if priorityCount == SQLInteger 0
-     then do
-       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (1, 'high')"
-       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (2, 'normal')"
-       earlyRun database $ "INSERT INTO priorities (id, name) VALUES (3, 'low')"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS issue_defaults (\n"
-                 ++ "status INTEGER,\n"
-                 ++ "resolution INTEGER,\n"
-                 ++ "severity INTEGER,\n"
-                 ++ "priority INTEGER\n"
-                 ++ ")"
-  defaultsCount <- earlyEval database "SELECT count(*) FROM issue_defaults"
-  if defaultsCount == SQLInteger 0
-     then do
-       earlyRun database ("INSERT INTO issue_defaults "
-                     ++ "(status, resolution, severity, priority) "
-                     ++ "VALUES (1, 1, 3, 2)")
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS users (\n"
-                 ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                 ++ "full_name TEXT,\n"
-                 ++ "email TEXT,\n"
-                 ++ "password_hash BLOB,\n"
-                 ++ "right_synchronize INTEGER,\n"
-                 ++ "right_admin_users INTEGER,\n"
-                 ++ "right_see_emails INTEGER,\n"
-                 ++ "right_report_issues INTEGER,\n"
-                 ++ "right_modify_issues INTEGER,\n"
-                 ++ "right_upload_files INTEGER,\n"
-                 ++ "right_comment_issues INTEGER\n"
-                 ++ ")"
-  userCount <- earlyEval database "SELECT count(*) FROM users"
-  if userCount == SQLInteger 0
-     then do
-       earlyRun' database ("INSERT INTO users (id, full_name, email, password_hash, "
-                      ++ "right_synchronize, right_admin_users, right_see_emails, "
-                      ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                      ++ "right_comment_issues) "
-                      ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
-                      ++ "1, 1, 1, 1, 1, 1, 1)")
-                     [SQLBlob $ hashPassword "This password must be changed."]
-       earlyRun database ("INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_synchronize, right_admin_users, right_see_emails, "
-                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                     ++ "right_comment_issues) "
-                     ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
-       earlyRun database ("INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_synchronize, right_admin_users, right_see_emails, "
-                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                     ++ "right_comment_issues) "
-                     ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
-       SQLInteger count <- earlyEval database "SELECT count(*) FROM settings"
-       case count of
-         0 -> earlyRun database "INSERT INTO settings (anonymous_user) VALUES (3)"
-         _ -> earlyRun database "UPDATE settings SET anonymous_user = 3"
-     else return ()
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_changes (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "status_changed INTEGER,\n"
-                 ++ "resolution_changed INTEGER,\n"
-                 ++ "module_changed INTEGER,\n"
-                 ++ "severity_changed INTEGER,\n"
-                 ++ "priority_changed INTEGER,\n"
-                 ++ "assignee_changed INTEGER,\n"
-                 ++ "summary_changed INTEGER,\n"
-                 ++ "old_status INTEGER,\n"
-                 ++ "old_resolution INTEGER,\n"
-                 ++ "old_module INTEGER,\n"
-                 ++ "old_severity INTEGER,\n"
-                 ++ "old_priority INTEGER,\n"
-                 ++ "old_assignee INTEGER,\n"
-                 ++ "old_summary TEXT,\n"
-                 ++ "new_status INTEGER,\n"
-                 ++ "new_resolution INTEGER,\n"
-                 ++ "new_module INTEGER,\n"
-                 ++ "new_severity INTEGER,\n"
-                 ++ "new_priority INTEGER,\n"
-                 ++ "new_assignee INTEGER,\n"
-                 ++ "new_summary TEXT,\n"
-                 ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_comments (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "text TEXT,\n"
-                 ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS user_issue_attachments (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "filename TEXT,\n"
-                 ++ "data BLOB,\n"
-                 ++ "CONSTRAINT key1 PRIMARY KEY (user, issue, timestamp),\n"
-                 ++ "CONSTRAINT key2 UNIQUE (issue, filename)\n"
-                 ++ ")"
-  earlyRun database $ "CREATE TABLE IF NOT EXISTS navigation_items (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT,\n"
-                 ++ "link TEXT,\n"
-                 ++ "within_buglist_tree INTEGER,\n"
-                 ++ "separator INTEGER,\n"
-                 ++ "always_enabled INTEGER,\n"
-                 ++ "class TEXT\n"
-                 ++ ")"
-  navigationItemCount <- earlyEval database "SELECT count(*) FROM navigation_items"
-  if navigationItemCount == SQLInteger 0
-     then do
-       earlyRun database ("INSERT INTO navigation_items "
-                     ++ "(id, name, link, within_buglist_tree, separator, "
-                     ++ "always_enabled, class) "
-                     ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
-       earlyRun database ("INSERT INTO navigation_items "
-                     ++ "(id, name, link, within_buglist_tree, separator, "
-                     ++ "always_enabled, class) "
-                     ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
-       earlyRun database ("INSERT INTO navigation_items "
-                     ++ "(id, name, link, within_buglist_tree, separator, "
-                     ++ "always_enabled, class) "
-                     ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
-     else return ()
 
 
 getUser :: String -> String -> FruitTart Int64
@@ -349,7 +79,7 @@ getUser fullName email = do
 
 getLoggedInUser :: FruitTart (Maybe Int64)
 getLoggedInUser = do
-  sessionID <- Dispatcher.getSessionID
+  sessionID <- getSessionID
   [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
                            [SQLInteger sessionID]
   return $ case maybeUserID of
@@ -499,7 +229,7 @@ getLoginButton currentPage = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
     Nothing -> do
-      sessionID <- Dispatcher.getSessionID
+      sessionID <- getSessionID
       [[maybeEmail]] <- query ("SELECT users.email FROM sessions LEFT JOIN users "
                                ++ "ON users.id = sessions.recent_user "
                                ++ "WHERE sessions.id = ?")
@@ -535,7 +265,7 @@ getLoginButton currentPage = do
 
 setPopupMessage :: Maybe String -> FruitTart ()
 setPopupMessage maybeMessage = do
-  sessionID <- Dispatcher.getSessionID
+  sessionID <- getSessionID
   query "UPDATE sessions SET popup_message = ? WHERE id = ?"
         [case maybeMessage of
            Nothing -> SQLNull
@@ -546,7 +276,7 @@ setPopupMessage maybeMessage = do
 
 getPopupMessage :: FruitTart String
 getPopupMessage = do
-  sessionID <- Dispatcher.getSessionID
+  sessionID <- getSessionID
   [[maybeMessage]] <- query "SELECT popup_message FROM sessions WHERE id = ?"
                             [SQLInteger sessionID]
   query "UPDATE sessions SET popup_message = NULL WHERE ID = ?"

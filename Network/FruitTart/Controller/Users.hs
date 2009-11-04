@@ -6,7 +6,7 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import {-# SOURCE #-} Buglist
+import Buglist
 import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
 

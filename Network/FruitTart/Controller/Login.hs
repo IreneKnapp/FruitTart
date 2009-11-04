@@ -14,7 +14,7 @@ import Data.Int
 import Data.List
 import Network.FastCGI hiding (output)
 
-import {-# SOURCE #-} Buglist
+import Buglist
 import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
 

@@ -8,7 +8,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Network.FastCGI hiding (output, logCGI)
 
-import {-# SOURCE #-} Buglist
+import Buglist
 import Network.FruitTart.Controller.Captcha hiding (actionTable)
 import Network.FruitTart.Controller.Login hiding (actionTable)
 import Network.FruitTart.Dispatcher
