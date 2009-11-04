@@ -3,9 +3,9 @@ module Controller.Users where
 import Data.Int
 import Data.List
 
-import Buglist
+import {-# SOURCE #-} Buglist
 import Database
-import {-# SOURCE #-} Dispatcher
+import Dispatcher
 import HTML
 import Lists
 import SQLite3 (SQLData(..))

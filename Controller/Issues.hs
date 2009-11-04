@@ -5,11 +5,11 @@ import Data.List
 import Data.Maybe
 import Network.FastCGI hiding (output, logCGI)
 
-import Buglist
+import {-# SOURCE #-} Buglist
 import Controller.Captcha
 import Controller.Login
 import Database
-import {-# SOURCE #-} Dispatcher
+import Dispatcher
 import HTML
 import Lists
 import SQLite3 (SQLData(..))

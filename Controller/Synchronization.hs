@@ -11,9 +11,9 @@ import Data.Int
 import Data.List
 import Network.FastCGI hiding (output)
 
-import Buglist
+import {-# SOURCE #-} Buglist
 import Database
-import {-# SOURCE #-} Dispatcher
+import Dispatcher
 import HTML
 import Lists
 import Passwords

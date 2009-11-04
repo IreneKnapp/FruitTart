@@ -13,9 +13,9 @@ import Network.FastCGI
 
 import Graphics.Captcha
 
-import Buglist
+import {-# SOURCE #-} Buglist
 import Database
-import {-# SOURCE #-} Dispatcher
+import Dispatcher
 import HTML
 import Lists
 import SQLite3 (SQLData(..))

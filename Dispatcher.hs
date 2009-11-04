@@ -34,11 +34,6 @@ import Prelude hiding (catch)
 import Random
 import System.Time
 
-import qualified Controller.Captcha
-import qualified Controller.Issues
-import qualified Controller.Login
-import qualified Controller.Users
-import qualified Controller.Synchronization
 import Database
 import Log
 import SQLite3 (SQLData(..))
@@ -46,133 +41,22 @@ import qualified SQLite3 as SQL
 import Types
 
 
-dispatchTable :: DispatchTable
-dispatchTable
-    = Map.fromList
-      [("login",
-        Map.fromList [("login",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Login.loginGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn Controller.Login.loginPOST))]),
-                      ("logout",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Login.logout))]),
-                      ("account",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Login.accountGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn Controller.Login.accountPOST))]),
-                      ("password",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Login.passwordGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn Controller.Login.passwordPOST))])]),
-       ("issues",
-        Map.fromList [("index",
-                       Map.fromList [("GET", ([],
-                                              [("which", StringParameter),
-                                               ("module", EitherStringIDParameter)],
-                                              toDyn Controller.Issues.index))]),
-                      ("view",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn Controller.Issues.view))]),
-                      ("create",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Issues.createGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn Controller.Issues.createPOST))]),
-                      ("comment",
-                       Map.fromList [("POST", ([IDParameter],
-                                               [],
-                                               toDyn Controller.Issues.comment))]),
-                      ("edit",
-                       Map.fromList [("POST", ([IDParameter],
-                                               [],
-                                               toDyn Controller.Issues.edit))])]),
-       ("users",
-        Map.fromList [("index",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn Controller.Users.index))]),
-                      ("view",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn Controller.Users.view))])]),
-       ("captcha",
-        Map.fromList [("index",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn Controller.Captcha.index))])]),
-       ("synchronization",
-        Map.fromList
-               [("now",
-                 Map.fromList [("GET", ([],
-                                        [],
-                                        toDyn Controller.Synchronization.now))]),
-                ("index",
-                 Map.fromList [("GET", ([IDParameter],
-                                        [],
-                                        toDyn Controller.Synchronization.index))]),
-                ("issue",
-                 Map.fromList [("GET", ([IDParameter],
-                                        [],
-                                        toDyn Controller.Synchronization.issueGET)),
-                               ("POST", ([IDParameter],
-                                         [],
-                                         toDyn Controller.Synchronization.issuePOST))]),
-                ("user-issue-change",
-                 Map.fromList
-                 [("GET", ([IDParameter, IDParameter, IDParameter],
-                           [],
-                           toDyn Controller.Synchronization.userIssueChangeGET)),
-                  ("POST", ([IDParameter, IDParameter, IDParameter],
-                            [],
-                            toDyn Controller.Synchronization.userIssueChangePOST))]),
-                ("user-issue-comment",
-                 Map.fromList
-                 [("GET", ([IDParameter, IDParameter, IDParameter],
-                           [],
-                           toDyn Controller.Synchronization.userIssueCommentGET)),
-                  ("POST", ([IDParameter, IDParameter, IDParameter],
-                            [],
-                            toDyn Controller.Synchronization.userIssueCommentPOST))]),
-                ("user-issue-attachment",
-                 Map.fromList
-                 [("GET", ([IDParameter, IDParameter, IDParameter],
-                           [],
-                           toDyn Controller.Synchronization.userIssueAttachmentGET)),
-                  ("POST", ([IDParameter, IDParameter, IDParameter],
-                            [],
-                          toDyn Controller.Synchronization.userIssueAttachmentPOST))])])]
-
-
 instance Typeable (Buglist CGIResult)
     where typeOf function = mkTyConApp (mkTyCon "Buglist CGIResult") []
 
 
-processRequest :: Buglist CGIResult
-processRequest = do
+processRequest :: DispatchTable -> Buglist CGIResult
+processRequest dispatchTable  = do
   buglistState <- get
-  liftCGI $ catchCGI (evalStateT processRequest' buglistState)
+  liftCGI $ catchCGI (evalStateT (processRequest' dispatchTable) buglistState)
                      (\e -> evalStateT (do
                                          logCGI $ "Buglist: " ++ show e
                                          error500)
                                        buglistState)
 
 
-processRequest' :: Buglist CGIResult
-processRequest' = do
+processRequest' :: DispatchTable -> Buglist CGIResult
+processRequest' dispatchTable = do
   initializeSession
   setHeader "Content-Type" "text/html; charset=UTF8"
   url <- queryString
