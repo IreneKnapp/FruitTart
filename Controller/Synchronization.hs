@@ -22,12 +22,20 @@ import Text
 import Types
 
 
-index :: Buglist CGIResult
-index = do
+now :: Buglist CGIResult
+now = do
   right <- getRightSynchronize
   case right of
     False -> seeOtherRedirect "/issues/index/"
-    True -> index'
+    True -> now'
+
+
+index :: Int64 -> Buglist CGIResult
+index startTimestamp = do
+  right <- getRightSynchronize
+  case right of
+    False -> seeOtherRedirect "/issues/index/"
+    True -> index' startTimestamp
 
 
 issueGET :: Int64 -> Buglist CGIResult
@@ -94,25 +102,33 @@ userIssueAttachmentPOST userID issueID timestamp = do
     True -> userIssueAttachmentPOST' userID issueID timestamp
 
 
-index' :: Buglist CGIResult
-index' = do
+now' :: Buglist CGIResult
+now' = do
+  output "Testing."
+
+
+index' :: Int64 -> Buglist CGIResult
+index' startTimestamp = do
   users <- query "SELECT id, full_name, email FROM users ORDER BY id"
                  []
   issues <- query ("SELECT id, reporter, timestamp_created "
-                   ++ "FROM issues ORDER BY id")
-                  []
+                   ++ "FROM issues WHERE timestamp_modified >= ? ORDER BY id")
+                  [SQLInteger startTimestamp]
   userIssueChanges <- query ("SELECT user, issue, timestamp "
                              ++ "FROM user_issue_changes "
+                             ++ "WHERE timestamp >= ? "
                              ++ "ORDER BY timestamp, issue, user")
-                            []
+                            [SQLInteger startTimestamp]
   userIssueComments <- query ("SELECT user, issue, timestamp "
                               ++ "FROM user_issue_comments "
+                              ++ "WHERE timestamp >= ? "
                               ++ "ORDER BY timestamp, issue, user")
-                             []
+                             [SQLInteger startTimestamp]
   userIssueAttachments <- query ("SELECT user, issue, timestamp "
                                  ++ "FROM user_issue_attachments "
+                                 ++ "WHERE timestamp >= ? "
                                  ++ "ORDER BY timestamp, issue, user")
-                                []
+                                [SQLInteger startTimestamp]
   setHeader "Content-Type" "text/xml; charset=UTF8"
   output $ "<buglist>\n"
          ++ "<users>\n"
