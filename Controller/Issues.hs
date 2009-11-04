@@ -182,8 +182,8 @@ index maybeWhich maybeEitherModuleNameModuleID = do
          ++ popupMessage
          ++ "<h1>" ++ reportName ++ "</h1>\n"
          ++ "<table>\n"
-         ++ "<tr><th>ID</th><th>Modified</th><th>Stat</th><th>Res</th>"
-         ++ "<th>Module</th><th>Sev</th><th>Pri</th>"
+         ++ "<tr><th>ID</th><th>Modified</th><th>Status</th><th>Resolution</th>"
+         ++ "<th>Module</th><th>Severity</th><th>Priority</th>"
          ++ "<th>Summary</th></tr>\n"
          ++ (concat $ map (\[SQLInteger id,
                              SQLText status,
