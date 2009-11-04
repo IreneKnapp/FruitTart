@@ -31,7 +31,7 @@ import Prelude hiding (catch)
 import Random
 import System.Time
 
-import qualified Data.SQLite3 as SQL
+import qualified Database.SQLite3 as SQL
 import Network.FruitTart.Util
 
 

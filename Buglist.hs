@@ -44,7 +44,7 @@ import qualified Network.FruitTart.Controller.Login
 import qualified Network.FruitTart.Controller.Users
 import qualified Network.FruitTart.Controller.Synchronization
 import qualified Network.FruitTart.Dispatcher as Dispatcher
-import qualified Data.SQLite3 as SQL
+import qualified Database.SQLite3 as SQL
 import Network.FruitTart.Util
 
 

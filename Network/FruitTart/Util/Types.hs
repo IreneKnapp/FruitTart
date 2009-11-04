@@ -9,7 +9,7 @@ import Data.Map (Map)
 import Data.Dynamic
 import Network.CGI.Monad
 
-import qualified Data.SQLite3 as SQL
+import qualified Database.SQLite3 as SQL
 
 data FruitTartState  = FruitTartState {
       database :: SQL.Database,

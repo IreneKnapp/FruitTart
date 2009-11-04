@@ -50,7 +50,7 @@ module Network.FruitTart.Util (
 import Data.Int
 import Network.FastCGI hiding (output, logCGI)
 
-import Data.SQLite3 (SQLData(..))
+import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
 import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists

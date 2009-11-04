@@ -6,7 +6,7 @@ import Data.ByteString.UTF8 as UTF8
 import Data.Digest.SHA1 as SHA1
 import Foreign
 
-import Data.SQLite3
+import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
 import Network.FruitTart.Util.Types
 

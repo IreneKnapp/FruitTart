@@ -7,8 +7,8 @@ import Foreign
 import Numeric
 import System.Locale
 
-import qualified Data.SQLite3 as SQL
-import Data.SQLite3 (SQLData(..))
+import qualified Database.SQLite3 as SQL
+import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Types
 
 
