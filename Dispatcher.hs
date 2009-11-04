@@ -116,8 +116,12 @@ dispatchTable
                                               toDyn Controller.Captcha.index))])]),
        ("synchronization",
         Map.fromList
-               [("index",
+               [("now",
                  Map.fromList [("GET", ([],
+                                        [],
+                                        toDyn Controller.Synchronization.now))]),
+                ("index",
+                 Map.fromList [("GET", ([IDParameter],
                                         [],
                                         toDyn Controller.Synchronization.index))]),
                 ("issue",
