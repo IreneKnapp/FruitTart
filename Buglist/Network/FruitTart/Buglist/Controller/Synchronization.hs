@@ -1,4 +1,4 @@
-module Network.FruitTart.Controller.Synchronization where
+module Network.FruitTart.Buglist.Controller.Synchronization (actionTable) where
 
 import Control.Concurrent
 import Control.Monad.State

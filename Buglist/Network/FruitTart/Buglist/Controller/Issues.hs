@@ -1,4 +1,4 @@
-module Network.FruitTart.Controller.Issues (actionTable) where
+module Network.FruitTart.Buglist.Controller.Issues (actionTable) where
 
 import Data.Dynamic
 import Data.Int

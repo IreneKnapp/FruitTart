@@ -12,8 +12,12 @@ import System.Environment
 import System.Exit
 
 import qualified Network.FruitTart.Buglist.Controller.Issues
+    as Controller.Issues
+import qualified Network.FruitTart.Buglist.Controller.Users
+    as Controller.Users
 import qualified Network.FruitTart.Buglist.Controller.Synchronization
-import Network.FruitTartInterface
+    as Controller.Synchronization
+import Network.FruitTart.PluginInterface
 import qualified Database.SQLite3 as SQL
 
 
@@ -27,8 +31,8 @@ fruitTartPlugin = Interface {
 dispatchTable :: ControllerTable
 dispatchTable
     = Map.fromList
-      [("login", Network.FruitTart.Controller.Login.actionTable),
-       ("issues", Network.FruitTart.Controller.Issues.actionTable),
+      [("issues", Network.FruitTart.Controller.Issues.actionTable),
+       ("users", Network.FruitTart.Controller.Users.actionTable),
        ("synchronization", Network.FruitTart.Controller.Synchronization.actionTable)]
 
 
