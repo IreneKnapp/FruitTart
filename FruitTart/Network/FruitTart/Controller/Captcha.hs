@@ -15,7 +15,7 @@ import Network.FastCGI
 
 import Graphics.Captcha
 
-import Network.FruitTart.Dispatcher
+import Network.FruitTart.Base
 import Network.FruitTart.Util
 
 
