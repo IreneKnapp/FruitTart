@@ -12,10 +12,7 @@ import System.Environment
 import System.Exit
 
 import qualified Network.FruitTart.Controller.Captcha
-import qualified Network.FruitTart.Controller.Issues
 import qualified Network.FruitTart.Controller.Login
-import qualified Network.FruitTart.Controller.Users
-import qualified Network.FruitTart.Controller.Synchronization
 import qualified Network.FruitTart.Dispatcher as Dispatcher
 import qualified Database.SQLite3 as SQL
 import Network.FruitTart.Util
@@ -40,10 +37,7 @@ dispatchTable :: ControllerTable
 dispatchTable
     = Map.fromList
       [("login", Network.FruitTart.Controller.Login.actionTable),
-       ("issues", Network.FruitTart.Controller.Issues.actionTable),
-       ("users", Network.FruitTart.Controller.Users.actionTable),
-       ("captcha", Network.FruitTart.Controller.Captcha.actionTable),
-       ("synchronization", Network.FruitTart.Controller.Synchronization.actionTable)]
+       ("captcha", Network.FruitTart.Controller.Captcha.actionTable)]
 
 
 schemaVersion :: Int64
