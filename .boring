@@ -54,6 +54,4 @@
 (^|/)\.waf-[[:digit:].]+-[[:digit:]]+($|/)
 (^|/)\.lock-wscript$
 ^\.darcs-temp-mail$
-^SQLite3.hs$
-^Buglist$
-^buglist.db$
+^fruittart.db$
