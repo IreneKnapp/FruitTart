@@ -17,7 +17,8 @@ description:
   plugins to it.
 
 Library
-  exposed-modules: Network.FruitTart.PluginInterface
+  exposed-modules: Network.FruitTart.PluginInterface,
+  		   Network.FruitTart.Util
   build-depends: base >= 4.1 && < 5,
                  containers >= 0.2.0.1,
                  
