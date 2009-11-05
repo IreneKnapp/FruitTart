@@ -11,7 +11,7 @@ import Database.SQLite3
 import Network.FruitTart.Util.Types
 
 
-earlyQuery :: Database -> String -> [SQLData] -> IO ()
+earlyQuery :: Database -> String -> [SQLData] -> IO [[SQLData]]
 earlyQuery database query bindings = do
   statement <- prepare database query
   bind statement bindings
