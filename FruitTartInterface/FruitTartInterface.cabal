@@ -16,7 +16,7 @@ description:
   design similar to that of Ruby on Rails or CakePHP.
 
 Library
-  exposed-modules: Network.FruitTartInterface
+  exposed-modules: Network.FruitTart.PluginInterface
   build-depends: base >= 4.1 && < 5,
                  containers >= 0.2.0.1,
                  

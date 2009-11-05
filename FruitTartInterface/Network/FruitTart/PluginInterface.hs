@@ -1,7 +1,11 @@
-module NetworknFruitTartInterface (ActionTable,
-                                   ControllerTable,
-                                   ParameterType(..),
-                                   Interface(..))
+module Network.FruitTart.PluginInterface
+    (
+     ActionTable,
+     ControllerTable,
+     ParameterType(..),
+     Interface(..),
+     requireModuleVersion
+    )
     where
 
 import Data.Dynamic
