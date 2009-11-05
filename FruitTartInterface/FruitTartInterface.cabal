@@ -27,8 +27,8 @@ Library
                  time >= 1.1.4,
                  
                  Crypto >= 4.2.0,
-                 fastcgi >= 3001.0.2.2,
                  cgi >= 3001.1.7.1,
+                 fastcgi >= 3001.0.2.2,
                  utf8-string >= 0.3.5,
                  
                  direct-sqlite >= 1.0
