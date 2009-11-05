@@ -29,4 +29,4 @@ Library
                  utf8-string >= 0.3.5,
                  
                  direct-sqlite >= 1.0,
-                 FruitTartInterface >= 1.0
+                 FruitTartInterface >= 1.0 && < 2

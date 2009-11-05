@@ -3,8 +3,7 @@ module Network.FruitTart.PluginInterface
      ActionTable,
      ControllerTable,
      ParameterType(..),
-     Interface(..),
-     requireModuleVersion
+     Interface(..)
     )
     where
 

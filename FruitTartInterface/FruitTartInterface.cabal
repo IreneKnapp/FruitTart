@@ -10,10 +10,11 @@ maintainer: dankna@gmail.com
 homepage: http://www.dankna.com/software/
 bug-reports: http://www.dankna.com/issues/create/
 category: Network
-synopsis: A framework for database-backed websites.
+synopsis: Plugin API to a framework for database-backed websites.
 description:
   FruitTart is a framework for database-backed websites.  It supports a controller/action
-  design similar to that of Ruby on Rails or CakePHP.
+  design similar to that of Ruby on Rails or CakePHP.  This package is the API for
+  plugins to it.
 
 Library
   exposed-modules: Network.FruitTart.PluginInterface
