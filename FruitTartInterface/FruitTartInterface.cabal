@@ -18,8 +18,17 @@ description:
 
 Library
   exposed-modules: Network.FruitTart.PluginInterface,
-  		   Network.FruitTart.Util
+                   Network.FruitTart.Util
   build-depends: base >= 4.1 && < 5,
+                 bytestring >= 0.9.1.5,
                  containers >= 0.2.0.1,
+                 mtl >= 1.1.0.2,
+                 old-locale >= 1.0.0.1,
+                 time >= 1.1.4,
+                 
+                 Crypto >= 4.2.0,
+                 fastcgi >= 3001.0.2.2,
+                 cgi >= 3001.1.7.1,
+                 utf8-string >= 0.3.5,
                  
                  direct-sqlite >= 1.0
