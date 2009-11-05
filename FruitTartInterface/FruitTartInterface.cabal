@@ -19,7 +19,8 @@ description:
 Library
   exposed-modules: Network.FruitTart.PluginInterface,
                    Network.FruitTart.Util
-  other-modules: Network.FruitTart.Util.Database,
+  other-modules: Network.FruitTart.Base,
+                 Network.FruitTart.Util.Database,
                  Network.FruitTart.Util.HTML,
                  Network.FruitTart.Util.Lists,
                  Network.FruitTart.Util.Log,
