@@ -1,4 +1,6 @@
 module Network.FruitTart.Controller.Login (actionTable,
+                                           getLoggedInUser,
+                                           getEffectiveUser,
                                            outputMustLoginPage)
     where
 
@@ -14,9 +16,11 @@ import Data.Int
 import Data.List
 import Network.FastCGI hiding (output)
 
-import Buglist
+import Network.FruitTart.Controller.PopupMessage
 import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
+import Network.FruitTart.View.Misc
+import Network.FruitTart.View.Navigation
 
 
 actionTable :: ActionTable
@@ -296,3 +300,24 @@ getReferrer = do
                 case maybeHTTPReferrer of
                   Just referrer -> return referrer
                   Nothing -> return ""
+
+
+getLoggedInUser :: FruitTart (Maybe Int64)
+getLoggedInUser = do
+  sessionID <- getSessionID
+  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
+                           [SQLInteger sessionID]
+  return $ case maybeUserID of
+             SQLNull -> Nothing
+             SQLInteger userID -> Just userID
+
+
+getEffectiveUser :: FruitTart Int64
+getEffectiveUser = do
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Just userID -> return userID
+    Nothing -> do
+      [[SQLInteger anonymousID]] <- query "SELECT anonymous_user FROM settings LIMIT 1"
+                                          []
+      return anonymousID

@@ -77,27 +77,6 @@ getUser fullName email = do
             return id
 
 
-getLoggedInUser :: FruitTart (Maybe Int64)
-getLoggedInUser = do
-  sessionID <- getSessionID
-  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
-                           [SQLInteger sessionID]
-  return $ case maybeUserID of
-             SQLNull -> Nothing
-             SQLInteger userID -> Just userID
-
-
-getEffectiveUser :: FruitTart Int64
-getEffectiveUser = do
-  maybeUserID <- getLoggedInUser
-  case maybeUserID of
-    Just userID -> return userID
-    Nothing -> do
-      [[SQLInteger anonymousID]] <- query "SELECT anonymous_user FROM settings LIMIT 1"
-                                          []
-      return anonymousID
-
-
 getCanActAsUser :: Int64 -> FruitTart Bool
 getCanActAsUser userID = do
   effectiveUserID <- getEffectiveUser
@@ -182,77 +161,6 @@ getRightCommentIssues = do
              _ -> True
 
 
-getPageHeadItems :: FruitTart String
-getPageHeadItems
-    = return 
-      ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-       ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-       ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
-       ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
-
-
-getLoginButton :: String -> FruitTart String
-getLoginButton currentPage = do
-  maybeUserID <- getLoggedInUser
-  case maybeUserID of
-    Nothing -> do
-      sessionID <- getSessionID
-      [[maybeEmail]] <- query ("SELECT users.email FROM sessions LEFT JOIN users "
-                               ++ "ON users.id = sessions.recent_user "
-                               ++ "WHERE sessions.id = ?")
-                              [SQLInteger sessionID]
-      email <- return $ case maybeEmail of
-                          SQLNull -> ""
-                          SQLText email -> email
-      return ("<div id=\"navigationright\">"
-              ++ "<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
-              ++ "</div>\n"
-              ++ "<div id=\"loginbox\" style=\"display: none;\">"
-              ++ "<form method=\"POST\" action=\"/login/login/\">\n"
-              ++ "<div><b>Email:</b> "
-              ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
-              ++ (escapeAttribute email)
-              ++ "\"/></div>\n"
-              ++ "<div><b>Password:</b> "
-              ++ "<input type=\"password\" size=\"10\" name=\"password\" value=\""
-              ++ "\"/></div>\n"
-              ++ "<div class=\"submit\">"
-              ++ "<button type=\"submit\" value=\"Log In\">Log In</button>"
-              ++ "</div>\n"
-              ++ "</form>\n"
-              ++ "</div>\n")
-    Just _ -> do
-      return ("<div id=\"navigationright\">"
-              ++ (if currentPage == "/login/account/"
-                     then "<b>Account</b>"
-                     else "<a href=\"/login/account/\">Account</a>")
-              ++ "<a id=\"loginlink\" class=\"logout\" href=\"/login/logout/\">"
-              ++ "Log Out</a></div>\n")
-
-
-setPopupMessage :: Maybe String -> FruitTart ()
-setPopupMessage maybeMessage = do
-  sessionID <- getSessionID
-  query "UPDATE sessions SET popup_message = ? WHERE id = ?"
-        [case maybeMessage of
-           Nothing -> SQLNull
-           Just message -> SQLText message,
-         SQLInteger sessionID]
-  return ()
-
-
-getPopupMessage :: FruitTart String
-getPopupMessage = do
-  sessionID <- getSessionID
-  [[maybeMessage]] <- query "SELECT popup_message FROM sessions WHERE id = ?"
-                            [SQLInteger sessionID]
-  query "UPDATE sessions SET popup_message = NULL WHERE ID = ?"
-        [SQLInteger sessionID]
-  case maybeMessage of
-    SQLNull -> return ""
-    SQLText message -> return $ "<div id=\"popupmessage\">"
-                              ++ (escapeHTML message)
-                              ++ "</div>\n"
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> FruitTart String
@@ -353,16 +261,3 @@ getPriorityPopup maybePriorityID = do
                                ++ "</option>")
                           priorities)
          ++ "</select>\n"
-
-
-privacyNote :: String
-privacyNote
-    = "Your email will be visible only to members who have accounts."
-
-
-defaultFullName :: String
-defaultFullName = "Anonymous"
-
-
-defaultEmail :: String
-defaultEmail = "anonymous"
