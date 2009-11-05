@@ -150,23 +150,23 @@ index' :: Int64 -> FruitTart CGIResult
 index' startTimestamp = do
   users <- query "SELECT id, full_name, email FROM users ORDER BY id"
                  []
-  issues <- query ("SELECT id, reporter, timestamp_created "
-                   ++ "FROM issues WHERE timestamp_modified >= ? ORDER BY id")
+  issues <- query (  "SELECT id, reporter, timestamp_created "
+                  ++ "FROM buglist_issues WHERE timestamp_modified >= ? ORDER BY id")
                   [SQLInteger startTimestamp]
-  userIssueChanges <- query ("SELECT user, issue, timestamp "
-                             ++ "FROM user_issue_changes "
+  userIssueChanges <- query (  "SELECT user, issue, timestamp "
+                            ++ "FROM buglist_user_issue_changes "
+                            ++ "WHERE timestamp >= ? "
+                            ++ "ORDER BY timestamp, issue, user")
+                            [SQLInteger startTimestamp]
+  userIssueComments <- query (  "SELECT user, issue, timestamp "
+                             ++ "FROM buglist_user_issue_comments "
                              ++ "WHERE timestamp >= ? "
                              ++ "ORDER BY timestamp, issue, user")
-                            [SQLInteger startTimestamp]
-  userIssueComments <- query ("SELECT user, issue, timestamp "
-                              ++ "FROM user_issue_comments "
-                              ++ "WHERE timestamp >= ? "
-                              ++ "ORDER BY timestamp, issue, user")
                              [SQLInteger startTimestamp]
-  userIssueAttachments <- query ("SELECT user, issue, timestamp "
-                                 ++ "FROM user_issue_attachments "
-                                 ++ "WHERE timestamp >= ? "
-                                 ++ "ORDER BY timestamp, issue, user")
+  userIssueAttachments <- query (  "SELECT user, issue, timestamp "
+                                ++ "FROM buglist_user_issue_attachments "
+                                ++ "WHERE timestamp >= ? "
+                                ++ "ORDER BY timestamp, issue, user")
                                 [SQLInteger startTimestamp]
   setHeader "Content-Type" "text/xml; charset=UTF8"
   output $ "<buglist>\n"
@@ -238,9 +238,9 @@ issueGET' issueID = do
     SQLText summary,
     SQLInteger timestampCreated,
     SQLInteger timestampModified]]
-      <- query ("SELECT id, status, resolution, module, severity, priority, assignee, "
-                ++ "reporter, summary, timestamp_created, timestamp_modified "
-                ++ "FROM issues WHERE id = ?")
+      <- query (  "SELECT id, status, resolution, module, severity, priority, assignee, "
+               ++ "reporter, summary, timestamp_created, timestamp_modified "
+               ++ "FROM buglist_issues WHERE id = ?")
                [SQLInteger issueID]
   setHeader "Content-Type" "text/xml; charset=UTF8"
   output $ "<issue>"
@@ -281,14 +281,14 @@ userIssueChangeGET' userID issueID timestamp = do
     SQLInteger newPriority,
     SQLInteger newAssignee,
     SQLText newSummary]]
-      <- query ("SELECT status_changed, resolution_changed, module_changed, "
-                ++ "severity_changed, priority_changed, assignee_changed, "
-                ++ "summary_changed, old_status, old_resolution, old_module, "
-                ++ "old_severity, old_priority, old_assignee, old_summary, "
-                ++ "new_status, new_resolution, new_module, new_severity, "
-                ++ "new_priority, new_assignee, new_summary "
-                ++ "FROM user_issue_changes "
-                ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
+      <- query (  "SELECT status_changed, resolution_changed, module_changed, "
+               ++ "severity_changed, priority_changed, assignee_changed, "
+               ++ "summary_changed, old_status, old_resolution, old_module, "
+               ++ "old_severity, old_priority, old_assignee, old_summary, "
+               ++ "new_status, new_resolution, new_module, new_severity, "
+               ++ "new_priority, new_assignee, new_summary "
+               ++ "FROM buglist_user_issue_changes "
+               ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
                [SQLInteger userID, SQLInteger issueID, SQLInteger timestamp]
   setHeader "Content-Type" "text/xml; charset=UTF8"
   output $ "<user_issue_change>"
@@ -319,9 +319,9 @@ userIssueChangeGET' userID issueID timestamp = do
 userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
 userIssueCommentGET' userID issueID timestamp = do
   [[SQLText text]]
-      <- query ("SELECT text "
-                ++ "FROM user_issue_comments "
-                ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
+      <- query (  "SELECT text "
+               ++ "FROM buglist_user_issue_comments "
+               ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
                [SQLInteger userID, SQLInteger issueID, SQLInteger timestamp]
   setHeader "Content-Type" "text/xml; charset=UTF8"
   output $ "<user_issue_comment>"

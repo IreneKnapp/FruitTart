@@ -48,7 +48,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   sessionID <- getSessionID
   [[maybeDatabaseWhich, maybeDatabaseAllModules, maybeDatabaseModuleID]]
     <- query ("SELECT issue_index_filter_which, issue_index_filter_all_modules, "
-              ++ "issue_index_filter_module FROM sessions "
+              ++ "issue_index_filter_module FROM buglist_sessions "
               ++ "WHERE id = ?")
              [SQLInteger sessionID]
   which <- return $ case maybeWhich of
@@ -64,8 +64,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
     <- case maybeDatabaseModuleID of
          Nothing -> return Nothing
          Just databaseModuleID -> do
-             [[maybeDatabaseModuleName]] <- query "SELECT name FROM modules WHERE id = ?"
-                                                  [SQLInteger databaseModuleID]
+             [[maybeDatabaseModuleName]]
+                 <- query "SELECT name FROM buglist_modules WHERE id = ?"
+                          [SQLInteger databaseModuleID]
              case maybeDatabaseModuleName of
                SQLText databaseModuleName -> return $ Just databaseModuleName
                _ -> return Nothing
@@ -80,13 +81,15 @@ index maybeWhich maybeEitherModuleNameModuleID = do
       <- case maybeModuleID of
            Nothing -> return Nothing
            Just moduleID -> do
-                [[SQLText moduleName]] <- query "SELECT name FROM modules WHERE id = ?"
-                                                [SQLInteger moduleID]
+                [[SQLText moduleName]]
+                    <- query "SELECT name FROM buglist_modules WHERE id = ?"
+                             [SQLInteger moduleID]
                 return $ Just moduleName
-  query ("UPDATE sessions SET issue_index_filter_which = ?, "
-         ++ "issue_index_filter_all_modules = ?, "
-         ++ "issue_index_filter_module = ? "
-         ++ "WHERE id = ?")
+  query (  "UPDATE buglist_sessions SET "
+        ++ "issue_index_filter_which = ?, "
+        ++ "issue_index_filter_all_modules = ?, "
+        ++ "issue_index_filter_module = ? "
+        ++ "WHERE id = ?")
         [SQLText which,
          case maybeModuleID of
            Nothing -> SQLInteger 1
@@ -136,11 +139,17 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ "issues.summary, "
                    ++ "issues.timestamp_created, "
                    ++ "issues.timestamp_modified "
-                   ++ "FROM issues INNER JOIN statuses ON issues.status = statuses.id "
-                   ++ "INNER JOIN resolutions ON issues.resolution = resolutions.id "
-                   ++ "INNER JOIN modules ON issues.module = modules.id "
-                   ++ "INNER JOIN severities ON issues.severity = severities.id "
-                   ++ "INNER JOIN priorities ON issues.priority = priorities.id "
+                   ++ "FROM buglist_issues AS issues "
+                   ++ "INNER JOIN buglist_statuses AS statuses "
+                   ++ "ON issues.status = statuses.id "
+                   ++ "INNER JOIN buglist_resolutions AS resolutions "
+                   ++ "ON issues.resolution = resolutions.id "
+                   ++ "INNER JOIN buglist_modules AS modules "
+                   ++ "ON issues.module = modules.id "
+                   ++ "INNER JOIN buglist_severities AS severities "
+                   ++ "ON issues.severity = severities.id "
+                   ++ "INNER JOIN buglist_priorities AS priorities "
+                   ++ "ON issues.priority = priorities.id "
                    ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
                    ++ whereClause
@@ -188,7 +197,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                             "/issues/index/which:open/" ++ currentPathModulePart),
                            ("Closed Issues",
                             "/issues/index/which:closed/" ++ currentPathModulePart)]
-  modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  modules <- query "SELECT id, name FROM buglist_modules ORDER BY id" []
   modulesFilterList <- return $ [filterItem "All Modules"
                                       ("/issues/index/" ++ currentPathWhichPart
                                        ++ "module:all/")]
@@ -273,11 +282,17 @@ outputView id comment fullName email maybeWarning = do
                  ++ "issues.summary, "
                  ++ "issues.timestamp_created, "
                  ++ "issues.timestamp_modified "
-                 ++ "FROM issues INNER JOIN statuses ON issues.status = statuses.id "
-                 ++ "INNER JOIN resolutions ON issues.resolution = resolutions.id "
-                 ++ "INNER JOIN modules ON issues.module = modules.id "
-                 ++ "INNER JOIN severities ON issues.severity = severities.id "
-                 ++ "INNER JOIN priorities ON issues.priority = priorities.id "
+                 ++ "FROM buglist_issues AS issues "
+                 ++ "INNER JOIN buglist_statuses AS statuses "
+                 ++ "ON issues.status = statuses.id "
+                 ++ "INNER JOIN buglist_resolutions AS resolutions "
+                 ++ "ON issues.resolution = resolutions.id "
+                 ++ "INNER JOIN buglist_modules AS modules "
+                 ++ "ON issues.module = modules.id "
+                 ++ "INNER JOIN buglist_severities AS severities "
+                 ++ "ON issues.severity = severities.id "
+                 ++ "INNER JOIN buglist_priorities AS priorities "
+                 ++ "ON issues.priority = priorities.id "
                  ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
                  ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
                  ++ "WHERE issues.id = ?")
@@ -329,31 +344,32 @@ outputView id comment fullName email maybeWarning = do
                          ++ "new_assignee.full_name, "
                          ++ "new_assignee.email, "
                          ++ "user_issue_changes.new_summary "
-                         ++ "FROM user_issue_changes INNER JOIN users "
+                         ++ "FROM buglist_user_issue_changes AS user_issue_changes "
+                         ++ "INNER JOIN users "
                          ++ "ON user_issue_changes.user = users.id "
-                         ++ "INNER JOIN issues "
+                         ++ "INNER JOIN buglist_issues AS issues "
                          ++ "ON user_issue_changes.issue = issues.id "
-                         ++ "LEFT JOIN statuses AS old_status "
+                         ++ "LEFT JOIN buglist_statuses AS old_status "
                          ++ "ON user_issue_changes.old_status = old_status.id "
-                         ++ "LEFT JOIN resolutions AS old_resolution "
+                         ++ "LEFT JOIN buglist_resolutions AS old_resolution "
                          ++ "ON user_issue_changes.old_resolution = old_resolution.id "
-                         ++ "LEFT JOIN modules AS old_module "
+                         ++ "LEFT JOIN buglist_modules AS old_module "
                          ++ "ON user_issue_changes.old_module = old_module.id "
-                         ++ "LEFT JOIN severities AS old_severity "
+                         ++ "LEFT JOIN buglist_severities AS old_severity "
                          ++ "ON user_issue_changes.old_severity = old_severity.id "
-                         ++ "LEFT JOIN priorities AS old_priority "
+                         ++ "LEFT JOIN buglist_priorities AS old_priority "
                          ++ "ON user_issue_changes.old_priority = old_priority.id "
                          ++ "LEFT JOIN users AS old_assignee "
                          ++ "ON user_issue_changes.old_assignee = old_assignee.id "
-                         ++ "LEFT JOIN statuses AS new_status "
+                         ++ "LEFT JOIN buglist_statuses AS new_status "
                          ++ "ON user_issue_changes.new_status = new_status.id "
-                         ++ "LEFT JOIN resolutions AS new_resolution "
+                         ++ "LEFT JOIN buglist_resolutions AS new_resolution "
                          ++ "ON user_issue_changes.new_resolution = new_resolution.id "
-                         ++ "LEFT JOIN modules AS new_module "
+                         ++ "LEFT JOIN buglist_modules AS new_module "
                          ++ "ON user_issue_changes.new_module = new_module.id "
-                         ++ "LEFT JOIN severities AS new_severity "
+                         ++ "LEFT JOIN buglist_severities AS new_severity "
                          ++ "ON user_issue_changes.new_severity = new_severity.id "
-                         ++ "LEFT JOIN priorities AS new_priority "
+                         ++ "LEFT JOIN buglist_priorities AS new_priority "
                          ++ "ON user_issue_changes.new_priority = new_priority.id "
                          ++ "LEFT JOIN users AS new_assignee "
                          ++ "ON user_issue_changes.new_assignee = new_assignee.id "
@@ -366,9 +382,10 @@ outputView id comment fullName email maybeWarning = do
                           ++ "users.email, "
                           ++ "'Comment', "
                           ++ "user_issue_comments.text "
-                          ++ "FROM user_issue_comments INNER JOIN users "
+                          ++ "FROM buglist_user_issue_comments AS user_issue_comments "
+                          ++ "INNER JOIN users "
                           ++ "ON user_issue_comments.user = users.id "
-                          ++ "INNER JOIN issues "
+                          ++ "INNER JOIN buglist_issues AS issues "
                           ++ "ON user_issue_comments.issue = issues.id "
                           ++ "WHERE issues.id = ? "
                           ++ "ORDER BY user_issue_comments.timestamp")
@@ -380,9 +397,10 @@ outputView id comment fullName email maybeWarning = do
                        ++ "'Attachment', "
                        ++ "user_issue_attachments.filename, "
                        ++ "length(user_issue_attachments.data) AS size "
-                       ++ "FROM user_issue_attachments INNER JOIN users "
+                       ++ "FROM buglist_user_issue_attachments AS user_issue_attachments "
+                       ++ "INNER JOIN users "
                        ++ "ON user_issue_attachments.user = users.id "
-                       ++ "INNER JOIN issues ON "
+                       ++ "INNER JOIN buglist_issues AS issues ON "
                        ++ "user_issue_attachments.issue = issues.id "
                        ++ "WHERE issues.id = ? "
                        ++ "ORDER BY user_issue_attachments.timestamp")
@@ -723,19 +741,20 @@ actuallyCreateIssue moduleID summary comment reporterID = do
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
     SQLInteger defaultSeverityID, SQLInteger defaultPriorityID]]
       <- query ("SELECT status, resolution, severity, priority "
-                ++ "FROM issue_defaults LIMIT 1")
+                ++ "FROM buglist_issue_defaults LIMIT 1")
                []
-  query ("INSERT INTO issues (status, resolution, severity, priority, module, assignee, "
-         ++ "reporter, summary, timestamp_created, timestamp_modified) "
-         ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+  query (  "INSERT INTO buglist_issues "
+        ++ "(status, resolution, severity, priority, module, assignee, "
+        ++ "reporter, summary, timestamp_created, timestamp_modified) "
+        ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         [SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
          SQLInteger defaultSeverityID, SQLInteger defaultPriorityID,
          SQLInteger moduleID, SQLInteger assigneeID, SQLInteger reporterID,
          SQLText summary, SQLInteger timestamp, SQLInteger timestamp]
-  [[SQLInteger issueID]] <- query ("SELECT id FROM issues WHERE reporter = ? "
+  [[SQLInteger issueID]] <- query ("SELECT id FROM buglist_issues WHERE reporter = ? "
                                    ++ "AND timestamp_created = ?")
                                   [SQLInteger reporterID, SQLInteger timestamp]
-  query ("INSERT INTO user_issue_comments (user, issue, timestamp, text) "
+  query ("INSERT INTO buglist_user_issue_comments (user, issue, timestamp, text) "
          ++ "VALUES (?, ?, ?, ?)")
         [SQLInteger reporterID, SQLInteger issueID, SQLInteger timestamp,
          SQLText comment]
@@ -785,11 +804,11 @@ actuallyCreateComment :: Int64 -> String -> Int64 -> FruitTart CGIResult
 actuallyCreateComment issueID comment commenterID = do
   timestamp <- getTimestamp
   query "BEGIN TRANSACTION" []
-  query ("INSERT INTO user_issue_comments (user, issue, timestamp, text) "
+  query ("INSERT INTO buglist_user_issue_comments (user, issue, timestamp, text) "
          ++ "VALUES (?, ?, ?, ?)")
         [SQLInteger commenterID, SQLInteger issueID, SQLInteger timestamp,
          SQLText comment]
-  query ("UPDATE issues SET timestamp_modified = ? WHERE id = ?")
+  query ("UPDATE buglist_issues SET timestamp_modified = ? WHERE id = ?")
         [SQLInteger timestamp,
          SQLInteger issueID]
   query "COMMIT" []
@@ -842,18 +861,19 @@ edit issueID = do
         SQLText oldSummary]]
           <- query ("SELECT status, resolution, module, severity, priority, assignee, "
                     ++ "summary "
-                    ++ "FROM issues WHERE id = ?")
+                    ++ "FROM buglist_issues WHERE id = ?")
                    [SQLInteger issueID]
       timestamp <- getTimestamp
-      query ("INSERT INTO user_issue_changes (user, issue, timestamp, "
-             ++ "status_changed, resolution_changed, module_changed, severity_changed, "
-             ++ "priority_changed, assignee_changed, summary_changed, "
-             ++ "old_status, old_resolution, old_module, old_severity, old_priority, "
-             ++ "old_assignee, old_summary, "
-             ++ "new_status, new_resolution, new_module, new_severity, new_priority, "
-             ++ "new_assignee, new_summary) "
-             ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-             ++ "?, ?, ?)")
+      query (  "INSERT INTO buglist_user_issue_changes "
+            ++ "(user, issue, timestamp, "
+            ++ "status_changed, resolution_changed, module_changed, severity_changed, "
+            ++ "priority_changed, assignee_changed, summary_changed, "
+            ++ "old_status, old_resolution, old_module, old_severity, old_priority, "
+            ++ "old_assignee, old_summary, "
+            ++ "new_status, new_resolution, new_module, new_severity, new_priority, "
+            ++ "new_assignee, new_summary) "
+            ++ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+            ++ "?, ?, ?)")
             [SQLInteger 1,
              SQLInteger issueID,
              SQLInteger timestamp,
@@ -878,9 +898,10 @@ edit issueID = do
              SQLInteger newPriorityID,
              SQLInteger newAssigneeID,
              SQLText newSummary]
-      query ("UPDATE issues SET status = ?, resolution = ?, module = ?, severity = ?, "
-             ++ "priority = ?, assignee = ?, summary = ?, timestamp_modified = ? "
-             ++ "WHERE id = ?")
+      query (  "UPDATE buglist_issues "
+            ++ "SET status = ?, resolution = ?, module = ?, severity = ?, "
+            ++ "priority = ?, assignee = ?, summary = ?, timestamp_modified = ? "
+            ++ "WHERE id = ?")
             [SQLInteger newStatusID,
              SQLInteger newResolutionID,
              SQLInteger newModuleID,

@@ -59,51 +59,54 @@ view id = do
   case rows of
     [[SQLText fullName, SQLText email]]
       -> do
-       creations <- query ("SELECT "
-                         ++ "issues.timestamp_created, "
-                         ++ "'Create', "
-                         ++ "issues.summary, "
-                         ++ "issues.id "
-                         ++ "FROM issues "
-                         ++ "WHERE issues.reporter = ? "
-                         ++ "ORDER BY issues.timestamp_created DESC")
+       creations <- query (  "SELECT "
+                          ++ "issues.timestamp_created, "
+                          ++ "'Create', "
+                          ++ "issues.summary, "
+                          ++ "issues.id "
+                          ++ "FROM buglist_issues AS issues "
+                          ++ "WHERE issues.reporter = ? "
+                          ++ "ORDER BY issues.timestamp_created DESC")
+                          [SQLInteger id]
+       changes <- query (  "SELECT "
+                        ++ "user_issue_changes.timestamp, "
+                        ++ "'Edit', "
+                        ++ "issues.summary, "
+                        ++ "issues.id "
+                        ++ "FROM buglist_user_issue_changes AS user_issue_changes "
+                        ++ "INNER JOIN users "
+                        ++ "ON user_issue_changes.user = users.id "
+                        ++ "INNER JOIN buglist_issues AS issues "
+                        ++ "ON user_issue_changes.issue = issues.id "
+                        ++ "WHERE users.id = ? "
+                        ++ "ORDER BY user_issue_changes.timestamp DESC")
                         [SQLInteger id]
-       changes <- query ("SELECT "
-                         ++ "user_issue_changes.timestamp, "
-                         ++ "'Edit', "
-                         ++ "issues.summary, "
-                         ++ "issues.id "
-                         ++ "FROM user_issue_changes INNER JOIN users "
-                         ++ "ON user_issue_changes.user = users.id "
-                         ++ "INNER JOIN issues "
-                         ++ "ON user_issue_changes.issue = issues.id "
-                         ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_changes.timestamp DESC")
-                        [SQLInteger id]
-       comments <- query ("SELECT "
+       comments <- query (  "SELECT "
                          ++ "user_issue_comments.timestamp, "
                          ++ "'Comment', "
                          ++ "issues.summary, "
                          ++ "issues.id "
-                         ++ "FROM user_issue_comments INNER JOIN users "
+                         ++ "FROM buglist_user_issue_comments AS user_issue_comments "
+                         ++ "INNER JOIN users "
                          ++ "ON user_issue_comments.user = users.id "
-                         ++ "INNER JOIN issues "
+                         ++ "INNER JOIN buglist_issues AS issues "
                          ++ "ON user_issue_comments.issue = issues.id "
                          ++ "WHERE users.id = ? "
                          ++ "ORDER BY user_issue_comments.timestamp DESC")
-                        [SQLInteger id]
-       files <- query ("SELECT "
-                         ++ "user_issue_attachments.timestamp, "
-                         ++ "'Attachment', "
-                         ++ "issues.summary, "
-                         ++ "issues.id "
-                         ++ "FROM user_issue_attachments INNER JOIN users "
-                         ++ "ON user_issue_attachments.user = users.id "
-                         ++ "INNER JOIN issues ON "
-                         ++ "user_issue_attachments.issue = issues.id "
-                         ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_attachments.timestamp DESC")
-                        [SQLInteger id]
+                         [SQLInteger id]
+       files <- query (  "SELECT "
+                      ++ "user_issue_attachments.timestamp, "
+                      ++ "'Attachment', "
+                      ++ "issues.summary, "
+                      ++ "issues.id "
+                      ++ "FROM buglist_user_issue_attachments AS user_issue_attachments "
+                      ++ "INNER JOIN users "
+                      ++ "ON user_issue_attachments.user = users.id "
+                      ++ "INNER JOIN buglist_issues AS issues ON "
+                      ++ "user_issue_attachments.issue = issues.id "
+                      ++ "WHERE users.id = ? "
+                      ++ "ORDER BY user_issue_attachments.timestamp DESC")
+                      [SQLInteger id]
        rows <- return $ mergeBy (\[SQLInteger a, _, _, _] [SQLInteger b, _, _, _]
                                  -> case compare a b of
                                       LT -> GT

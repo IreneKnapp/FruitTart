@@ -183,10 +183,10 @@ outputAccountPage = do
     Just userID -> do
       sessionID <- getSessionID
       [[SQLText fullName, SQLText email]]
-          <- query ("SELECT users.full_name, users.email "
-                    ++ "FROM sessions LEFT JOIN users "
-                    ++ "ON sessions.logged_in_user = users.id "
-                    ++ "WHERE sessions. id = ?")
+          <- query (  "SELECT users.full_name, users.email "
+                   ++ "FROM sessions LEFT JOIN users "
+                   ++ "ON sessions.logged_in_user = users.id "
+                   ++ "WHERE sessions. id = ?")
                    [SQLInteger sessionID]
       pageHeadItems <- getPageHeadItems
       currentPage <- return "/login/account/"
