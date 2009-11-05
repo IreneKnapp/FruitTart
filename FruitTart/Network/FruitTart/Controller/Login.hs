@@ -19,6 +19,7 @@ import Network.FastCGI hiding (output)
 import Network.FruitTart.Controller.PopupMessage
 import Network.FruitTart.Base
 import Network.FruitTart.Util
+import Network.FruitTart.View.Login
 import Network.FruitTart.View.Misc
 import Network.FruitTart.View.Navigation
 

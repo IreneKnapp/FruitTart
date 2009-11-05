@@ -1,5 +1,7 @@
 module Network.FruitTart.View.Login (getLoginButton) where
 
+import Network.FruitTart.Base
+import {-# SOURCE #-} Network.FruitTart.Controller.Login
 import Network.FruitTart.Util
 
 
