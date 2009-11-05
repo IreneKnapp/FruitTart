@@ -1,5 +1,5 @@
 module Network.FruitTart.Controller.PopupMessage (setPopupMessage,
-                                                  getPopupMesage) where
+                                                  getPopupMessage) where
 
 import Network.FruitTart.Controller.Session
 import Network.FruitTart.Util
