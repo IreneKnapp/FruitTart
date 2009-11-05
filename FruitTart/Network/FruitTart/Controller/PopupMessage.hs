@@ -1,7 +1,7 @@
 module Network.FruitTart.Controller.PopupMessage (setPopupMessage,
                                                   getPopupMessage) where
 
-import Network.FruitTart.Controller.Session
+import Network.FruitTart.Base
 import Network.FruitTart.Util
 
 
