@@ -9,6 +9,7 @@ module Network.FruitTart.PluginInterface
     where
 
 import Data.Dynamic
+import Data.Int
 import Data.Map (Map)
 
 import Database.SQLite3
@@ -28,5 +29,7 @@ data ParameterType = IDParameter
 
 data Interface = Interface {
       dispatchTable :: ControllerTable,
-      initDatabase :: Database -> IO Bool
+      moduleName :: String,
+      moduleVersion :: Integer,
+      initDatabase :: Database -> IO ()
     }
