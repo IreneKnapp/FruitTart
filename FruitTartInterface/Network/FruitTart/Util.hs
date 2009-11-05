@@ -10,9 +10,7 @@ module Network.FruitTart.Util (
                                SQLData(..),
                                
                                -- Database
-                               earlyRun,
-                               earlyRun',
-                               earlyEval,
+                               earlyQuery,
                                query,
                                getTimestamp,
                                timestampToString,
