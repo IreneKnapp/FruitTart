@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Network.FruitTart.Dispatcher (processRequest) where
 
 import Control.Concurrent
@@ -18,10 +17,6 @@ import System.Time
 import qualified Database.SQLite3 as SQL
 import Network.FruitTart.Base
 import Network.FruitTart.Util
-
-
-instance Typeable (FruitTart CGIResult)
-    where typeOf function = mkTyConApp (mkTyCon "FruitTart CGIResult") []
 
 
 processRequest :: ControllerTable -> FruitTart CGIResult
