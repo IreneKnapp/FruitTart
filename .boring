@@ -55,3 +55,6 @@
 (^|/)\.lock-wscript$
 ^\.darcs-temp-mail$
 ^fruittart.db$
+^Buglist/dist/$
+^FruitTart/dist/$
+^FruitTartInterface/dist/$
