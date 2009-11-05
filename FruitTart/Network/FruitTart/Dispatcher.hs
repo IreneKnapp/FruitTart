@@ -16,6 +16,7 @@ import Random
 import System.Time
 
 import qualified Database.SQLite3 as SQL
+import Network.FruitTart.Base
 import Network.FruitTart.Util
 
 
