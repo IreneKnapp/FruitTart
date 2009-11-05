@@ -7,51 +7,43 @@ import Foreign
 import Numeric
 import System.Locale
 
-import qualified Database.SQLite3 as SQL
-import Database.SQLite3 (SQLData(..))
+import Database.SQLite3
 import Network.FruitTart.Util.Types
 
 
-earlyRun :: SQL.Database -> String -> IO ()
-earlyRun database query = do
-  statement <- SQL.prepare database query
-  SQL.step statement
-  SQL.finalize statement
-
-
-earlyRun' :: SQL.Database -> String -> [SQL.SQLData] -> IO ()
-earlyRun' database query bindings = do
-  statement <- SQL.prepare database query
-  SQL.bind statement bindings
-  SQL.step statement
-  SQL.finalize statement
-
-
-earlyEval :: SQL.Database -> String -> IO SQL.SQLData
-earlyEval database query = do
-  statement <- SQL.prepare database query
-  SQL.step statement
-  result <- SQL.column statement 0
-  SQL.finalize statement
-  return result
-
-
-query :: String -> [SQL.SQLData] -> FruitTart [[SQL.SQLData]]
-query text bindings = do
-  FruitTartState { database = database } <- get
-  statement <- liftIO $ SQL.prepare database text
-  liftIO $ SQL.bind statement bindings
+earlyQuery :: Database -> String -> [SQLData] -> IO ()
+earlyQuery database query bindings = do
+  statement <- prepare database query
+  bind statement bindings
   result <- query' statement
-  liftIO $ SQL.finalize statement
+  finalize statement
   return result
   where query' statement = do
-          stepResult <- liftIO $ SQL.step statement
+          stepResult <- step statement
           case stepResult of
-            SQL.Row -> do
-                   row <- liftIO $ SQL.columns statement
+            Row -> do
+              row <- columns statement
+              remainder <- query' statement
+              return $ [row] ++ remainder
+            Done -> return []
+
+
+query :: String -> [SQLData] -> FruitTart [[SQLData]]
+query text bindings = do
+  FruitTartState { database = database } <- get
+  statement <- liftIO $ prepare database text
+  liftIO $ bind statement bindings
+  result <- query' statement
+  liftIO $ finalize statement
+  return result
+  where query' statement = do
+          stepResult <- liftIO $ step statement
+          case stepResult of
+            Row -> do
+                   row <- liftIO $ columns statement
                    remainder <- query' statement
                    return $ [row] ++ remainder
-            SQL.Done -> return []
+            Done -> return []
 
 
 getTimestamp :: MonadIO m => m Int64
