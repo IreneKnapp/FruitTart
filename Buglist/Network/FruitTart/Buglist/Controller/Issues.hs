@@ -6,12 +6,7 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.FastCGI hiding (output, logCGI)
 
-import Buglist
-import Network.FruitTart.Controller.Captcha hiding (actionTable)
-import Network.FruitTart.Controller.Login hiding (actionTable)
-import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
 
 

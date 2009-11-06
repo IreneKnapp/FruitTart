@@ -10,10 +10,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
 import Data.List
-import Network.FastCGI hiding (output)
 
-import Buglist
-import Network.FruitTart.Dispatcher
 import Network.FruitTart.Util
 
 

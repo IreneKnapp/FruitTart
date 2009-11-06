@@ -6,8 +6,6 @@ import Data.Dynamic
 import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Network.FastCGI hiding (logCGI)
-import Network.CGI.Monad
 import System.Environment
 import System.Exit
 
@@ -31,9 +29,9 @@ fruitTartPlugin = Interface {
 dispatchTable :: ControllerTable
 dispatchTable
     = Map.fromList
-      [("issues", Network.FruitTart.Controller.Issues.actionTable),
-       ("users", Network.FruitTart.Controller.Users.actionTable),
-       ("synchronization", Network.FruitTart.Controller.Synchronization.actionTable)]
+      [("issues", Controller.Issues.actionTable),
+       ("users", Controller.Users.actionTable),
+       ("synchronization", Controller.Synchronization.actionTable)]
 
 
 fruitTartSchemaVersion :: Int64
