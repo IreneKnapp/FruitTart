@@ -1,4 +1,5 @@
 module Network.FruitTart.View.Misc (
+                                    functionTable,
                                     getPageHeadItems,
                                     defaultFullName,
                                     defaultEmail,
@@ -6,7 +7,16 @@ module Network.FruitTart.View.Misc (
                                    )
     where
 
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getPageHeadItems", toDyn getPageHeadItems),
+                         ("defaultFullName", toDyn defaultFullName),
+                         ("defaultEmail", toDyn defaultEmail),
+                         ("privacyNote", toDyn privacyNote)]
 
 
 getPageHeadItems :: FruitTart String

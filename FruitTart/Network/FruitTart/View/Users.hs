@@ -1,9 +1,18 @@
-module Network.FruitTart.Controller.Users (getOrCreateUserID,
-                                           getCanActAsUser)
+module Network.FruitTart.View.Users (functionTable,
+                                     getOrCreateUserID,
+                                     getCanActAsUser)
     where
 
 
+import Network.FruitTart.Controller.Login hiding (functionTable)
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getOrCreateUserID", toDyn getOrCreateUserID),
+                         ("getCanActAsUser", toDyn getCanActAsUser)]
 
 
 getOrCreateUserID :: String -> String -> FruitTart Int64
@@ -38,7 +47,7 @@ getOrCreateUserID fullName email = do
 
 getCanActAsUser :: Int64 -> FruitTart Bool
 getCanActAsUser userID = do
-  effectiveUserID <- getEffectiveUser
+  effectiveUserID <- getEffectiveUserID
   if effectiveUserID == userID
      then return True
      else do

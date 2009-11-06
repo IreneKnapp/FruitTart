@@ -1,13 +1,21 @@
-module Network.FruitTart.View.Login (getLoginButton) where
+module Network.FruitTart.View.Login (functionTable,
+                                     getLoginButton)
+    where
 
 import Network.FruitTart.Base
-import {-# SOURCE #-} Network.FruitTart.Controller.Login
+import {-# SOURCE #-} Network.FruitTart.Controller.Login hiding (functionTable)
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getLoginButton", toDyn getLoginButton)]
 
 
 getLoginButton :: String -> FruitTart String
 getLoginButton currentPage = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
       sessionID <- getSessionID

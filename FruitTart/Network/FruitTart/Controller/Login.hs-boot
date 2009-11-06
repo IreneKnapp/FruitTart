@@ -1,15 +1,18 @@
 module Network.FruitTart.Controller.Login (actionTable,
-                                           getLoggedInUser,
-                                           getEffectiveUser,
+       					   functionTable,
+                                           getLoggedInUserID,
+                                           getEffectiveUserID,
                                            outputMustLoginPage)
     where
 
 import Data.Int
 
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
-getLoggedInUser :: FruitTart (Maybe Int64)
-getEffectiveUser :: FruitTart Int64
+functionTable :: FunctionTable
+getLoggedInUserID :: FruitTart (Maybe Int64)
+getEffectiveUserID :: FruitTart Int64
 outputMustLoginPage :: String -> FruitTart CGIResult

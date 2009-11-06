@@ -1,6 +1,7 @@
 module Network.FruitTart.Controller.Login (actionTable,
-                                           getLoggedInUser,
-                                           getEffectiveUser,
+                                           functionTable,
+                                           getLoggedInUserID,
+                                           getEffectiveUserID,
                                            outputMustLoginPage)
     where
 
@@ -9,47 +10,36 @@ import Control.Monad.State
 import Data.ByteString hiding (map)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
-import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
 import Data.List
 
-import Network.FruitTart.Controller.PopupMessage
 import Network.FruitTart.Base
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-import Network.FruitTart.View.Login
-import Network.FruitTart.View.Misc
-import Network.FruitTart.View.Navigation
+import Network.FruitTart.View.Login hiding (functionTable)
+import Network.FruitTart.View.Misc hiding (functionTable)
+import Network.FruitTart.View.Navigation hiding (functionTable)
+import Network.FruitTart.View.PopupMessage hiding (functionTable)
 
 
 actionTable :: ActionTable
 actionTable
-    = Map.fromList [("login",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn loginGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn loginPOST))]),
-                      ("logout",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn logout))]),
-                      ("account",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn accountGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn accountPOST))]),
-                      ("password",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn passwordGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn passwordPOST))])]
+    = makeActionTable [("login", "GET", [], [], toDyn loginGET),
+                       ("login", "POST", [], [], toDyn loginPOST),
+                       ("logout", "GET", [], [], toDyn logout),
+                       ("account", "GET", [], [], toDyn accountGET),
+                       ("account", "POST", [], [], toDyn accountPOST),
+                       ("password", "GET", [], [], toDyn passwordGET),
+                       ("password", "POST", [], [], toDyn passwordPOST)]
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getLoggedInUserID", toDyn getLoggedInUserID),
+                         ("getEffectiveUserID", toDyn getEffectiveUserID),
+                         ("outputMustLoginPage", toDyn outputMustLoginPage)]
 
 
 outputMustLoginPage :: String -> FruitTart CGIResult
@@ -68,7 +58,7 @@ outputMustLoginPage currentPage = do
 
 loginGET :: FruitTart CGIResult
 loginGET = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
              sessionID <- getSessionID
@@ -165,7 +155,7 @@ accountGET = do
 
 accountPOST :: FruitTart CGIResult
 accountPOST = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
       defaultPage <- getDefaultPage
@@ -189,7 +179,7 @@ accountPOST = do
 
 outputAccountPage :: FruitTart CGIResult
 outputAccountPage = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
       defaultPage <- getDefaultPage
@@ -268,7 +258,7 @@ passwordGET = do
 
 passwordPOST :: FruitTart CGIResult
 passwordPOST = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> seeOtherRedirect "/login/account/"
     Just userID -> do
@@ -312,8 +302,8 @@ getReferrer = do
                   Nothing -> getDefaultPage
 
 
-getLoggedInUser :: FruitTart (Maybe Int64)
-getLoggedInUser = do
+getLoggedInUserID :: FruitTart (Maybe Int64)
+getLoggedInUserID = do
   sessionID <- getSessionID
   [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
                            [SQLInteger sessionID]
@@ -322,9 +312,9 @@ getLoggedInUser = do
              SQLInteger userID -> Just userID
 
 
-getEffectiveUser :: FruitTart Int64
-getEffectiveUser = do
-  maybeUserID <- getLoggedInUser
+getEffectiveUserID :: FruitTart Int64
+getEffectiveUserID = do
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Just userID -> return userID
     Nothing -> do

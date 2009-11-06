@@ -4,8 +4,6 @@ import Control.Concurrent
 import Control.Monad.State
 import Data.Dynamic
 import Data.Int
-import Data.Map (Map)
-import qualified Data.Map as Map
 import System.Environment
 import System.Exit
 
@@ -16,22 +14,35 @@ import qualified Network.FruitTart.Buglist.Controller.Users
 import qualified Network.FruitTart.Buglist.Controller.Synchronization
     as Controller.Synchronization
 import Network.FruitTart.PluginInterface
-import qualified Database.SQLite3 as SQL
+import Network.FruitTart.Util
 
 
 fruitTartPlugin :: Interface
 fruitTartPlugin = Interface {
+                    interfaceVersion = 1,
                     dispatchTable = dispatchTable,
+                    functionTable = functionTable,
+                    moduleName = moduleName,
+                    moduleVersion = moduleSchemaVersion,
+                    prerequisites = [("FruitTart", 1)],
                     initDatabase = initDatabase
                   }
 
 
 dispatchTable :: ControllerTable
 dispatchTable
-    = Map.fromList
+    = combineActionTables
       [("issues", Controller.Issues.actionTable),
        ("users", Controller.Users.actionTable),
        ("synchronization", Controller.Synchronization.actionTable)]
+
+
+functionTable :: FunctionTable
+functionTable
+    = combineModuleFunctionTables
+      [Controller.Issues.functionTable,
+       Controller.Users.functionTable,
+       Controller.Synchronization.functionTable]
 
 
 fruitTartSchemaVersion :: Int64

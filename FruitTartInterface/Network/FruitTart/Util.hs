@@ -47,10 +47,7 @@ module Network.FruitTart.Util (
                                
                                -- Types
                                FruitTartState(..),
-                               FruitTart,
-                               ActionTable,
-                               ControllerTable,
-                               ParameterType(..)
+                               FruitTart
                               )
     where
 

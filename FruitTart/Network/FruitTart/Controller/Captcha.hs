@@ -1,12 +1,11 @@
 module Network.FruitTart.Controller.Captcha
-    (actionTable, generateCaptcha, checkCaptcha) where
+    (actionTable, functionTable, generateCaptcha, checkCaptcha) where
 
 import Control.Concurrent
 import Control.Monad.State
 import Data.ByteString hiding (map, concat, index)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
-import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
@@ -15,15 +14,19 @@ import Data.List
 import Graphics.Captcha
 
 import Network.FruitTart.Base
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
 actionTable
-    = Map.fromList [("index",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn index))])]
+    = makeActionTable [("index", "GET", [IDParameter], [], toDyn index)]
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("generateCaptcha", toDyn generateCaptcha),
+                         ("checkCaptcha", toDyn checkCaptcha)]
 
 
 index :: Int64 -> FruitTart CGIResult

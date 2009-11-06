@@ -11,41 +11,73 @@ import Network.CGI.Monad
 import System.Environment
 import System.Exit
 
-import qualified Network.FruitTart.Controller.Captcha
-import qualified Network.FruitTart.Controller.Login
-import qualified Network.FruitTart.Dispatcher as Dispatcher
 import Database.SQLite3
+import Network.FruitTart.PluginInterface as PluginInterface
 import Network.FruitTart.Util
+import qualified Network.FruitTart.Controller.Captcha as Controller.Captcha
+import qualified Network.FruitTart.Controller.Login as Controller.Login
+import qualified Network.FruitTart.Dispatcher as Dispatcher
+import qualified Network.FruitTart.View.Login as View.Login
+import qualified Network.FruitTart.View.Misc as View.Misc
+import qualified Network.FruitTart.View.Navigation as View.Navigation
+import qualified Network.FruitTart.View.PopupMessage as View.PopupMessage
+import qualified Network.FruitTart.View.Users as View.Users
 
 
 main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
-  requireModuleVersion database "FruitTart" schemaVersion
+  interfacesMVar <- newMVar $ Map.fromList [("FruitTart", interface)]
+  maybeInitDatabase database "FruitTart" schemaVersion Main.initDatabase
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
+             interfacesMVar = interfacesMVar,
              sessionID = Nothing,
              captchaCacheMVar = captchaCacheMVar
            }
-  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest dispatchTable) state
+  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest Main.dispatchTable) state
   return ()
+
+
+interface :: Interface
+interface = Interface {
+              interfaceVersion = 1,
+              interfaceDispatchTable = dispatchTable,
+              interfaceFunctionTable = functionTable,
+              interfaceModuleName = "FruitTart",
+              interfaceModuleVersion = 1,
+              interfacePrerequisites = [],
+              interfaceInitDatabase = initDatabase
+            }
 
 
 dispatchTable :: ControllerTable
 dispatchTable
-    = Map.fromList
-      [("login", Network.FruitTart.Controller.Login.actionTable),
-       ("captcha", Network.FruitTart.Controller.Captcha.actionTable)]
+    = combineActionTables
+      [("captcha", Controller.Captcha.actionTable),
+       ("login", Controller.Login.actionTable)]
+
+
+functionTable :: CombinedFunctionTable
+functionTable
+    = combineFunctionTables
+      [("Controller.Captcha", Controller.Captcha.functionTable),
+       ("Controller.Login", Controller.Login.functionTable),
+       ("View.Login", View.Login.functionTable),
+       ("View.Misc", View.Misc.functionTable),
+       ("View.Navigation", View.Navigation.functionTable),
+       ("View.PopupMessage", View.PopupMessage.functionTable),
+       ("View.Users", View.Users.functionTable)]
 
 
 schemaVersion :: Int64
 schemaVersion = 1
 
 
-requireModuleVersion :: Database -> String -> Int64 -> IO ()
-requireModuleVersion database name requiredVersion = do
+maybeInitDatabase :: Database -> String -> Int64 -> (Database -> IO ()) -> IO ()
+maybeInitDatabase database name requiredVersion initDatabase = do
   [[SQLInteger count]]
       <- earlyQuery database
                     "SELECT count(*) FROM schema_versions WHERE module = ?"
