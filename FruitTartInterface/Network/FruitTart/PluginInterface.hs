@@ -13,15 +13,19 @@ module Network.FruitTart.PluginInterface
      makeActionTable,
      makeFunctionTable,
      combineActionTables,
-     combineFunctionTables
+     combineFunctionTables,
+     importFunction
     )
     where
 
+import Control.Concurrent.MVar
 import Data.Dynamic
 import Data.Int
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
+import System.IO.Unsafe
 
 import Database.SQLite3
 
@@ -47,9 +51,10 @@ data Interface = Interface {
       interfaceDispatchTable :: ControllerTable,
       interfaceFunctionTable :: CombinedFunctionTable,
       interfaceModuleName :: String,
-      interfaceModuleVersion :: Integer,
+      interfaceModuleVersion :: Int64,
       interfacePrerequisites :: [(String, Integer)],
-      interfaceInitDatabase :: Database -> IO ()
+      interfaceInitDatabase :: Database -> IO (),
+      interfaceImportFunctionTableMVar :: MVar CombinedFunctionTable
     }
 
 
@@ -85,3 +90,13 @@ combineFunctionTables functionTables
                      -> ((moduleName, functionName), function))
                     $ Map.toList table)
             functionTables
+
+
+importFunction :: (Typeable a) => (MVar CombinedFunctionTable) -> String -> String -> a
+importFunction functionTableMVar moduleName functionName
+    = unsafePerformIO $ do
+        functionTable <- readMVar functionTableMVar
+        return $ fromJust
+               $ fromDynamic
+               $ fromJust
+               $ Map.lookup (moduleName, functionName) functionTable

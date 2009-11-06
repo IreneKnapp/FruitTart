@@ -9,8 +9,8 @@ import Network.FruitTart.Util
 
 functionTable :: FunctionTable
 functionTable
-    = makeFunctionTable [("setPopupMessage", toDyn setPopupMessage),
-                         ("getPopupMessage", toDyn getPopupMessage)]
+    = makeFunctionTable [("getPopupMessage", toDyn getPopupMessage),
+                         ("setPopupMessage", toDyn setPopupMessage)]
 
 
 setPopupMessage :: Maybe String -> FruitTart ()

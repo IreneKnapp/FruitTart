@@ -1,4 +1,13 @@
-module Network.FruitTart.Buglist.Controller.Issues (actionTable) where
+module Network.FruitTart.Buglist.Controller.Issues (
+                                                    actionTable,
+                                                    functionTable,
+                                                    getStatusPopup,
+                                                    getResolutionPopup,
+                                                    getModulePopup,
+                                                    getSeverityPopup,
+                                                    getPriorityPopup
+                                                   )
+    where
 
 import Data.Dynamic
 import Data.Int
@@ -7,35 +16,34 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 
+import Network.FruitTart.Base
+import Network.FruitTart.Buglist.Controller.Users hiding (actionTable, functionTable)
+import Network.FruitTart.Buglist.Imports
+import Network.FruitTart.Buglist.View.Navigation hiding (functionTable)
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
 actionTable
-    = Map.fromList [("index",
-                       Map.fromList [("GET", ([],
-                                              [("which", StringParameter),
-                                               ("module", EitherStringIDParameter)],
-                                              toDyn index))]),
-                      ("view",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn view))]),
-                      ("create",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn createGET)),
-                                     ("POST", ([],
-                                               [],
-                                               toDyn createPOST))]),
-                      ("comment",
-                       Map.fromList [("POST", ([IDParameter],
-                                               [],
-                                               toDyn comment))]),
-                      ("edit",
-                       Map.fromList [("POST", ([IDParameter],
-                                               [],
-                                               toDyn edit))])]
+    = makeActionTable [("index", "GET", [],
+                        [("which", StringParameter),
+                         ("module", EitherStringIDParameter)],
+                        toDyn index),
+                       ("view", "GET", [IDParameter], [], toDyn view),
+                       ("create", "GET", [], [], toDyn createGET),
+                       ("create", "POST", [], [], toDyn createPOST),
+                       ("comment", "POST", [IDParameter], [], toDyn comment),
+                       ("edit", "POST", [IDParameter], [], toDyn edit)]
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getStatusPopup", toDyn getStatusPopup),
+                         ("getResolutionPopup", toDyn getResolutionPopup),
+                         ("getModulePopup", toDyn getModulePopup),
+                         ("getSeverityPopup", toDyn getSeverityPopup),
+                         ("getPriorityPopup", toDyn getPriorityPopup)]
 
 
 index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult
@@ -673,7 +681,7 @@ createPOST = do
                                         (Just
                                          "Please enter the letters in the image below.")
                   else do
-                      reporterID <- getUser fullName email
+                      reporterID <- getOrCreateUserID fullName email
                       canActAsReporter <- getCanActAsUser reporterID
                       case canActAsReporter of
                         False -> doNotCreateIssue moduleID summary comment fullName email
@@ -731,7 +739,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
 
 actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart CGIResult
 actuallyCreateIssue moduleID summary comment reporterID = do
-  assigneeID <- getUser "Nobody" "nobody"
+  assigneeID <- getOrCreateUserID "Nobody" "nobody"
   timestamp <- getTimestamp
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
     SQLInteger defaultSeverityID, SQLInteger defaultPriorityID]]
@@ -782,7 +790,7 @@ comment issueID = do
               then doNotCreateComment issueID comment fullName email
                                       "Please enter the letters in the image below."
               else do
-                commenterID <- getUser fullName email
+                commenterID <- getOrCreateUserID fullName email
                 canActAsCommenter <- getCanActAsUser commenterID
                 case canActAsCommenter of
                   False -> doNotCreateComment issueID comment fullName email
@@ -846,7 +854,7 @@ edit issueID = do
                                Just newSummary -> newSummary
                                Nothing -> ""
       query "BEGIN TRANSACTION" []
-      newAssigneeID <- getUser "" newAssigneeEmail
+      newAssigneeID <- getOrCreateUserID "" newAssigneeEmail
       [[SQLInteger oldStatusID,
         SQLInteger oldResolutionID,
         SQLInteger oldModuleID,
@@ -913,7 +921,7 @@ edit issueID = do
 
 getUserSelectionFormControls :: String -> String -> FruitTart String
 getUserSelectionFormControls providedFullName providedEmail = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   (maybeFullName, maybeEmail) <- case maybeUserID of
      Nothing -> return (Nothing, Nothing)
      Just userID -> do
@@ -937,7 +945,7 @@ getUserSelectionFormControls providedFullName providedEmail = do
 
 getFullNameAndEmail :: FruitTart (String, String)
 getFullNameAndEmail = do
-  maybeUserID <- getLoggedInUser
+  maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
       maybeFullName <- getInput "full-name"
@@ -971,3 +979,88 @@ defaultComment
    ++ "\n"
    ++ "\n"
    ++ "ACTUAL RESULT\n"
+
+
+getStatusPopup :: Maybe Int64 -> FruitTart String
+getStatusPopup maybeStatusID = do
+  statuses <- query "SELECT id, name FROM statuses ORDER BY id" []
+  return $ "<select name=\"status\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeStatusID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          statuses)
+         ++ "</select>\n"
+
+
+getResolutionPopup :: Maybe Int64 -> FruitTart String
+getResolutionPopup maybeResolutionID = do
+  resolutions <- query "SELECT id, name FROM resolutions ORDER BY id" []
+  return $ "<select name=\"resolution\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeResolutionID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          resolutions)
+         ++ "</select>\n"
+
+
+getModulePopup :: Maybe Int64 -> FruitTart String
+getModulePopup maybeModuleID = do
+  modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  return $ "<select name=\"module\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeModuleID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          modules)
+         ++ "</select>\n"
+
+
+getSeverityPopup :: Maybe Int64 -> FruitTart String
+getSeverityPopup maybeSeverityID = do
+  severities <- query "SELECT id, name FROM severities ORDER BY id" []
+  return $ "<select name=\"severity\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybeSeverityID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          severities)
+         ++ "</select>\n"
+
+
+getPriorityPopup :: Maybe Int64 -> FruitTart String
+getPriorityPopup maybePriorityID = do
+  priorities <- query "SELECT id, name FROM priorities ORDER BY id" []
+  return $ "<select name=\"priority\">"
+         ++ (concat $ map (\[SQLInteger id, SQLText name]
+                            -> "<option "
+                               ++ (if Just id == maybePriorityID
+                                      then "selected "
+                                      else "")
+                               ++ "value=\""
+                               ++ (show id)
+                               ++ "\">" ++ (escapeHTML name)
+                               ++ "</option>")
+                          priorities)
+         ++ "</select>\n"

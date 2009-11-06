@@ -1,7 +1,6 @@
 module Network.FruitTart.Buglist.Controller.Users (
                                                    actionTable,
-                                                   getOrCreateUserID,
-                                                   getCanActAsUser,
+                                                   functionTable,
                                                    getRightSynchronize,
                                                    getRightAdminUsers,
                                                    getRightSeeEmails,
@@ -18,19 +17,27 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 
+import Network.FruitTart.Base
+import Network.FruitTart.Buglist.Imports
+import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
 actionTable
-    = Map.fromList [("index",
-                       Map.fromList [("GET", ([],
-                                              [],
-                                              toDyn index))]),
-                      ("view",
-                       Map.fromList [("GET", ([IDParameter],
-                                              [],
-                                              toDyn view))])]
+    = makeActionTable [("index", "GET", [], [], toDyn index),
+                       ("view", "GET", [IDParameter], [], toDyn view)]
+
+
+functionTable :: FunctionTable
+functionTable
+    = makeFunctionTable [("getRightSynchronize", toDyn getRightSynchronize),
+                         ("getRightAdminUsers", toDyn getRightAdminUsers),
+                         ("getRightSeeEmails", toDyn getRightSeeEmails),
+                         ("getRightReportIssues", toDyn getRightReportIssues),
+                         ("getRightModifyIssues", toDyn getRightModifyIssues),
+                         ("getRightUploadFiles", toDyn getRightUploadFiles),
+                         ("getRightCommentIssues", toDyn getRightCommentIssues)]
 
 
 index :: FruitTart CGIResult
@@ -158,7 +165,7 @@ view id = do
 
 getRightSynchronize :: FruitTart Bool
 getRightSynchronize = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_synchronize FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -168,7 +175,7 @@ getRightSynchronize = do
 
 getRightAdminUsers :: FruitTart Bool
 getRightAdminUsers = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_admin_users FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -178,7 +185,7 @@ getRightAdminUsers = do
 
 getRightSeeEmails :: FruitTart Bool
 getRightSeeEmails = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_see_emails FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -188,7 +195,7 @@ getRightSeeEmails = do
 
 getRightReportIssues :: FruitTart Bool
 getRightReportIssues = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_report_issues FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -198,7 +205,7 @@ getRightReportIssues = do
 
 getRightModifyIssues :: FruitTart Bool
 getRightModifyIssues = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_modify_issues FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -208,7 +215,7 @@ getRightModifyIssues = do
 
 getRightUploadFiles :: FruitTart Bool
 getRightUploadFiles = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_upload_files FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of
@@ -218,7 +225,7 @@ getRightUploadFiles = do
 
 getRightCommentIssues :: FruitTart Bool
 getRightCommentIssues = do
-  userID <- getEffectiveUser
+  userID <- getEffectiveUserID
   [[SQLInteger right]] <- query "SELECT right_comment_issues FROM users WHERE id = ?"
                                 [SQLInteger userID]
   return $ case right of

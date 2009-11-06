@@ -10,6 +10,7 @@ import Network.FastCGI (runFastCGIorCGI)
 import Network.CGI.Monad
 import System.Environment
 import System.Exit
+import System.IO.Unsafe
 
 import Database.SQLite3
 import Network.FruitTart.PluginInterface as PluginInterface
@@ -28,7 +29,7 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
-  interfacesMVar <- newMVar $ Map.fromList [("FruitTart", interface)]
+  interfacesMVar <- newMVar $ Map.fromList [("FruitTart", baseInterface)]
   maybeInitDatabase database "FruitTart" schemaVersion Main.initDatabase
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
@@ -41,16 +42,21 @@ main = do
   return ()
 
 
-interface :: Interface
-interface = Interface {
-              interfaceVersion = 1,
-              interfaceDispatchTable = dispatchTable,
-              interfaceFunctionTable = functionTable,
-              interfaceModuleName = "FruitTart",
-              interfaceModuleVersion = 1,
-              interfacePrerequisites = [],
-              interfaceInitDatabase = initDatabase
-            }
+importFunctionTableMVar :: MVar CombinedFunctionTable
+importFunctionTableMVar = unsafePerformIO newEmptyMVar
+
+
+baseInterface :: Interface
+baseInterface = Interface {
+                  interfaceVersion = 1,
+                  interfaceDispatchTable = dispatchTable,
+                  interfaceFunctionTable = functionTable,
+                  interfaceModuleName = "FruitTart",
+                  interfaceModuleVersion = schemaVersion,
+                  interfacePrerequisites = [],
+                  interfaceInitDatabase = initDatabase,
+                  interfaceImportFunctionTableMVar = importFunctionTableMVar
+                }
 
 
 dispatchTable :: ControllerTable

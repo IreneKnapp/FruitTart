@@ -6,13 +6,17 @@ import Data.Dynamic
 import Data.Int
 import System.Environment
 import System.Exit
+import Database.SQLite3
 
+import Network.FruitTart.Buglist.Imports
 import qualified Network.FruitTart.Buglist.Controller.Issues
     as Controller.Issues
 import qualified Network.FruitTart.Buglist.Controller.Users
     as Controller.Users
 import qualified Network.FruitTart.Buglist.Controller.Synchronization
     as Controller.Synchronization
+import qualified Network.FruitTart.Buglist.View.Navigation
+    as View.Navigation
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
@@ -20,12 +24,13 @@ import Network.FruitTart.Util
 fruitTartPlugin :: Interface
 fruitTartPlugin = Interface {
                     interfaceVersion = 1,
-                    dispatchTable = dispatchTable,
-                    functionTable = functionTable,
-                    moduleName = moduleName,
-                    moduleVersion = moduleSchemaVersion,
-                    prerequisites = [("FruitTart", 1)],
-                    initDatabase = initDatabase
+                    interfaceDispatchTable = dispatchTable,
+                    interfaceFunctionTable = functionTable,
+                    interfaceModuleName = moduleName,
+                    interfaceModuleVersion = moduleSchemaVersion,
+                    interfacePrerequisites = [("FruitTart", 1)],
+                    interfaceInitDatabase = initDatabase,
+                    interfaceImportFunctionTableMVar = importFunctionTableMVar
                   }
 
 
@@ -37,12 +42,13 @@ dispatchTable
        ("synchronization", Controller.Synchronization.actionTable)]
 
 
-functionTable :: FunctionTable
+functionTable :: CombinedFunctionTable
 functionTable
-    = combineModuleFunctionTables
-      [Controller.Issues.functionTable,
-       Controller.Users.functionTable,
-       Controller.Synchronization.functionTable]
+    = combineFunctionTables
+      [("Buglist.Controller.Issues", Controller.Issues.functionTable),
+       ("Buglist.Controller.Users", Controller.Users.functionTable),
+       ("Buglist.Controller.Synchronization", Controller.Synchronization.functionTable),
+       ("Buglist.View.Navigation", View.Navigation.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -57,33 +63,11 @@ moduleSchemaVersion :: Int64
 moduleSchemaVersion = 1
 
 
-initDatabase :: SQL.Database -> IO ()
+initDatabase :: Database -> IO ()
 initDatabase database = do
-  [[SQLInteger schemaVersionCount]]
-      <- earlyQuery database
-                    "SELECT count(*) FROM schema_versions WHERE module = 'Buglist'"
-                    []
-  if schemaVersionCount == SQLInteger 0
-     then do
-       earlyRun' database
-            "INSERT INTO schema_versions (module, version) VALUES ('Buglist', ?)"
-            [SQLInteger moduleSchemaVersion]
-       initDatabase' database
-     else do
-       SQLInteger databaseSchemaVersion
-           <- earlyEval database
-                        "SELECT version FROM schema_version WHERE module = 'Buglist'"
-       if databaseSchemaVersion /= schemaVersion
-          then do
-            logCGI $ "Schema mismatch: Program version " ++ (show schemaVersion)
-                     ++ ", database version " ++ (show databaseSchemaVersion)
-                     ++ "."
-            exitFailure
-          else return ()
-
-
-initDatabase' :: SQL.Database -> IO ()
-initDatabase' database = do
+  earlyQuery database
+             "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
+             [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
                  (  "CREATE TABLE buglist_sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
