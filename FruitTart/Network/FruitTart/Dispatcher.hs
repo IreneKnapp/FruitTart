@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
-import Network.FastCGI hiding (output, logCGI)
+import Network.FastCGI (catchCGI)
 import Prelude hiding (catch)
 import Random
 import System.Time

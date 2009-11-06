@@ -11,7 +11,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Int
 import Data.List
-import Network.FastCGI
 
 import Graphics.Captcha
 

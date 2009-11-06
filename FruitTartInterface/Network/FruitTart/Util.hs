@@ -4,7 +4,16 @@ module Network.FruitTart.Util (
                                
                                -- Network.FastCGI
                                CGIResult,
+                               Cookie(..),
+                               getCookie,
+                               getInput,
                                liftCGI,
+                               outputFPS,
+                               queryString,
+                               requestHeader,
+                               requestMethod,
+                               setCookie,
+                               setHeader,
                                
                                -- Data.SQLite3
                                SQLData(..),
