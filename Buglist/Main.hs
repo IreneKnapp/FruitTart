@@ -82,25 +82,93 @@ initDatabase' database = do
                  ++ ")")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER buglist_insert_sessions (\n"
+                 (  "CREATE TRIGGER buglist_insert_sessions\n"
                  ++ "AFTER INSERT ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "INSERT INTO buglist_sessions (id) VALUES (NEW.id);\n"
                  ++ "END;")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER buglist_update_sessions (\n"
+                 (  "CREATE TRIGGER buglist_update_sessions\n"
                  ++ "AFTER UPDATE OF id ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "UPDATE buglist_sessions SET id = NEW.id WHERE id = OLD.id;\n"
                  ++ "END;")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER buglist_delete_sessions (\n"
+                 (  "CREATE TRIGGER buglist_delete_sessions\n"
                  ++ "AFTER DELETE ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "DELETE FROM buglist_sessions WHERE id = OLD.id;\n"
                  ++ "END;")
+                 []
+  earlyQuery database
+                 (  "CREATE TABLE buglist_users (\n"
+                 ++ "id INTEGER PRIMARY KEY,\n"
+                 ++ "right_synchronize INTEGER,\n"
+                 ++ "right_admin_users INTEGER,\n"
+                 ++ "right_see_emails INTEGER,\n"
+                 ++ "right_report_issues INTEGER,\n"
+                 ++ "right_modify_issues INTEGER,\n"
+                 ++ "right_upload_files INTEGER,\n"
+                 ++ "right_comment_issues INTEGER\n"
+                 ++ ")")
+                 []
+  earlyQuery database
+                 (  "CREATE TRIGGER buglist_insert_users\n"
+                 ++ "AFTER INSERT ON users\n"
+                 ++ "FOR EACH ROW BEGIN\n"
+                 ++ "INSERT INTO buglist_users\n"
+                 ++ "(id, right_synchronize, right_admin_users, right_see_emails,\n"
+                 ++ "right_report_issues, right_modify_issues, right_upload_files,\n"
+                 ++ "right_comment_issues)\n"
+                 ++ "VALUES (NEW.id, 0, 0, 0, 1, 0, 0, 1);\n"
+                 ++ "END;")
+                 []
+  earlyQuery database
+                 (  "CREATE TRIGGER buglist_update_users\n"
+                 ++ "AFTER UPDATE OF id ON users\n"
+                 ++ "FOR EACH ROW BEGIN\n"
+                 ++ "UPDATE buglist_users SET id = NEW.id WHERE id = OLD.id;\n"
+                 ++ "END;")
+                 []
+  earlyQuery database
+                 (  "CREATE TRIGGER buglist_delete_users\n"
+                 ++ "AFTER DELETE ON users\n"
+                 ++ "FOR EACH ROW BEGIN\n"
+                 ++ "DELETE FROM buglist_users WHERE id = OLD.id;\n"
+                 ++ "END;")
+                 []
+  earlyQuery database
+                 (  "INSERT INTO buglist_users\n"
+                 ++ "(id, right_synchronize, right_admin_users, right_see_emails,\n"
+                 ++ "right_report_issues, right_modify_issues, right_upload_files,\n"
+                 ++ "right_comment_issues)\n"
+                 ++ "SELECT id, 0, 0, 0, 1, 0, 0, 1 FROM users")
+                 []
+  earlyQuery database
+                 (  "UPDATE buglist_users\n"
+                 ++ "SET right_synchronize = 1, right_admin_users = 1,\n"
+                 ++ "right_see_emails = 1, right_report_issues = 1,\n"
+                 ++ "right_modify_issues = 1, right_upload_files = 1,\n"
+                 ++ "right_comment_issues = 1\n"
+                 ++ "WHERE id = (SELECT owner_user FROM settings)")
+                 []
+  earlyQuery database
+                 (  "UPDATE buglist_users\n"
+                 ++ "SET right_synchronize = 0, right_admin_users = 0,\n"
+                 ++ "right_see_emails = 0, right_report_issues = 1,\n"
+                 ++ "right_modify_issues = 0, right_upload_files = 0,\n"
+                 ++ "right_comment_issues = 1\n"
+                 ++ "WHERE id = (SELECT anonymous_user FROM settings)")
+                 []
+  earlyQuery database
+                 (  "UPDATE buglist_users\n"
+                 ++ "SET right_synchronize = 0, right_admin_users = 0,\n"
+                 ++ "right_see_emails = 0, right_report_issues = 0,\n"
+                 ++ "right_modify_issues = 0, right_upload_files = 0,\n"
+                 ++ "right_comment_issues = 0\n"
+                 ++ "WHERE id = (SELECT nobody_user FROM settings)")
                  []
   earlyQuery database
                  (  "CREATE TABLE buglist_issues (\n"

@@ -1,4 +1,16 @@
-module Network.FruitTart.Buglist.Controller.Users (actionTable) where
+module Network.FruitTart.Buglist.Controller.Users (
+                                                   actionTable,
+                                                   getOrCreateUserID,
+                                                   getCanActAsUser,
+                                                   getRightSynchronize,
+                                                   getRightAdminUsers,
+                                                   getRightSeeEmails,
+                                                   getRightReportIssues,
+                                                   getRightModifyIssues,
+                                                   getRightUploadFiles,
+                                                   getRightCommentIssues
+                                                  )
+    where
 
 import Data.Dynamic
 import Data.Int
@@ -142,3 +154,73 @@ view id = do
          ++ "</table>\n"
          ++ "</body></html>"
     _ -> errorInvalidID "user"
+
+
+getRightSynchronize :: FruitTart Bool
+getRightSynchronize = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_synchronize FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightAdminUsers :: FruitTart Bool
+getRightAdminUsers = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_admin_users FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightSeeEmails :: FruitTart Bool
+getRightSeeEmails = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_see_emails FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightReportIssues :: FruitTart Bool
+getRightReportIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_report_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightModifyIssues :: FruitTart Bool
+getRightModifyIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_modify_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightUploadFiles :: FruitTart Bool
+getRightUploadFiles = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_upload_files FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
+
+
+getRightCommentIssues :: FruitTart Bool
+getRightCommentIssues = do
+  userID <- getEffectiveUser
+  [[SQLInteger right]] <- query "SELECT right_comment_issues FROM users WHERE id = ?"
+                                [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True

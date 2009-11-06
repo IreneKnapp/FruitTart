@@ -90,34 +90,27 @@ initDatabase database = do
                  []
   earlyQuery database
                  (  "CREATE TABLE settings (\n"
+                 ++ "owner_user INTEGER,"
                  ++ "anonymous_user INTEGER,"
+                 ++ "nobody_user INTEGER,"
                  ++ "default_page TEXT"
                  ++ ")")
                  []
   earlyQuery database
-                 (  "INSERT INTO settings (anonymous_user, default_page) "
-                 ++ "VALUES (NULL, '/login/account/')")
+                 (  "INSERT INTO settings "
+                 ++ "(owner_user, anonymous_user, nobody_user, default_page) "
+                 ++ "VALUES (NULL, NULL, NULL, '/login/account/')")
                  []
   earlyQuery database
                  (  "CREATE TABLE users (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "full_name TEXT,\n"
                  ++ "email TEXT,\n"
-                 ++ "password_hash BLOB,\n"
-                 ++ "right_synchronize INTEGER,\n"
-                 ++ "right_admin_users INTEGER,\n"
-                 ++ "right_see_emails INTEGER,\n"
-                 ++ "right_report_issues INTEGER,\n"
-                 ++ "right_modify_issues INTEGER,\n"
-                 ++ "right_upload_files INTEGER,\n"
-                 ++ "right_comment_issues INTEGER\n"
+                 ++ "password_hash BLOB\n"
                  ++ ")")
                  []
   earlyQuery database
-             (  "INSERT INTO users (id, full_name, email, password_hash, "
-             ++ "right_synchronize, right_admin_users, right_see_emails, "
-             ++ "right_report_issues, right_modify_issues, right_upload_files, "
-             ++ "right_comment_issues) "
+             (  "INSERT INTO users (id, full_name, email, password_hash) "
              ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
              ++ "1, 1, 1, 1, 1, 1, 1)")
              [SQLBlob $ hashPassword "This password must be changed."]
@@ -135,5 +128,8 @@ initDatabase database = do
             ++ "right_comment_issues) "
             ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
             []
-  earlyQuery database "UPDATE settings SET anonymous_user = 3" []
+  earlyQuery database
+            (  "UPDATE settings "
+            ++ "SET owner_users = 1, anonymous_user = 3, nobody_user = 2")
+            []
   return ()
