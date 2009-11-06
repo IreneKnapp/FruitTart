@@ -70,13 +70,13 @@ initDatabase database = do
                      ++ ", database version " ++ (show databaseSchemaVersion)
                      ++ "."
             exitFailure
-          else do initDatabase' database
+          else return ()
 
 
 initDatabase' :: SQL.Database -> IO ()
 initDatabase' database = do
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_sessions (\n"
+                 (  "CREATE TABLE buglist_sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "issue_index_filter_which TEXT,\n"
                  ++ "issue_index_filter_all_modules INTEGER,\n"
@@ -84,28 +84,28 @@ initDatabase' database = do
                  ++ ")")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER IF NOT EXISTS buglist_insert_sessions (\n"
+                 (  "CREATE TRIGGER buglist_insert_sessions (\n"
                  ++ "AFTER INSERT ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "INSERT INTO buglist_sessions (id) VALUES (NEW.id);\n"
                  ++ "END;")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER IF NOT EXISTS buglist_update_sessions (\n"
+                 (  "CREATE TRIGGER buglist_update_sessions (\n"
                  ++ "AFTER UPDATE OF id ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "UPDATE buglist_sessions SET id = NEW.id WHERE id = OLD.id;\n"
                  ++ "END;")
                  []
   earlyQuery database
-                 (  "CREATE TRIGGER IF NOT EXISTS buglist_delete_sessions (\n"
+                 (  "CREATE TRIGGER buglist_delete_sessions (\n"
                  ++ "AFTER DELETE ON sessions\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "DELETE FROM buglist_sessions WHERE id = OLD.id;\n"
                  ++ "END;")
                  []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_issues (\n"
+                 (  "CREATE TABLE buglist_issues (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "status INTEGER,\n"
                  ++ "resolution INTEGER,\n"
@@ -121,224 +121,190 @@ initDatabase' database = do
                  ++ ")")
                  []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_statuses (\n"
+                 (  "CREATE TABLE buglist_statuses (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")")
                  []
-  [[SQLInteger statusCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_statuses" []
-  if statusCount == 0
-     then do
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (1, 'NEW')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (2, 'REOPENED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (3, 'UNCONFIRMED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (4, 'CONFIRMED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (5, 'ASSIGNED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (6, 'RESOLVED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_statuses (id, name) VALUES (7, 'CLOSED')"
-                  []
-     else return ()
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_resolutions (\n"
+             "INSERT INTO buglist_statuses (id, name) VALUES (1, 'NEW')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (2, 'REOPENED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (3, 'UNCONFIRMED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (4, 'CONFIRMED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (5, 'ASSIGNED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (6, 'RESOLVED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_statuses (id, name) VALUES (7, 'CLOSED')"
+             []
+  earlyQuery database
+                 (  "CREATE TABLE buglist_resolutions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")")
                  []
-  [[SQLInteger resolutionCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_resolutions" []
-  if resolutionCount == 0
-     then do
-       earlyQuery database
-                  "INSERT INTO buglist_resolutions (id, name) VALUES (1, '---')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_resolutions (id, name) VALUES (2, 'FIXED')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_resolutions (id, name) VALUES (3, 'WONTFIX')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_resolutions (id, name) VALUES (4, 'WORKSFORME')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_resolutions (id, name) VALUES (5, 'DUPLICATE')"
-                  []
-     else return ()
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_modules (\n"
+             "INSERT INTO buglist_resolutions (id, name) VALUES (1, '---')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_resolutions (id, name) VALUES (2, 'FIXED')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_resolutions (id, name) VALUES (3, 'WONTFIX')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_resolutions (id, name) VALUES (4, 'WORKSFORME')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_resolutions (id, name) VALUES (5, 'DUPLICATE')"
+             []
+  earlyQuery database
+                 (  "CREATE TABLE buglist_modules (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")")
                  []
-  [[SQLInteger moduleCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_modules" []
-  if moduleCount == 0
-     then do
-       earlyQuery database
-                  "INSERT INTO buglist_modules (id, name) VALUES (1, 'Program')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_modules (id, name) VALUES (2, 'Documentation')"
-                  []
-     else return ()
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_severities (\n"
+             "INSERT INTO buglist_modules (id, name) VALUES (1, 'Program')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_modules (id, name) VALUES (2, 'Documentation')"
+             []
+  earlyQuery database
+                 (  "CREATE TABLE buglist_severities (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "name TEXT\n"
                  ++ ")")
                  []
-  [[SQLInteger severityCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_severities" []
-  if severityCount == 0
-     then do
-       earlyQuery database
-                  "INSERT INTO buglist_severities (id, name) VALUES (1, 'critical')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_severities (id, name) VALUES (2, 'major')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_severities (id, name) VALUES (3, 'normal')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_severities (id, name) VALUES (4, 'minor')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_severities (id, name) VALUES (5, 'enhancement')"
-                  []
-     else return ()
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_priorities (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
-                 ++ ")")
-                 []
-  [[SQLInteger priorityCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_priorities" []
-  if priorityCount == 0
-     then do
-       earlyQuery database
-                  "INSERT INTO buglist_priorities (id, name) VALUES (1, 'high')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_priorities (id, name) VALUES (2, 'normal')"
-                  []
-       earlyQuery database
-                  "INSERT INTO buglist_priorities (id, name) VALUES (3, 'low')"
-                  []
-     else return ()
+             "INSERT INTO buglist_severities (id, name) VALUES (1, 'critical')"
+             []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_issue_defaults (\n"
-                 ++ "status INTEGER,\n"
-                 ++ "resolution INTEGER,\n"
-                 ++ "severity INTEGER,\n"
-                 ++ "priority INTEGER\n"
-                 ++ ")")
-                 []
-  [[SQLInteger defaultsCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_issue_defaults" []
-  if defaultsCount == 0
-     then do
-       earlyQuery database
-                     (  "INSERT INTO buglist_issue_defaults "
-                     ++ "(status, resolution, severity, priority) "
-                     ++ "VALUES (1, 1, 3, 2)")
-                     []
-     else return ()
+             "INSERT INTO buglist_severities (id, name) VALUES (2, 'major')"
+             []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_user_issue_changes (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "status_changed INTEGER,\n"
-                 ++ "resolution_changed INTEGER,\n"
-                 ++ "module_changed INTEGER,\n"
-                 ++ "severity_changed INTEGER,\n"
-                 ++ "priority_changed INTEGER,\n"
-                 ++ "assignee_changed INTEGER,\n"
-                 ++ "summary_changed INTEGER,\n"
-                 ++ "old_status INTEGER,\n"
-                 ++ "old_resolution INTEGER,\n"
-                 ++ "old_module INTEGER,\n"
-                 ++ "old_severity INTEGER,\n"
-                 ++ "old_priority INTEGER,\n"
-                 ++ "old_assignee INTEGER,\n"
-                 ++ "old_summary TEXT,\n"
-                 ++ "new_status INTEGER,\n"
-                 ++ "new_resolution INTEGER,\n"
-                 ++ "new_module INTEGER,\n"
-                 ++ "new_severity INTEGER,\n"
-                 ++ "new_priority INTEGER,\n"
-                 ++ "new_assignee INTEGER,\n"
-                 ++ "new_summary TEXT,\n"
-                 ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
-                 ++ ")")
-                 []
+             "INSERT INTO buglist_severities (id, name) VALUES (3, 'normal')"
+             []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_user_issue_comments (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "text TEXT,\n"
-                 ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
-                 ++ ")")
-                 []
+             "INSERT INTO buglist_severities (id, name) VALUES (4, 'minor')"
+             []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_user_issue_attachments (\n"
-                 ++ "user INTEGER,\n"
-                 ++ "issue INTEGER,\n"
-                 ++ "timestamp INTEGER,\n"
-                 ++ "filename TEXT,\n"
-                 ++ "data BLOB,\n"
-                 ++ "CONSTRAINT key1 PRIMARY KEY (user, issue, timestamp),\n"
-                 ++ "CONSTRAINT key2 UNIQUE (issue, filename)\n"
-                 ++ ")")
-                 []
+             "INSERT INTO buglist_severities (id, name) VALUES (5, 'enhancement')"
+             []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS buglist_navigation_items (\n"
-                 ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT,\n"
-                 ++ "link TEXT,\n"
-                 ++ "within_buglist_tree INTEGER,\n"
-                 ++ "separator INTEGER,\n"
-                 ++ "always_enabled INTEGER,\n"
-                 ++ "class TEXT\n"
-                 ++ ")")
-                 []
-  [[SQLInteger navigationItemCount]]
-      <- earlyQuery database "SELECT count(*) FROM buglist_navigation_items" []
-  if navigationItemCount == 0
-     then do
-       earlyQuery database
-                  (  "INSERT INTO buglist_navigation_items "
-                  ++ "(id, name, link, within_buglist_tree, separator, "
-                  ++ "always_enabled, class) "
-                  ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
-                  []
-       earlyQuery database
-                  (  "INSERT INTO buglist_navigation_items "
-                  ++ "(id, name, link, within_buglist_tree, separator, "
-                  ++ "always_enabled, class) "
-                  ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
-                  []
-       earlyQuery database
-                  (  "INSERT INTO buglist_navigation_items "
-                  ++ "(id, name, link, within_buglist_tree, separator, "
-                  ++ "always_enabled, class) "
-                  ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
-                  []
-     else return ()
+             (  "CREATE TABLE buglist_priorities (\n"
+             ++ "id INTEGER PRIMARY KEY,\n"
+             ++ "name TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             "INSERT INTO buglist_priorities (id, name) VALUES (1, 'high')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_priorities (id, name) VALUES (2, 'normal')"
+             []
+  earlyQuery database
+             "INSERT INTO buglist_priorities (id, name) VALUES (3, 'low')"
+             []
+  earlyQuery database
+             (  "CREATE TABLE buglist_issue_defaults (\n"
+             ++ "status INTEGER,\n"
+             ++ "resolution INTEGER,\n"
+             ++ "severity INTEGER,\n"
+             ++ "priority INTEGER\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO buglist_issue_defaults "
+             ++ "(status, resolution, severity, priority) "
+             ++ "VALUES (1, 1, 3, 2)")
+             []
+  earlyQuery database
+             (  "CREATE TABLE buglist_user_issue_changes (\n"
+             ++ "user INTEGER,\n"
+             ++ "issue INTEGER,\n"
+             ++ "timestamp INTEGER,\n"
+             ++ "status_changed INTEGER,\n"
+             ++ "resolution_changed INTEGER,\n"
+             ++ "module_changed INTEGER,\n"
+             ++ "severity_changed INTEGER,\n"
+             ++ "priority_changed INTEGER,\n"
+             ++ "assignee_changed INTEGER,\n"
+             ++ "summary_changed INTEGER,\n"
+             ++ "old_status INTEGER,\n"
+             ++ "old_resolution INTEGER,\n"
+             ++ "old_module INTEGER,\n"
+             ++ "old_severity INTEGER,\n"
+             ++ "old_priority INTEGER,\n"
+             ++ "old_assignee INTEGER,\n"
+             ++ "old_summary TEXT,\n"
+             ++ "new_status INTEGER,\n"
+             ++ "new_resolution INTEGER,\n"
+             ++ "new_module INTEGER,\n"
+             ++ "new_severity INTEGER,\n"
+             ++ "new_priority INTEGER,\n"
+             ++ "new_assignee INTEGER,\n"
+             ++ "new_summary TEXT,\n"
+             ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE buglist_user_issue_comments (\n"
+             ++ "user INTEGER,\n"
+             ++ "issue INTEGER,\n"
+             ++ "timestamp INTEGER,\n"
+             ++ "text TEXT,\n"
+             ++ "CONSTRAINT key PRIMARY KEY (user, issue, timestamp)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE buglist_user_issue_attachments (\n"
+             ++ "user INTEGER,\n"
+             ++ "issue INTEGER,\n"
+             ++ "timestamp INTEGER,\n"
+             ++ "filename TEXT,\n"
+             ++ "data BLOB,\n"
+             ++ "CONSTRAINT key1 PRIMARY KEY (user, issue, timestamp),\n"
+             ++ "CONSTRAINT key2 UNIQUE (issue, filename)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE buglist_navigation_items (\n"
+             ++ "id INTEGER PRIMARY KEY,\n"
+             ++ "name TEXT,\n"
+             ++ "link TEXT,\n"
+             ++ "within_buglist_tree INTEGER,\n"
+             ++ "separator INTEGER,\n"
+             ++ "always_enabled INTEGER,\n"
+             ++ "class TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO buglist_navigation_items "
+             ++ "(id, name, link, within_buglist_tree, separator, "
+             ++ "always_enabled, class) "
+             ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
+             []
+  earlyQuery database
+             (  "INSERT INTO buglist_navigation_items "
+             ++ "(id, name, link, within_buglist_tree, separator, "
+             ++ "always_enabled, class) "
+             ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
+             []
+  earlyQuery database
+             (  "INSERT INTO buglist_navigation_items "
+             ++ "(id, name, link, within_buglist_tree, separator, "
+             ++ "always_enabled, class) "
+             ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
+             []
+  return ()

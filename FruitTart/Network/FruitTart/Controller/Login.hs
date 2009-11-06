@@ -69,15 +69,21 @@ outputMustLoginPage currentPage = do
 
 loginGET :: FruitTart CGIResult
 loginGET = do
-  sessionID <- getSessionID
-  [[maybeRecentUserEmail]]
-      <- query ("SELECT users.email FROM sessions LEFT JOIN users "
-                ++ "ON sessions.recent_user = users.id WHERE sessions.id = ?")
-               [SQLInteger sessionID]
-  maybeRecentUserEmail <- return $ case maybeRecentUserEmail of
-                                     SQLNull -> Nothing
-                                     SQLText email -> Just email
-  doNotLogIn Nothing maybeRecentUserEmail
+  maybeUserID <- getLoggedInUser
+  case maybeUserID of
+    Nothing -> do
+             sessionID <- getSessionID
+             [[maybeRecentUserEmail]]
+                 <- query (  "SELECT users.email FROM sessions LEFT JOIN users "
+                          ++ "ON sessions.recent_user = users.id WHERE sessions.id = ?")
+                          [SQLInteger sessionID]
+             maybeRecentUserEmail <- return $ case maybeRecentUserEmail of
+                                                SQLNull -> Nothing
+                                                SQLText email -> Just email
+             doNotLogIn Nothing maybeRecentUserEmail
+    Just _ -> do
+             targetPage <- getReferrer
+             seeOtherRedirect targetPage
 
 
 loginPOST :: FruitTart CGIResult
@@ -162,7 +168,9 @@ accountPOST :: FruitTart CGIResult
 accountPOST = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
-    Nothing -> seeOtherRedirect "/issues/index/"
+    Nothing -> do
+      defaultPage <- getDefaultPage
+      seeOtherRedirect defaultPage
     Just userID -> do
       maybeFullName <- getInput "full-name"
       fullName <- return $ case maybeFullName of
@@ -184,7 +192,9 @@ outputAccountPage :: FruitTart CGIResult
 outputAccountPage = do
   maybeUserID <- getLoggedInUser
   case maybeUserID of
-    Nothing -> seeOtherRedirect "/issues/index/"
+    Nothing -> do
+      defaultPage <- getDefaultPage
+      seeOtherRedirect defaultPage
     Just userID -> do
       sessionID <- getSessionID
       [[SQLText fullName, SQLText email]]
@@ -300,7 +310,7 @@ getReferrer = do
                 maybeHTTPReferrer <- requestHeader "Referer"
                 case maybeHTTPReferrer of
                   Just referrer -> return referrer
-                  Nothing -> return ""
+                  Nothing -> getDefaultPage
 
 
 getLoggedInUser :: FruitTart (Maybe Int64)

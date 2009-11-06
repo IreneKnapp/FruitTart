@@ -14,15 +14,15 @@ import System.Exit
 import qualified Network.FruitTart.Controller.Captcha
 import qualified Network.FruitTart.Controller.Login
 import qualified Network.FruitTart.Dispatcher as Dispatcher
-import qualified Database.SQLite3 as SQL
+import Database.SQLite3
 import Network.FruitTart.Util
 
 
 main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
-  database <- SQL.open databasePath
-  initDatabase database
+  database <- open databasePath
+  requireModuleVersion database "FruitTart" schemaVersion
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
@@ -45,35 +45,42 @@ schemaVersion = 1
 
 
 requireModuleVersion :: Database -> String -> Int64 -> IO ()
-requireModuleVersion database module requiredVersion = do
+requireModuleVersion database name requiredVersion = do
   [[SQLInteger count]]
       <- earlyQuery database
                     "SELECT count(*) FROM schema_versions WHERE module = ?"
-                    [SQLText module]
+                    [SQLText name]
   case count of
     0 -> do
-      earlyQuery database
-                 "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
-                 [SQLText module, SQLInteger requiredVersion]
+      initDatabase database
+      return ()
     1 -> do
       [[SQLInteger presentVersion]]
           <- earlyQuery database
                         "SELECT version FROM schema_versions WHERE module = ?"
-                        [SQLText module]
+                        [SQLText name]
       if presentVersion /= requiredVersion
         then do
-          logCGI $ "Schema mismatch for module " ++ module ++ ": Program version "
+          logCGI $ "Schema mismatch for module " ++ name ++ ": Program version "
                  ++ (show requiredVersion) ++ ", database version "
                  ++ (show presentVersion) ++ "."
           exitFailure
         else return ()
 
 
-initDatabase :: SQL.Database -> IO ()
+initDatabase :: Database -> IO ()
 initDatabase database = do
-  requireModuleVersion "FruitTart" schemaVersion
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS sessions (\n"
+                 (  "CREATE TABLE schema_versions (\n"
+                 ++ "module TEXT PRIMARY KEY,\n"
+                 ++ "version INTEGER"
+                 ++ ")")
+                 []
+  earlyQuery database
+             "INSERT INTO schema_versions (module, version) VALUES ('FruitTart', ?)"
+             [SQLInteger schemaVersion]
+  earlyQuery database
+                 (  "CREATE TABLE sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "timestamp_activity INTEGER,\n"
                  ++ "recent_user INTEGER,\n"
@@ -82,12 +89,17 @@ initDatabase database = do
                  ++ ")")
                  []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS settings (\n"
-                 ++ "anonymous_user INTEGER"
+                 (  "CREATE TABLE settings (\n"
+                 ++ "anonymous_user INTEGER,"
+                 ++ "default_page TEXT"
                  ++ ")")
                  []
   earlyQuery database
-                 (  "CREATE TABLE IF NOT EXISTS users (\n"
+                 (  "INSERT INTO settings (anonymous_user, default_page) "
+                 ++ "VALUES (NULL, '/login/account/')")
+                 []
+  earlyQuery database
+                 (  "CREATE TABLE users (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "full_name TEXT,\n"
                  ++ "email TEXT,\n"
@@ -101,33 +113,27 @@ initDatabase database = do
                  ++ "right_comment_issues INTEGER\n"
                  ++ ")")
                  []
-  [[userCount]] <- earlyQuery database "SELECT count(*) FROM users" []
-  if userCount == SQLInteger 0
-     then do
-       earlyQuery database
-                      (  "INSERT INTO users (id, full_name, email, password_hash, "
-                      ++ "right_synchronize, right_admin_users, right_see_emails, "
-                      ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                      ++ "right_comment_issues) "
-                      ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
-                      ++ "1, 1, 1, 1, 1, 1, 1)")
-                      [SQLBlob $ hashPassword "This password must be changed."]
-       earlyQuery database
-                     (  "INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_synchronize, right_admin_users, right_see_emails, "
-                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                     ++ "right_comment_issues) "
-                     ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
-                     []
-       earlyQuery database
-                     (  "INSERT INTO users (id, full_name, email, password_hash, "
-                     ++ "right_synchronize, right_admin_users, right_see_emails, "
-                     ++ "right_report_issues, right_modify_issues, right_upload_files, "
-                     ++ "right_comment_issues) "
-                     ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
-                     []
-       [[SQLInteger count]] <- earlyQuery database "SELECT count(*) FROM settings"
-       case count of
-         0 -> earlyRun database "INSERT INTO settings (anonymous_user) VALUES (3)"
-         _ -> earlyRun database "UPDATE settings SET anonymous_user = 3"
-     else return ()
+  earlyQuery database
+             (  "INSERT INTO users (id, full_name, email, password_hash, "
+             ++ "right_synchronize, right_admin_users, right_see_emails, "
+             ++ "right_report_issues, right_modify_issues, right_upload_files, "
+             ++ "right_comment_issues) "
+             ++ "VALUES (1, 'Dan Knapp', 'dankna@gmail.com', ?, "
+             ++ "1, 1, 1, 1, 1, 1, 1)")
+             [SQLBlob $ hashPassword "This password must be changed."]
+  earlyQuery database
+            (  "INSERT INTO users (id, full_name, email, password_hash, "
+            ++ "right_synchronize, right_admin_users, right_see_emails, "
+            ++ "right_report_issues, right_modify_issues, right_upload_files, "
+            ++ "right_comment_issues) "
+            ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
+            []
+  earlyQuery database
+            (  "INSERT INTO users (id, full_name, email, password_hash, "
+            ++ "right_synchronize, right_admin_users, right_see_emails, "
+            ++ "right_report_issues, right_modify_issues, right_upload_files, "
+            ++ "right_comment_issues) "
+            ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
+            []
+  earlyQuery database "UPDATE settings SET anonymous_user = 3" []
+  return ()

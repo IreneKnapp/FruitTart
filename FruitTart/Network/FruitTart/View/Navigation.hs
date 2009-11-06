@@ -1,6 +1,14 @@
-module Network.FruitTart.View.Navigation (getNavigationBar) where
+module Network.FruitTart.View.Navigation (getDefaultPage,
+                                          getNavigationBar)
+    where
 
 import Network.FruitTart.Util
+
+
+getDefaultPage :: FruitTart String
+getDefaultPage = do
+  [[SQLText defaultPage]] <- query "SELECT default_page FROM settings LIMIT 1" []
+  return defaultPage
 
 
 getNavigationBar :: String -> FruitTart String
