@@ -1,4 +1,4 @@
-module Network.FruitTart.Controller.Captcha
+module Network.FruitTart.Captcha.Controller.Captcha
     (actionTable, functionTable, generateCaptcha, checkCaptcha) where
 
 import Control.Concurrent

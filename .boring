@@ -56,5 +56,6 @@
 ^\.darcs-temp-mail$
 ^fruittart.db$
 ^Buglist/dist($|/)
+^Captcha/dist($|/)
 ^FruitTart/dist($|/)
 ^FruitTartInterface/dist($|/)

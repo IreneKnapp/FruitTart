@@ -28,7 +28,8 @@ fruitTartPlugin = Interface {
                     interfaceFunctionTable = functionTable,
                     interfaceModuleName = moduleName,
                     interfaceModuleVersion = moduleSchemaVersion,
-                    interfacePrerequisites = [("FruitTart", 1)],
+                    interfacePrerequisites = [("FruitTart", 1),
+                                              ("Captcha", 1)],
                     interfaceInitDatabase = initDatabase,
                     interfaceImportFunctionTableMVar = importFunctionTableMVar
                   }

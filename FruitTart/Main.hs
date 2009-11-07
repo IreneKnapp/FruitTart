@@ -17,7 +17,6 @@ import System.Plugins
 import Database.SQLite3
 import Network.FruitTart.PluginInterface as PluginInterface
 import Network.FruitTart.Util
-import qualified Network.FruitTart.Controller.Captcha as Controller.Captcha
 import qualified Network.FruitTart.Controller.Login as Controller.Login
 import qualified Network.FruitTart.Dispatcher as Dispatcher
 import qualified Network.FruitTart.View.Login as View.Login
@@ -60,7 +59,7 @@ loadInstalledModules database = do
               rows
          >>= return . concat
   mapM (\interface ->
-         putStrLn $ "Loaded " ++ (interfaceModuleName interface)
+         putStrLn $ "Found " ++ (interfaceModuleName interface)
                   ++ " " ++ (show $ interfaceModuleVersion interface) ++ ".")
        interfaces
   return ()
@@ -86,15 +85,13 @@ baseInterface = Interface {
 dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
-      [("captcha", Controller.Captcha.actionTable),
-       ("login", Controller.Login.actionTable)]
+      [("login", Controller.Login.actionTable)]
 
 
 functionTable :: CombinedFunctionTable
 functionTable
     = combineFunctionTables
-      [("Controller.Captcha", Controller.Captcha.functionTable),
-       ("Controller.Login", Controller.Login.functionTable),
+      [("Controller.Login", Controller.Login.functionTable),
        ("View.Login", View.Login.functionTable),
        ("View.Misc", View.Misc.functionTable),
        ("View.Navigation", View.Navigation.functionTable),

@@ -1,0 +1,30 @@
+name: FruitTart-Captcha
+version: 1.0
+cabal-version: >= 1.2
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: Copyright (c) 2009 Dan Knapp
+author: Dan Knapp
+maintainer: dankna@gmail.com
+homepage: http://www.dankna.com/software/
+bug-reports: http://www.dankna.com/issues/create/
+category: Network
+synopsis: Provides CAPTCHA images for security.  Module for FruitTart.
+description:
+  This plugin for the FruitTart web framework integrates the hs-catpcha package, which
+  generates images suitable for authenticating that the end user is a human and not an
+  automated program.
+
+Library
+  exposed-modules: Main
+  other-modules: Network.FruitTart.Captcha.Controller.Captcha,
+                 Network.FruitTart.Captcha.Imports
+  build-depends: base >= 4.1 && < 5,
+                 bytestring >= 0.9.1.4,
+                 containers >= 0.2.0.1,
+                 mtl >= 1.1.0.2,
+                 
+                 FruitTartInterface >= 1.0 && < 2,
+                 direct-sqlite >= 1.0,
+                 hs-captcha >= 1.0
