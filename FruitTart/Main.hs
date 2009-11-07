@@ -6,11 +6,13 @@ import Data.Dynamic
 import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import Network.FastCGI (runFastCGIorCGI)
 import Network.CGI.Monad
 import System.Environment
 import System.Exit
 import System.IO.Unsafe
+import System.Plugins
 
 import Database.SQLite3
 import Network.FruitTart.PluginInterface as PluginInterface
@@ -31,6 +33,7 @@ main = do
   database <- open databasePath
   interfacesMVar <- newMVar $ Map.fromList [("FruitTart", baseInterface)]
   maybeInitDatabase database "FruitTart" schemaVersion Main.initDatabase
+  loadInstalledModules database
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
@@ -39,6 +42,40 @@ main = do
              captchaCacheMVar = captchaCacheMVar
            }
   runFastCGIorCGI $ evalStateT (Dispatcher.processRequest Main.dispatchTable) state
+  return ()
+
+
+loadInstalledModules :: Database -> IO ()
+loadInstalledModules database = do
+  initLinker
+  rows <- earlyQuery database "SELECT name, load_as_package FROM installed_modules" []
+  mapM (\[SQLText name, SQLInteger loadAsPackage] -> do
+         putStrLn $ "Attempting to load " ++ name
+{-
+         pluginInterface <- case loadAsPackage of
+           0 -> do
+             maybePluginInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
+             return $ fromJust maybePluginInterface
+           _ -> do
+             LoadSuccess module value <- load name [] [] "fruitTartPlugin"
+             return value
+-}
+{-
+         -- This works with, for example, "Buglist-1.0" as name.
+         pluginInterface <- do
+           maybePluginInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
+           return $ fromJust maybePluginInterface
+-}
+         -- This doesn't really work, but it wants a full path to a .o file.
+         pluginInterface <- do
+           loadStatus <- load name [] [] "fruitTartPlugin"
+           case loadStatus of
+             LoadSuccess m v -> return v
+             LoadFailure e -> error "Load failed."
+         logCGI $ "Loaded " ++ name ++ " (as package " ++ (show loadAsPackage)
+                ++ ") yielding " ++ (interfaceModuleName pluginInterface)
+                ++ " " ++ (show $ interfaceModuleVersion pluginInterface) ++ ".")
+       rows
   return ()
 
 
@@ -117,6 +154,12 @@ initDatabase database = do
   earlyQuery database
              "INSERT INTO schema_versions (module, version) VALUES ('FruitTart', ?)"
              [SQLInteger schemaVersion]
+  earlyQuery database
+                 (  "CREATE TABLE installed_modules (\n"
+                 ++ "name TEXT PRIMARY KEY,\n"
+                 ++ "load_as_package INTEGER\n"
+                 ++ ")")
+                 []
   earlyQuery database
                  (  "CREATE TABLE sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
