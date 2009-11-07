@@ -58,10 +58,16 @@ loadInstalledModules database = do
                   Just interface -> return [interface])
               rows
          >>= return . concat
-  mapM (\interface ->
-         putStrLn $ "Found " ++ (interfaceModuleName interface)
-                  ++ " " ++ (show $ interfaceModuleVersion interface) ++ ".")
-       interfaces
+  dependencyMap
+      <- return
+         $ Map.fromList
+         $ map (\interface ->
+                  let name = interfaceModuleName interface
+                      version = interfaceModuleVersion interface
+                      prerequisites = interfacePrerequisites interface
+                  in ((name, version), prerequisites))
+              interfaces
+  putStrLn $ show dependencyMap
   return ()
 
 
