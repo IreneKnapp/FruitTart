@@ -50,7 +50,7 @@ loadInstalledModules database = do
   rows <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
       <- mapM (\[SQLText name] -> do
-                maybeInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
+                maybeInterface <- loadPackageFunction name "Main" "fruitTartPlugin'"
                 case maybeInterface of
                   Nothing -> do
                     logCGI $ "Not installed or not a plugin: " ++ name
@@ -81,7 +81,8 @@ baseInterface = Interface {
                   interfaceDispatchTable = dispatchTable,
                   interfaceFunctionTable = functionTable,
                   interfaceModuleName = "FruitTart",
-                  interfaceModuleVersion = schemaVersion,
+                  interfaceModuleVersion = moduleVersion,
+                  interfaceModuleSchemaVersion = schemaVersion,
                   interfacePrerequisites = [],
                   interfaceInitDatabase = initDatabase,
                   interfaceImportFunctionTableMVar = importFunctionTableMVar
@@ -103,6 +104,10 @@ functionTable
        ("View.Navigation", View.Navigation.functionTable),
        ("View.PopupMessage", View.PopupMessage.functionTable),
        ("View.Users", View.Users.functionTable)]
+
+
+moduleVersion :: Int64
+moduleVersion = 1
 
 
 schemaVersion :: Int64

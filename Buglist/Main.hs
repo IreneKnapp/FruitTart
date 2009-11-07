@@ -27,7 +27,8 @@ fruitTartPlugin = Interface {
                     interfaceDispatchTable = dispatchTable,
                     interfaceFunctionTable = functionTable,
                     interfaceModuleName = moduleName,
-                    interfaceModuleVersion = moduleSchemaVersion,
+                    interfaceModuleVersion = moduleVersion,
+                    interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1),
                                               ("Captcha", 1)],
                     interfaceInitDatabase = initDatabase,
@@ -58,6 +59,10 @@ fruitTartSchemaVersion = 1
 
 moduleName :: String
 moduleName = "Buglist"
+
+
+moduleVersion :: Int64
+moduleVersion = 1
 
 
 moduleSchemaVersion :: Int64
