@@ -48,34 +48,21 @@ main = do
 loadInstalledModules :: Database -> IO ()
 loadInstalledModules database = do
   initLinker
-  rows <- earlyQuery database "SELECT name, load_as_package FROM installed_modules" []
-  mapM (\[SQLText name, SQLInteger loadAsPackage] -> do
-         putStrLn $ "Attempting to load " ++ name
-{-
-         pluginInterface <- case loadAsPackage of
-           0 -> do
-             maybePluginInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
-             return $ fromJust maybePluginInterface
-           _ -> do
-             LoadSuccess module value <- load name [] [] "fruitTartPlugin"
-             return value
--}
-{-
-         -- This works with, for example, "Buglist-1.0" as name.
-         pluginInterface <- do
-           maybePluginInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
-           return $ fromJust maybePluginInterface
--}
-         -- This doesn't really work, but it wants a full path to a .o file.
-         pluginInterface <- do
-           loadStatus <- load name [] [] "fruitTartPlugin"
-           case loadStatus of
-             LoadSuccess m v -> return v
-             LoadFailure e -> error "Load failed."
-         logCGI $ "Loaded " ++ name ++ " (as package " ++ (show loadAsPackage)
-                ++ ") yielding " ++ (interfaceModuleName pluginInterface)
-                ++ " " ++ (show $ interfaceModuleVersion pluginInterface) ++ ".")
-       rows
+  rows <- earlyQuery database "SELECT name FROM installed_modules" []
+  interfaces
+      <- mapM (\[SQLText name] -> do
+                maybeInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
+                case maybeInterface of
+                  Nothing -> do
+                    logCGI $ "Not installed or not a plugin: " ++ name
+                    return []
+                  Just interface -> return [interface])
+              rows
+         >>= return . concat
+  mapM (\interface ->
+         putStrLn $ "Loaded " ++ (interfaceModuleName interface)
+                  ++ " " ++ (show $ interfaceModuleVersion interface) ++ ".")
+       interfaces
   return ()
 
 
@@ -156,8 +143,7 @@ initDatabase database = do
              [SQLInteger schemaVersion]
   earlyQuery database
                  (  "CREATE TABLE installed_modules (\n"
-                 ++ "name TEXT PRIMARY KEY,\n"
-                 ++ "load_as_package INTEGER\n"
+                 ++ "name TEXT PRIMARY KEY\n"
                  ++ ")")
                  []
   earlyQuery database
