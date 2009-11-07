@@ -27,6 +27,7 @@ Executable FruitTart
                  cgi >= 3001.1.7.1,
                  fastcgi >= 3001.0.2.2,
                  utf8-string >= 0.3.5,
+                 plugins >= 1.4.1,
                  
                  direct-sqlite >= 1.0,
                  hs-captcha >= 1.0,
