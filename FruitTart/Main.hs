@@ -4,6 +4,7 @@ import Control.Concurrent
 import Control.Monad.State
 import Data.Dynamic
 import Data.Int
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -58,16 +59,57 @@ loadInstalledModules database = do
                   Just interface -> return [interface])
               rows
          >>= return . concat
-  dependencyMap
-      <- return
-         $ Map.fromList
+  let allModules = map (\interface -> (interfaceModuleName interface,
+                                       interfaceModuleVersion interface))
+                       interfaces
+      dependencyMap
+         = Map.fromList
          $ map (\interface ->
                   let name = interfaceModuleName interface
                       version = interfaceModuleVersion interface
                       prerequisites = interfacePrerequisites interface
                   in ((name, version), prerequisites))
               interfaces
+      findLoadOrder unprocessedDependencyMap
+          = let importantModules = findLoadOrder' unprocessedDependencyMap
+                unimportantModules = allModules \\ importantModules
+            in concat [importantModules, unimportantModules]
+      findLoadOrder' unprocessedDependencyMap
+          = case Map.keys unprocessedDependencyMap of
+              [] -> []
+              (arbitraryModule:_)
+                  -> let rootModule = findRootModule arbitraryModule
+                         findRootModule someModule = case parentModule someModule of
+                                                   Nothing -> someModule
+                                                   Just anotherModule
+                                                       -> findRootModule anotherModule
+                         parentModule someModule
+                             = case Map.lookup someModule unprocessedDependencyMap
+                                 of Nothing -> Nothing
+                                    Just parentModules -> Just $ head parentModules
+                         removeFromDependencyMap moduleToRemove dependencyMap
+                             = let mapWithoutModuleAsParent moduleToRemove someMap
+                                       = Map.map (\modules -> delete moduleToRemove
+                                                                     modules)
+                                                 someMap
+                                   mapWithoutParentlessModules someMap
+                                       = Map.foldWithKey
+                                         (\someModule dependencies mapBeingProcessed
+                                            -> if dependencies == []
+                                                 then Map.delete someModule
+                                                                 mapBeingProcessed
+                                                 else mapBeingProcessed)
+                                         someMap
+                                         someMap
+                               in mapWithoutParentlessModules
+                                  $ mapWithoutModuleAsParent moduleToRemove dependencyMap
+                     in rootModule
+                        : (findLoadOrder'
+                           $ removeFromDependencyMap rootModule unprocessedDependencyMap)
+      loadOrder = findLoadOrder dependencyMap
+  putStrLn $ show $ map interfaceModuleName interfaces
   putStrLn $ show dependencyMap
+  putStrLn $ show loadOrder
   return ()
 
 
