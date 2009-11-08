@@ -31,7 +31,7 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
-  interfacesMVar <- newEmptyMVar
+  interfacesMVar <- newMVar $ Map.empty
   loadInstalledModules database interfacesMVar
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
@@ -136,6 +136,15 @@ loadInstalledModules database interfacesMVar = do
                         : (findLoadOrder'
                            $ removeFromDependencyMap rootModule unprocessedDependencyMap)
       loadOrder = findLoadOrder dependencyMap
+      missingVersions
+          = map (\(name, missingVersion) ->
+                     (name,
+                      missingVersion,
+                      map fst
+                          $ fromJust
+                          $ Map.lookup (name, missingVersion)
+                                       reverseDependencyMap))
+                $ deleteFirstsBy (\(a, _) (b, _) -> a == b) loadOrder availableModules
       conflictingVersions
           = concat
             $ map (\items@((name, _):_)
@@ -159,11 +168,17 @@ loadInstalledModules database interfacesMVar = do
             $ groupBy (\(a, _) (b, _) -> a == b)
             $ sortBy (\(a, _) (b, _) -> compare a b)
                      loadOrder
-  putStrLn $ show availableModules
-  putStrLn $ show dependencyMap
-  putStrLn $ show reverseDependencyMap
-  putStrLn $ show loadOrder
-  putStrLn $ show conflictingVersions
+  if missingVersions == []
+    then return ()
+    else error
+         $ "Missing modules: "
+         ++ (intercalate "; "
+                         $ map (\(name, missingVersion, requiringModules)
+                                 -> name ++ " " ++ (show missingVersion)
+                                    ++ " is required by "
+                                    ++ (intercalate ", " requiringModules))
+                               missingVersions)
+         ++ "."
   if conflictingVersions == []
     then return ()
     else error
