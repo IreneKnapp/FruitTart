@@ -16,7 +16,7 @@ import Network.FruitTart.PluginInterface
 
 data FruitTartState  = FruitTartState {
       database :: SQL.Database,
-      interfacesMVar :: MVar (Map String Interface),
+      interfacesMapMVar :: MVar (Map String Interface),
       sessionID :: Maybe Int64,
       captchaCacheMVar :: MVar (Map Int64 (String, ByteString))
     }

@@ -31,12 +31,12 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
-  interfacesMVar <- newMVar $ Map.empty
-  loadInstalledModules database interfacesMVar
+  interfacesMapMVar <- newMVar $ Map.empty
+  loadInstalledModules database interfacesMapMVar
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
-             interfacesMVar = interfacesMVar,
+             interfacesMapMVar = interfacesMapMVar,
              sessionID = Nothing,
              captchaCacheMVar = captchaCacheMVar
            }
@@ -45,7 +45,7 @@ main = do
 
 
 loadInstalledModules :: Database -> MVar (Map String Interface) -> IO ()
-loadInstalledModules database interfacesMVar = do
+loadInstalledModules database interfacesMapMVar = do
   initLinker
   names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
@@ -61,6 +61,11 @@ loadInstalledModules database interfacesMVar = do
   let availableModules = map (\interface -> (interfaceModuleName interface,
                                              interfaceModuleVersion interface))
                              interfaces
+      availableModuleMap = Map.fromList
+                           $ map (\interface -> ((interfaceModuleName interface,
+                                                  interfaceModuleVersion interface),
+                                                 interface))
+                                 interfaces
       dependencyMap
          = Map.fromList
          $ map (\interface ->
@@ -197,6 +202,23 @@ loadInstalledModules database interfacesMVar = do
                                               unavailableVersionsRequiringModules))
                                conflictingVersions)
          ++ "."
+  mapM (\moduleToLoad@(moduleName, moduleVersion) -> do
+          interfacesMap <- takeMVar interfacesMapMVar
+          let interface = fromJust $ Map.lookup moduleToLoad availableModuleMap
+              prerequisiteFunctionTables
+                  = map interfaceFunctionTable
+                        $ map (\(name, _) -> fromJust $ Map.lookup name interfacesMap)
+                              $ interfacePrerequisites interface
+              importFunctionTable
+                  = Map.fromList $ concat $ map Map.toList prerequisiteFunctionTables
+          putMVar (interfaceImportFunctionTableMVar interface) importFunctionTable
+          maybeInitDatabase database
+                            moduleName
+                            moduleVersion
+                            (interfaceInitDatabase interface)
+          interfacesMap' <- return $ Map.insert moduleName interface interfacesMap
+          putMVar interfacesMapMVar interfacesMap')
+       loadOrder
   return ()
 
 
