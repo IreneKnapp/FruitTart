@@ -31,9 +31,8 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
-  interfacesMVar <- newMVar $ Map.fromList [("FruitTart", baseInterface)]
-  maybeInitDatabase database "FruitTart" schemaVersion Main.initDatabase
-  loadInstalledModules database
+  interfacesMVar <- newEmptyMVar
+  loadInstalledModules database interfacesMVar
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
@@ -45,8 +44,8 @@ main = do
   return ()
 
 
-loadInstalledModules :: Database -> IO ()
-loadInstalledModules database = do
+loadInstalledModules :: Database -> MVar (Map String Interface) -> IO ()
+loadInstalledModules database interfacesMVar = do
   initLinker
   names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
@@ -58,10 +57,10 @@ loadInstalledModules database = do
                     return []
                   Just interface -> return [interface])
               names
-         >>= return . concat
-  let allModules = map (\interface -> (interfaceModuleName interface,
-                                       interfaceModuleVersion interface))
-                       interfaces
+         >>= return . (\interfaces -> concat [[baseInterface], interfaces]) . concat
+  let availableModules = map (\interface -> (interfaceModuleName interface,
+                                             interfaceModuleVersion interface))
+                             interfaces
       dependencyMap
          = Map.fromList
          $ map (\interface ->
@@ -70,9 +69,26 @@ loadInstalledModules database = do
                       prerequisites = interfacePrerequisites interface
                   in ((name, version), prerequisites))
               interfaces
+      reverseDependencyMap
+         = Map.fromList
+         $ map (\items@((prerequisite, _):_) -> (prerequisite, map snd items))
+         $ groupBy (\(a, _) (b, _) -> a == b)
+         $ sortBy (\((nameA, versionA), _) ((nameB, versionB), _)
+                     -> case compare nameA nameB of
+                          EQ -> compare versionA versionB
+                          result -> result)
+         $ concat
+         $ map (\interface ->
+                  let name = interfaceModuleName interface
+                      version = interfaceModuleVersion interface
+                      prerequisites = interfacePrerequisites interface
+                  in map (\prerequisite ->
+                            (prerequisite, (name, version)))
+                         prerequisites)
+               interfaces
       findLoadOrder unprocessedDependencyMap
           = let importantModules = findLoadOrder' unprocessedDependencyMap
-                unimportantModules = allModules \\ importantModules
+                unimportantModules = availableModules \\ importantModules
             in concat [importantModules, unimportantModules]
       findLoadOrder' unprocessedDependencyMap
           = case Map.keys unprocessedDependencyMap of
@@ -98,6 +114,7 @@ loadInstalledModules database = do
                          parentModule someModule
                              = case Map.lookup someModule unprocessedDependencyMap
                                  of Nothing -> Nothing
+                                    Just [] -> Nothing
                                     Just parentModules -> Just $ head parentModules
                          removeFromDependencyMap moduleToRemove dependencyMap
                              = let mapWithoutModuleAsParent moduleToRemove someMap
@@ -119,9 +136,52 @@ loadInstalledModules database = do
                         : (findLoadOrder'
                            $ removeFromDependencyMap rootModule unprocessedDependencyMap)
       loadOrder = findLoadOrder dependencyMap
-  putStrLn $ show $ map interfaceModuleName interfaces
+      conflictingVersions
+          = concat
+            $ map (\items@((name, _):_)
+                     -> let allVersions = sort $ nub $ map snd items
+                            availableVersion
+                                = fromJust $ lookup name availableModules
+                            unavailableVersions = delete availableVersion allVersions
+                            unavailableVersionsRequiringModules
+                                = map (\unavailableVersion ->
+                                           (unavailableVersion,
+                                            map fst
+                                                $ fromJust
+                                                $ Map.lookup (name, unavailableVersion)
+                                                             reverseDependencyMap))
+                                      unavailableVersions
+                        in if unavailableVersions == []
+                             then []
+                             else [(name,
+                                    availableVersion,
+                                    unavailableVersionsRequiringModules)])
+            $ groupBy (\(a, _) (b, _) -> a == b)
+            $ sortBy (\(a, _) (b, _) -> compare a b)
+                     loadOrder
+  putStrLn $ show availableModules
   putStrLn $ show dependencyMap
+  putStrLn $ show reverseDependencyMap
   putStrLn $ show loadOrder
+  putStrLn $ show conflictingVersions
+  if conflictingVersions == []
+    then return ()
+    else error
+         $ "Module interface-version mismatch: "
+         ++ (intercalate "; "
+                         $ map (\(name,
+                                  availableVersion,
+                                  unavailableVersionsRequiringModules)
+                                 -> name ++ " " ++ (show availableVersion)
+                                    ++ " is available, but "
+                                    ++ (concat
+                                        $ map (\(unavailableVersion, requiringModules)
+                                               -> (show unavailableVersion)
+                                                  ++ " is required by "
+                                                  ++ (intercalate ", " requiringModules))
+                                              unavailableVersionsRequiringModules))
+                               conflictingVersions)
+         ++ "."
   return ()
 
 
