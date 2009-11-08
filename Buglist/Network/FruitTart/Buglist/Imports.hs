@@ -33,11 +33,13 @@ importFunctionTableMVar = unsafePerformIO newEmptyMVar
 
 generateCaptcha :: FruitTart Int64
 generateCaptcha
-    = importFunction importFunctionTableMVar "Controller.Captcha" "generateCaptcha"
+    = importFunction importFunctionTableMVar
+      "Captcha.Controller.Captcha" "generateCaptcha"
 
 checkCaptcha :: Int64 -> String -> FruitTart Bool
 checkCaptcha
-    = importFunction importFunctionTableMVar "Controller.Captcha" "checkCaptcha"
+    = importFunction importFunctionTableMVar
+      "Captcha.Controller.Captcha" "checkCaptcha"
 
 getLoggedInUserID :: FruitTart (Maybe Int64)
 getLoggedInUserID
