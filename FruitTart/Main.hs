@@ -40,7 +40,13 @@ main = do
              sessionID = Nothing,
              captchaCacheMVar = captchaCacheMVar
            }
-  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest Main.dispatchTable) state
+  interfacesMap <- readMVar interfacesMapMVar
+  combinedDispatchTable
+      <- return
+         $ Map.fromList
+         $ concat
+         $ map (Map.toList . interfaceDispatchTable) $ Map.elems interfacesMap
+  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest combinedDispatchTable) state
   return ()
 
 
