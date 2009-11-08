@@ -78,11 +78,23 @@ loadInstalledModules database = do
           = case Map.keys unprocessedDependencyMap of
               [] -> []
               (arbitraryModule:_)
-                  -> let rootModule = findRootModule arbitraryModule
-                         findRootModule someModule = case parentModule someModule of
-                                                   Nothing -> someModule
-                                                   Just anotherModule
-                                                       -> findRootModule anotherModule
+                  -> let rootModule = findRootModule arbitraryModule []
+                         findRootModule someModule visitedModules
+                             = case parentModule someModule of
+                                 Nothing -> someModule
+                                 Just anotherModule
+                                   | elem anotherModule visitedModules
+                                     -> error
+                                        $ "Cyclic module dependencies: "
+                                        ++ (intercalate " on "
+                                                        $ map fst
+                                                              $ concat [visitedModules,
+                                                                        [someModule,
+                                                                         anotherModule]])
+                                        ++ "."
+                                   | True
+                                     -> findRootModule anotherModule
+                                                       (someModule:visitedModules)
                          parentModule someModule
                              = case Map.lookup someModule unprocessedDependencyMap
                                  of Nothing -> Nothing
