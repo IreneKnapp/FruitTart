@@ -97,7 +97,13 @@ importFunction :: (Typeable a) => (MVar CombinedFunctionTable) -> String -> Stri
 importFunction functionTableMVar moduleName functionName
     = unsafePerformIO $ do
         functionTable <- readMVar functionTableMVar
-        return $ fromJust
-               $ fromDynamic
-               $ fromJust
-               $ Map.lookup (moduleName, functionName) functionTable
+        maybeDynamicFunction
+            <- return $ Map.lookup (moduleName, functionName) functionTable
+        case maybeDynamicFunction of
+          Nothing -> error $ "The function " ++ functionName
+                     ++ " was not found in the module " ++ moduleName ++ "."
+          Just dynamicFunction -> do
+            case fromDynamic dynamicFunction of
+              Nothing -> error $ "The function " ++ moduleName ++ "." ++ functionName
+                               ++ " did not have the expected type signature."
+              Just function -> return function
