@@ -983,7 +983,7 @@ defaultComment
 
 getStatusPopup :: Maybe Int64 -> FruitTart String
 getStatusPopup maybeStatusID = do
-  statuses <- query "SELECT id, name FROM statuses ORDER BY id" []
+  statuses <- query "SELECT id, name FROM buglist_statuses ORDER BY id" []
   return $ "<select name=\"status\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
@@ -1000,7 +1000,7 @@ getStatusPopup maybeStatusID = do
 
 getResolutionPopup :: Maybe Int64 -> FruitTart String
 getResolutionPopup maybeResolutionID = do
-  resolutions <- query "SELECT id, name FROM resolutions ORDER BY id" []
+  resolutions <- query "SELECT id, name FROM buglist_resolutions ORDER BY id" []
   return $ "<select name=\"resolution\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
@@ -1017,7 +1017,7 @@ getResolutionPopup maybeResolutionID = do
 
 getModulePopup :: Maybe Int64 -> FruitTart String
 getModulePopup maybeModuleID = do
-  modules <- query "SELECT id, name FROM modules ORDER BY id" []
+  modules <- query "SELECT id, name FROM buglist_modules ORDER BY id" []
   return $ "<select name=\"module\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
@@ -1034,7 +1034,7 @@ getModulePopup maybeModuleID = do
 
 getSeverityPopup :: Maybe Int64 -> FruitTart String
 getSeverityPopup maybeSeverityID = do
-  severities <- query "SELECT id, name FROM severities ORDER BY id" []
+  severities <- query "SELECT id, name FROM buglist_severities ORDER BY id" []
   return $ "<select name=\"severity\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
@@ -1051,7 +1051,7 @@ getSeverityPopup maybeSeverityID = do
 
 getPriorityPopup :: Maybe Int64 -> FruitTart String
 getPriorityPopup maybePriorityID = do
-  priorities <- query "SELECT id, name FROM priorities ORDER BY id" []
+  priorities <- query "SELECT id, name FROM buglist_priorities ORDER BY id" []
   return $ "<select name=\"priority\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
