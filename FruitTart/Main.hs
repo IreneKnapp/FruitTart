@@ -48,7 +48,7 @@ main = do
 loadInstalledModules :: Database -> IO ()
 loadInstalledModules database = do
   initLinker
-  rows <- earlyQuery database "SELECT name FROM installed_modules" []
+  names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
       <- mapM (\[SQLText name] -> do
                 maybeInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
@@ -57,7 +57,7 @@ loadInstalledModules database = do
                     logCGI $ "Not installed or not a plugin: " ++ name
                     return []
                   Just interface -> return [interface])
-              rows
+              names
          >>= return . concat
   let allModules = map (\interface -> (interfaceModuleName interface,
                                        interfaceModuleVersion interface))
