@@ -54,7 +54,7 @@ function wordWrap(body, width) {
 	var remainingBody = body;
 	while(remainingBody.length > width) {
 	    var splitPoint = width;
-	    while(splitPoint > 0) {
+	    while(splitPoint >= 0) {
 		if(remainingBody.substr(splitPoint, 1) == " ") {
 		    break;
 		}
