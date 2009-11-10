@@ -1,5 +1,10 @@
 module Network.FruitTart.Util.Text where
 
+import Data.List
+
+import Network.FruitTart.Util.Lists
+
+
 fromCRLF :: String -> String
 fromCRLF ('\r':'\n':rest) = "\n" ++ fromCRLF rest
 fromCRLF (c:rest) = [c] ++ fromCRLF rest
@@ -21,4 +26,4 @@ wordWrap body width =
                                    else if n == 0
                                      then width
                                      else findSplitPoint' line $ n - 1
-    in wordWrap' body
+    in intercalate "\n" (map wordWrap' $ split '\n' body)
