@@ -136,7 +136,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                         ++ "<textarea class=\"code autosizing\" "
                         ++ "name=\"body" ++ (show index) ++ "\" "
                         ++ "rows=\"" ++ (show $ rowCount body) ++ "\" cols=\"50\">"
-                        ++ body
+                        ++ (escapeHTML body)
                         ++ "</textarea></td></tr>\n")
                $ zip bodies [1..])
          >>= return . concat
