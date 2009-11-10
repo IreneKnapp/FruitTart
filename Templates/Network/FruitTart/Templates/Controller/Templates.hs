@@ -383,7 +383,7 @@ getInputItems
 
 
 rowCount :: String -> Int
-rowCount body = length $ split '\n' body
+rowCount body = length $ split '\n' $ wordWrap body 50
 
 
 getTemplate :: String -> String -> FruitTart String

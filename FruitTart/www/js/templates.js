@@ -39,11 +39,49 @@ function resizeTextarea(textarea, stringTyped) {
     } else {
 	newContent = contentBefore + stringTyped + contentAfter;
     }
+    wrappedContent = wordWrap(newContent, 50);
     
-    var lines = newContent.split('\n');
+    var lines = wrappedContent.split('\n');
     var newHeight = lines.length;
     
     $(textarea).attr("rows", newHeight);
+}
+
+
+function wordWrap(body, width) {
+    function wordWrapH(body) {
+	var result = "";
+	var remainingBody = body;
+	while(remainingBody.length > width) {
+	    var splitPoint = width;
+	    while(splitPoint > 0) {
+		if(remainingBody.substr(splitPoint, 1) == " ") {
+		    break;
+		}
+		splitPoint--;
+	    }
+	    if(splitPoint == -1) {
+		splitPoint = width;
+	    }
+	    var beforeSplit = remainingBody.substr(0, splitPoint+1);
+	    var afterSplit = remainingBody.substr(splitPoint+1);
+	    var result = result + beforeSplit + "\n";
+	    remainingBody = afterSplit;
+	}
+	result = result + remainingBody;
+	return result;
+    }
+    
+    var result = "";
+    var splitBody = body.split('\n');
+    var i;
+    for(i = 0; i < splitBody.length; i++) {
+	if(i > 0) {
+	    result = result + "\n";
+	}
+	result = result + wordWrapH(splitBody[i]);
+    }
+    return result;
 }
 
 
