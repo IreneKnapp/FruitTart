@@ -132,7 +132,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                         ++ "</td><td>"
                         ++ "<textarea class=\"code autosizing\" "
                         ++ "name=\"body" ++ (show index) ++ "\" "
-                        ++ "rows=\"1\" cols=\"50\">"
+                        ++ "rows=\"" ++ (show $ rowCount body) ++ "\" cols=\"50\">"
                         ++ body
                         ++ "</textarea></td></tr>\n")
                $ zip bodies [1..])
@@ -380,6 +380,10 @@ getInputItems
                 rest <- getInputItemsFrom $ index + 1
                 return $ item : rest
       in getInputItemsFrom 1
+
+
+rowCount :: String -> Int
+rowCount body = length $ split '\n' body
 
 
 getTemplate :: String -> String -> FruitTart String
