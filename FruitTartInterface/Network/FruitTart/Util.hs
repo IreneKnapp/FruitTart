@@ -44,6 +44,7 @@ module Network.FruitTart.Util (
                                
                                -- Text
                                fromCRLF,
+                               wordWrap,
                                
                                -- Types
                                FruitTartState(..),
