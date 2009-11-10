@@ -6,7 +6,7 @@ module Network.FruitTart.Util (
                                CGIResult,
                                Cookie(..),
                                getCookie,
-                               getInput,
+                               getInputFPS,
                                liftCGI,
                                outputFPS,
                                queryString,

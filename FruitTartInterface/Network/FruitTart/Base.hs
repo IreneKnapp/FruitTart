@@ -1,4 +1,5 @@
 module Network.FruitTart.Base (
+                               getInput,
                                output,
                                permanentRedirect,
                                seeOtherRedirect,
@@ -19,9 +20,17 @@ import Control.Monad.State
 import Data.Char
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Data.Maybe
-import Network.FastCGI hiding (output, logCGI)
+import Network.FastCGI hiding (getInput, output, logCGI)
 
 import Network.FruitTart.Util
+
+
+getInput :: String -> FruitTart (Maybe String)
+getInput key = do
+  maybeValue <- getInputFPS $ key
+  return $ case maybeValue of
+    Nothing -> Nothing
+    Just value -> Just $ UTF8.toString value
 
 
 output :: String -> FruitTart CGIResult
