@@ -1,0 +1,45 @@
+textarea.autosizing {
+  resize: none;
+}
+
+
+table.template-editor td {
+  vertical-align: middle;
+  padding: 0;
+}
+
+
+table.template-editor td:first-child {
+  width: 1.5em;
+}
+
+
+table.template-editor td:first-child + td {
+  width: 3.0em;
+}
+
+
+div.template-button {
+  display: inline-block;
+  background: #ccf;
+  text-align: center;
+  vertical-align: middle;
+  width: 1.5em;
+  height: 1.5em;
+  -webkit-border-radius: 0.75em;
+  -moz-border-radius: 0.75em;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+
+
+div.template-button > div {
+  line-height: 100%;
+  margin-top: 20%;
+}
+
+
+p {
+  margin: 0.5em;
+  text-indent: 2.5em;
+}
