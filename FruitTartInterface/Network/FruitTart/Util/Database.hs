@@ -53,7 +53,7 @@ getTimestamp = liftIO getPOSIXTime >>= return . floor
 timestampToString :: Int64 -> String
 timestampToString timestamp
     = formatTime defaultTimeLocale
-                 "%Y-%m-%d %I:%M UTC"
+                 "%Y-%m-%d %H:%M UTC"
                  (posixSecondsToUTCTime $ realToFrac timestamp)
 
 
