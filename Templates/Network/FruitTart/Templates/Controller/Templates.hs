@@ -135,7 +135,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                         ++ "</td><td>"
                         ++ "<textarea class=\"code autosizing\" "
                         ++ "name=\"body" ++ (show index) ++ "\" "
-                        ++ "rows=\"" ++ (show $ rowCount body) ++ "\" cols=\"50\">"
+                        ++ "rows=\"" ++ (show $ rowCount body) ++ "\" cols=\"60\">"
                         ++ (escapeHTML body)
                         ++ "</textarea></td></tr>\n")
                $ zip bodies [1..])
@@ -160,7 +160,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
          ++ "<table><tr id=\"template-row\"><td></td><td></td><td>"
          ++ templateTypePopup
          ++ "</td><td><textarea class=\"code autosizing\" name=\"body0\" "
-         ++ "rows=\"1\" cols=\"50\"></textarea></td></tr></table>\n"
+         ++ "rows=\"1\" cols=\"60\"></textarea></td></tr></table>\n"
          ++ "<div id=\"template-button-up\" "
          ++ "class=\"template-button up\">▲</div>\n"
          ++ "<div id=\"template-button-down\" "
@@ -386,7 +386,7 @@ getInputItems
 
 
 rowCount :: String -> Int
-rowCount body = length $ split '\n' $ wordWrap body 50
+rowCount body = length $ split '\n' $ wordWrap body 60
 
 
 getTemplate :: String -> String -> FruitTart String

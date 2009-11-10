@@ -39,7 +39,7 @@ function resizeTextarea(textarea, stringTyped) {
     } else {
 	newContent = contentBefore + stringTyped + contentAfter;
     }
-    wrappedContent = wordWrap(newContent, 50);
+    wrappedContent = wordWrap(newContent, 60);
     
     var lines = wrappedContent.split('\n');
     var newHeight = lines.length;
