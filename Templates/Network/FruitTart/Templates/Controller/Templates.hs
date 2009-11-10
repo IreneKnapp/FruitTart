@@ -28,7 +28,7 @@ functionTable
 
 
 data TemplateItemType = Content
-                      | Variable
+                      | Expression
                         deriving (Eq, Show);
 
 
@@ -81,7 +81,7 @@ view templateID = do
   let items = map (\[SQLText itemTypeName, SQLText body] ->
                     let itemType = case itemTypeName of
                                      "content" -> Content
-                                     "variable" -> Variable
+                                     "expression" -> Expression
                                      _ -> Content
                     in (itemType, body))
                   sqlItems
@@ -234,7 +234,7 @@ createPOST = do
       mapM (\((itemType, body), index) -> do
               itemTypeName <- return $ case itemType of
                                 Content -> "content"
-                                Variable -> "variable"
+                                Expression -> "expression"
               query ("INSERT INTO template_items (template, item, kind, body) "
                      ++ "VALUES (?, ?, ?, ?)")
                     [SQLInteger templateID,
@@ -277,7 +277,7 @@ edit templateID = do
       mapM (\((itemType, body), index) -> do
               itemTypeName <- return $ case itemType of
                                 Content -> "content"
-                                Variable -> "variable"
+                                Expression -> "expression"
               query ("INSERT INTO template_items (template, item, kind, body) "
                      ++ "VALUES (?, ?, ?, ?)")
                     [SQLInteger templateID,
@@ -349,10 +349,10 @@ getTypePopup itemType index = do
                else "")
          ++ "value=\"content\">Content</option>"
          ++ "<option "
-         ++ (if itemType == Variable
+         ++ (if itemType == Expression
                then "selected "
                else "")
-         ++ "value=\"variable\">Variable</option>"
+         ++ "value=\"expression\">Expression</option>"
          ++ "</select>"
 
 
@@ -365,7 +365,7 @@ getInputItems
               Just itemTypeName -> do
                 let itemType = case itemTypeName of
                                  "content" -> Content
-                                 "variable" -> Variable
+                                 "expression" -> Expression
                                  _ -> Content
                 maybeBody <- getInput $ "body" ++ (show index)
                 body <- case maybeBody of
