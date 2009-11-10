@@ -178,7 +178,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
               Nothing -> ""
          ++ "<div>\n"
          ++ "<b>Module:</b> "
-         ++ "<input type=\"text\" size=\"15\" name=\"module\" value=\""
+         ++ "<input type=\"text\" size=\"25\" name=\"module\" value=\""
          ++ (escapeAttribute moduleName)
          ++ "\"/>\n"
          ++ "<b>Name:</b> "
