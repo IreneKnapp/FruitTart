@@ -81,54 +81,6 @@ input[type=text], input[type=password] {
 }
 
 
-select {
-  font-size: 150%;
-  -webkit-appearance: menulist-button;
-}
-
-
-option {
-  font-size: 150%;
-}
-
-
-button {
-  border: none;
-  height: 1.5em;
-  font-family: 'Verdana';
-  font-size: 200%;
-  padding-left: 0.5em;
-  padding-right: 0.75em;
-  -webkit-border-radius: 0.5em;
-  -moz-border-radius: 0.5em;
-  border: solid #888 1px;
-  width: 200px;
-  text-shadow: 0.1em 0.1em 0.05em #ccc;
-}
-
-
-button, select {
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 100%,
-				     from(#9c6),
-				     color-stop(50%, #fff),
-				     color-stop(51%, #9c6),
-				     color-stop(75%, #9c6),
-				     to(#463));
-  background-image: -moz-linear-gradient(0% 0%, 0% 100%,
-					 from(#9c6),
-					 color-stop(50%, #fff),
-					 color-stop(51%, #9c6),
-					 color-stop(75%, #9c6),
-					 to(#463));
-}
-
-
-button:active, select:active {
-  background-image: -webkit-gradient(linear, 0% 0%, 0% 90%, from(#6bf), to(#269));
-  background-image: -moz-linear-gradient(0% 0%, 0% 90%, from(#6bf), to(#269));
-}
-
-
 table.layout {
   margin-left: 0;
 }
