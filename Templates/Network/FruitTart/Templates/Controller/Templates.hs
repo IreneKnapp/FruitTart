@@ -72,21 +72,24 @@ view :: Int64 -> FruitTart CGIResult
 view templateID = do
   let currentPage = "/templates/view/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
-  [[SQLText moduleName, SQLText templateName]]
+  maybeNames
       <- query "SELECT module, name FROM templates WHERE id = ?"
                [SQLInteger templateID]
-  sqlItems <- query ("SELECT kind, body FROM template_items "
-                     ++ "WHERE template = ? ORDER BY item")
-                    [SQLInteger templateID]
-  let items = map (\[SQLText itemTypeName, SQLText body] ->
-                    let itemType = case itemTypeName of
-                                     "content" -> Content
-                                     "expression" -> Expression
-                                     _ -> Content
-                    in (itemType, body))
-                  sqlItems
-  outputTemplatePage currentPage targetPage Nothing (Just templateID)
-                     moduleName templateName items
+  case maybeNames of
+    [[SQLText moduleName, SQLText templateName]] -> do
+      sqlItems <- query ("SELECT kind, body FROM template_items "
+                         ++ "WHERE template = ? ORDER BY item")
+                        [SQLInteger templateID]
+      let items = map (\[SQLText itemTypeName, SQLText body] ->
+                        let itemType = case itemTypeName of
+                                         "content" -> Content
+                                         "expression" -> Expression
+                                         _ -> Content
+                        in (itemType, body))
+                      sqlItems
+      outputTemplatePage currentPage targetPage Nothing (Just templateID)
+                         moduleName templateName items
+    [] -> errorInvalidID "template"
 
 
 createGET :: FruitTart CGIResult
