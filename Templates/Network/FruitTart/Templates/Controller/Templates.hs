@@ -26,6 +26,7 @@ actionTable
                        ("create", "GET", [], [], toDyn createGET),
                        ("create", "POST", [], [], toDyn createPOST),
                        ("edit", "POST", [IDParameter], [], toDyn edit),
+                       ("copy", "GET", [IDParameter], [], toDyn copy),
                        ("delete", "GET", [IDParameter], [], toDyn deleteGET),
                        ("delete", "POST", [IDParameter], [], toDyn deletePOST)]
 
@@ -80,6 +81,30 @@ view templateID = do
                         in (itemType, body))
                       sqlItems
       outputTemplatePage currentPage targetPage Nothing (Just templateID)
+                         moduleName templateName items
+    [] -> errorInvalidID "template"
+
+
+copy :: Int64 -> FruitTart CGIResult
+copy templateID = do
+  let currentPage = "/templates/copy/" ++ (show templateID) ++ "/"
+      targetPage = "/templates/create/"
+  maybeNames
+      <- query "SELECT module, name FROM templates WHERE id = ?"
+               [SQLInteger templateID]
+  case maybeNames of
+    [[SQLText moduleName, SQLText templateName]] -> do
+      sqlItems <- query ("SELECT kind, body FROM template_items "
+                         ++ "WHERE template = ? ORDER BY item")
+                        [SQLInteger templateID]
+      let items = map (\[SQLText itemTypeName, SQLText body] ->
+                        let itemType = case itemTypeName of
+                                         "content" -> Content
+                                         "expression" -> Expression
+                                         _ -> Content
+                        in (itemType, body))
+                      sqlItems
+      outputTemplatePage currentPage targetPage Nothing Nothing
                          moduleName templateName items
     [] -> errorInvalidID "template"
 
