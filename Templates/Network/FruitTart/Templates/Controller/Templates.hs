@@ -109,7 +109,6 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  templateTypePopup <- getTypePopup Content 0
   bind "Templates.Controller.Templates" "bodies"
        $ map (\((itemType, body), index)
                   -> Map.fromList [(("Templates.Controller.Templates",
@@ -255,22 +254,6 @@ deletePOST templateID = do
   query "COMMIT" []
   setPopupMessage $ Just "Template deleted."
   seeOtherRedirect "/templates/index/"
-
-
-getTypePopup :: TemplateItemType -> Int64 -> FruitTart String
-getTypePopup itemType index = do
-  return $  "<select name=\"type" ++ (show index) ++ "\">"
-         ++ "<option "
-         ++ (if itemType == Content
-               then "selected "
-               else "")
-         ++ "value=\"content\">Content</option>"
-         ++ "<option "
-         ++ (if itemType == Expression
-               then "selected "
-               else "")
-         ++ "value=\"expression\">Expression</option>"
-         ++ "</select>"
 
 
 getInputItems :: FruitTart [(TemplateItemType, String)]
