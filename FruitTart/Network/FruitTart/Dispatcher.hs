@@ -22,12 +22,10 @@ import Network.FruitTart.Util
 
 processRequest :: ControllerTable -> FruitTart CGIResult
 processRequest dispatchTable  = do
-  fruitTartState <- get
-  liftCGI $ catchCGI (evalStateT (processRequest' dispatchTable) fruitTartState)
-                     (\e -> evalStateT (do
-                                         logCGI $ "FruitTart: " ++ show e
-                                         error500)
-                                       fruitTartState)
+  catchFruitTart (processRequest' dispatchTable)
+                 (\e -> do
+                    logCGI $ "FruitTart: " ++ show e
+                    error500)
 
 
 processRequest' :: ControllerTable -> FruitTart CGIResult
