@@ -130,7 +130,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Templates.Controller.Templates" "templateName" templateName
   pageContent <- getTemplate "Templates.Controller.Templates" "template"
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page-noscript"
+  page <- getTemplate "Templates" "pageNoScript"
   output page
 
 
