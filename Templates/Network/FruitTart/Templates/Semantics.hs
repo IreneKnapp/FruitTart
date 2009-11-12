@@ -48,9 +48,6 @@ fillTemplate moduleName templateName bindings parameters = do
                                            ++ moduleName ++ "."
                                            ++ templateName ++ ": " ++ (show e)))
        items
-       >>= (\a -> do
-              liftIO $ putStrLn $ "Filled template " ++ templateName ++ " getting " ++ (show a)
-              return a)
        >>= return . concat
 
 
