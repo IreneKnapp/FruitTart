@@ -37,6 +37,21 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateExpressionList [TemplateExpression]
                         | TemplateOperationConcatenate TemplateExpression
                                                        TemplateExpression
+                        | TemplateOperationEquals TemplateExpression
+                                                  TemplateExpression
+                        | TemplateOperationNotEquals TemplateExpression
+                                                     TemplateExpression
+                        | TemplateOperationAnd TemplateExpression TemplateExpression
+                        | TemplateOperationOr TemplateExpression TemplateExpression
+                        | TemplateOperationNot TemplateExpression
+                        | TemplateOperationGreater TemplateExpression
+                                                   TemplateExpression
+                        | TemplateOperationGreaterEquals TemplateExpression
+                                                         TemplateExpression
+                        | TemplateOperationLess TemplateExpression
+                                                TemplateExpression
+                        | TemplateOperationLessEquals TemplateExpression
+                                                      TemplateExpression
                         | TemplateFunctionCall (String, String)
                                                [TemplateExpression]
                         | TemplateVariable (String, String)
@@ -50,6 +65,15 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenRightSquareBracket
                    | TokenComma
                    | TokenPlusPlus
+                   | TokenEqualsEquals
+                   | TokenExclamationEquals
+                   | TokenExclamation
+                   | TokenAmpersandAmpersand
+                   | TokenBarBar
+                   | TokenGreaterEquals
+                   | TokenGreater
+                   | TokenLessEquals
+                   | TokenLess
                      deriving (Eq, Show)
 
 class Bindable a where

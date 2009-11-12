@@ -96,6 +96,58 @@ evalExpression moduleName templateName bindings parameters expression =
           (TemplateString aString, TemplateString bString)
               -> return $ TemplateString $ aString ++ bString
           _ -> error "Cannot concatenate non-Strings in template."
+      TemplateOperationEquals aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateEqual aValue bValue
+      TemplateOperationNotEquals aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        result <- templateEqual aValue bValue
+        templateNegate result
+      TemplateOperationNot expression -> do
+        value <- evalExpression moduleName templateName bindings parameters expression
+        templateNegate value
+      TemplateOperationAnd aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateAnd aValue bValue
+      TemplateOperationOr aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateOr aValue bValue
+      TemplateOperationGreaterEquals aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        result <- templateCompare aValue bValue
+        return $ TemplateBool $ case result of
+                                  EQ -> True
+                                  GT -> True
+                                  LT -> False
+      TemplateOperationGreater aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        result <- templateCompare aValue bValue
+        return $ TemplateBool $ case result of
+                                  EQ -> False
+                                  GT -> True
+                                  LT -> False
+      TemplateOperationLessEquals aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        result <- templateCompare aValue bValue
+        return $ TemplateBool $ case result of
+                                  EQ -> True
+                                  GT -> False
+                                  LT -> True
+      TemplateOperationLess aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        result <- templateCompare aValue bValue
+        return $ TemplateBool $ case result of
+                                  EQ -> False
+                                  GT -> False
+                                  LT -> True
       TemplateFunctionCall (_, functionName) subexpressions
           -> handleFunctionCall moduleName templateName bindings parameters
                                 functionName subexpressions
@@ -104,6 +156,35 @@ evalExpression moduleName templateName bindings parameters expression =
                Nothing -> error $ "Undefined variable " ++ packageName ++ "."
                                 ++ properName ++ " in template."
                Just value -> return value
+
+
+templateEqual :: TemplateValue -> TemplateValue -> FruitTart TemplateValue
+templateEqual (TemplateBool a) (TemplateBool b) = return $ TemplateBool $ a == b
+templateEqual (TemplateInteger a) (TemplateInteger b) = return $ TemplateBool $ a == b
+templateEqual (TemplateString a) (TemplateString b) = return $ TemplateBool $ a == b
+templateEqual _ _
+    = error $ "Template values in comparison are not the same type or "
+            ++ "are not Booleans, Integers, or Strings."
+
+
+templateNegate :: TemplateValue -> FruitTart TemplateValue
+templateNegate (TemplateBool value) = return $ TemplateBool $ not value
+templateNegate _ = error "Template value in logical operation is not a Boolean."
+
+
+templateAnd :: TemplateValue -> TemplateValue -> FruitTart TemplateValue
+templateAnd (TemplateBool a) (TemplateBool b) = return $ TemplateBool $ a && b
+templateAnd _ _ = error "Template values in logical operation are not both Booleans."
+
+
+templateOr :: TemplateValue -> TemplateValue -> FruitTart TemplateValue
+templateOr (TemplateBool a) (TemplateBool b) = return $ TemplateBool $ a || b
+templateOr _ _ = error "Template values in logical operation are not both Booleans."
+
+
+templateCompare :: TemplateValue -> TemplateValue -> FruitTart Ordering
+templateCompare (TemplateInteger a) (TemplateInteger b) = return $ compare a b
+templateCompare _ _ = error "Template values in comparison are not both Integers."
 
 
 handleFunctionCall
@@ -194,7 +275,7 @@ handleFunctionCall moduleName
                                   $ head $ drop 1 subexpressions)
                   >>= return . valueToList
           results <- mapM (\row -> do
-                             let subbindings = valueToMap row
+                             let subbindings = Map.union (valueToMap row) bindings
                              fillTemplate moduleName templateName
                                           subbindings subparameters)
                           rows
@@ -280,6 +361,12 @@ handleFunctionCall moduleName
             TemplateMaybe (Just result) -> result
             _ -> error $ "Parameter is not a Maybe in fromJust() in template "
                        ++ moduleName ++ "." ++ templateName ++ "."
+        "length" -> do
+          requireNParameters 1
+          list <- (evalExpression moduleName templateName bindings parameters
+                                  $ head subexpressions)
+                  >>= return . valueToList
+          return $ TemplateInteger $ fromIntegral $ length list
         "concat" -> do
           requireNParameters 1
           list <- (evalExpression moduleName templateName bindings parameters

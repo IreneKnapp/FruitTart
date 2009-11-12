@@ -1,8 +1,8 @@
 {
 module Network.FruitTart.Templates.Syntax (
                                            readExpression,
-					   parser,
-					   lexer
+                                           parser,
+                                           lexer
                                           )
     where
 
@@ -19,40 +19,75 @@ import Network.FruitTart.Templates.Types
 
 %token
         value       { TokenValue $$ }
-        symbol	    { TokenSymbol _ _ }
+        symbol      { TokenSymbol _ _ }
         '('         { TokenLeftParen }
         ')'         { TokenRightParen }
         '['         { TokenLeftSquareBracket }
         ']'         { TokenRightSquareBracket }
         ','         { TokenComma }
         '++'        { TokenPlusPlus }
+        '=='        { TokenEqualsEquals }
+        '!='        { TokenExclamationEquals }
+        '!'         { TokenExclamation }
+        '&&'        { TokenAmpersandAmpersand }
+        '||'        { TokenBarBar }
+	'>='	    { TokenGreaterEquals }
+	'>'	    { TokenGreater }
+	'<='	    { TokenLessEquals }
+	'<'	    { TokenLess }
 
 %%
 
-Expression      : Expression '++' Expression1
-		{ TemplateOperationConcatenate $1 $3 }
-		| Expression1
-		{ $1 }
+Expression      : Expression '&&' Expression1
+                { TemplateOperationAnd $1 $3 }
+                | Expression '||' Expression1
+                { TemplateOperationOr $1 $3 }
+                | Expression1
+                { $1 }
 
-Expression1	: symbol '(' ExpressionList ')'
-		{ TemplateFunctionCall (symbolTokenPackage $1, symbolTokenName $1)
-		                       $3 }
-		| '[' ExpressionList ']'
-		{ TemplateExpressionList $2 }
-		| value
-		{ TemplateLiteral $1 }
-		| symbol
-		{ TemplateVariable (symbolTokenPackage $1, symbolTokenName $1) }
+Expression1     : Expression1 '==' Expression2
+                { TemplateOperationEquals $1 $3 }
+                | Expression1 '!=' Expression2
+                { TemplateOperationNotEquals $1 $3 }
+                | Expression1 '>=' Expression2
+                { TemplateOperationGreaterEquals $1 $3 }
+                | Expression1 '>' Expression2
+                { TemplateOperationGreater $1 $3 }
+                | Expression1 '<=' Expression2
+                { TemplateOperationLessEquals $1 $3 }
+                | Expression1 '<' Expression2
+                { TemplateOperationLess $1 $3 }
+                | Expression2
+                { $1 }
 
-ExpressionList	: ExpressionList1
-		{ $1 }
-		|
-		{ [] }
+Expression2     : Expression2 '++' Expression3
+                { TemplateOperationConcatenate $1 $3 }
+                | Expression3
+                { $1 }
 
-ExpressionList1	: ExpressionList1 ',' Expression
-		{ $1 ++ [$3] }
-		| Expression
-		{ [$1] }
+Expression3     : symbol '(' ExpressionList ')'
+                { TemplateFunctionCall (symbolTokenPackage $1, symbolTokenName $1)
+                                       $3 }
+                | '[' ExpressionList ']'
+                { TemplateExpressionList $2 }
+                | value
+                { TemplateLiteral $1 }
+                | symbol
+                { TemplateVariable (symbolTokenPackage $1, symbolTokenName $1) }
+                | '!' Expression
+                { TemplateOperationNot $2 }
+                | '(' Expression ')'
+                { $2 }
+
+ExpressionList  : ExpressionList1
+                { $1 }
+                |
+                { [] }
+
+ExpressionList1 : ExpressionList1 ',' Expression
+                { $1 ++ [$3] }
+                | Expression
+                { [$1] }
 
 {
 
@@ -72,16 +107,26 @@ lexer defaultPackage ('[':rest) = TokenLeftSquareBracket : lexer defaultPackage 
 lexer defaultPackage (']':rest) = TokenRightSquareBracket : lexer defaultPackage rest
 lexer defaultPackage (',':rest) = TokenComma : lexer defaultPackage rest
 lexer defaultPackage ('+':('+':rest)) = TokenPlusPlus : lexer defaultPackage rest
+lexer defaultPackage ('=':('=':rest)) = TokenEqualsEquals : lexer defaultPackage rest
+lexer defaultPackage ('!':('=':rest)) = TokenExclamationEquals : lexer defaultPackage rest
+lexer defaultPackage ('!':rest) = TokenExclamation : lexer defaultPackage rest
+lexer defaultPackage ('&':('&':rest)) = TokenAmpersandAmpersand
+                                        : lexer defaultPackage rest
+lexer defaultPackage ('|':('|':rest)) = TokenBarBar : lexer defaultPackage rest
+lexer defaultPackage ('>':('=':rest)) = TokenGreaterEquals : lexer defaultPackage rest
+lexer defaultPackage ('>':rest) = TokenGreater : lexer defaultPackage rest
+lexer defaultPackage ('<':('=':rest)) = TokenLessEquals : lexer defaultPackage rest
+lexer defaultPackage ('<':rest) = TokenLess : lexer defaultPackage rest
 lexer defaultPackage all@('"':_) = let (string, rest) = readString all
-      		     		   in (TokenValue $ TemplateString string)
-				      : lexer defaultPackage rest
+                                   in (TokenValue $ TemplateString string)
+                                      : lexer defaultPackage rest
 lexer defaultPackage all@(c:_)
   | isDigit c = let [(result, rest)] = readDec all
-    	      	in (TokenValue $ TemplateInteger result) : lexer defaultPackage rest
+                in (TokenValue $ TemplateInteger result) : lexer defaultPackage rest
   | isUpper c = let (package, symbol, rest) = readSymbolWithPackage all
-    	        in (TokenSymbol package symbol) : lexer defaultPackage rest
+                in (TokenSymbol package symbol) : lexer defaultPackage rest
   | isLower c = let (symbol, rest) = readSymbolComponent all
-    	        in (TokenSymbol defaultPackage symbol) : lexer defaultPackage rest
+                in (TokenSymbol defaultPackage symbol) : lexer defaultPackage rest
   | isSpace c = lexer defaultPackage $ drop 1 all
   | otherwise = error $ "Expression-lexing error: Unexpected character '" ++ [c] ++ "'."
 
