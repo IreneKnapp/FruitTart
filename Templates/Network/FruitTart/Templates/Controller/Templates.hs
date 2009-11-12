@@ -1,11 +1,7 @@
 module Network.FruitTart.Templates.Controller.Templates (
                                                          actionTable,
                                                          functionTable,
-                                                         clearBindings,
-                                                         bindBool,
-                                                         bindInt,
-                                                         bindString,
-                                                         bindStringList,
+                                                         bind,
                                                          bindQuery,
                                                          bindQueryMultipleRows,
                                                          getTemplate
@@ -16,6 +12,7 @@ import Control.Concurrent.MVar
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Typeable
 
 import Network.FruitTart.Base
 import Network.FruitTart.PluginInterface
@@ -38,10 +35,7 @@ actionTable
 
 functionTable :: FunctionTable
 functionTable
-    = makeFunctionTable [("bindBool", toDyn bindBool),
-                         ("bindInt", toDyn bindInt),
-                         ("bindString", toDyn bindString),
-                         ("bindStringList", toDyn bindStringList),
+    = makeFunctionTable [("bind", toDyn bind),
                          ("bindQuery", toDyn bindQuery),
                          ("bindQueryMultipleRows", toDyn bindQueryMultipleRows),
                          ("getTemplate", toDyn getTemplate)]
@@ -404,51 +398,12 @@ rowCount :: String -> Int
 rowCount body = length $ split '\n' $ wordWrap body 60
 
 
-clearBindings :: FruitTart ()
-clearBindings = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
-  liftIO $ swapMVar bindingsMVar $ Map.empty
-  return ()
-
-
-bindBool :: String -> String -> Bool -> FruitTart ()
-bindBool moduleName valueName value = do
+bind :: String -> String -> AnyBindable -> FruitTart ()
+bind moduleName valueName (AnyBindable bindable) = do
   bindingsMVar <- getInterfaceStateMVar "Templates"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = Map.fromList [((moduleName, valueName), TemplateBool value)]
-      bindings' = Map.union newBindings oldBindings
-  liftIO $ putMVar bindingsMVar bindings'
-
-
-bindInt :: String -> String -> Int64 -> FruitTart ()
-bindInt moduleName valueName value = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
-  oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = Map.fromList [((moduleName, valueName), TemplateInteger value)]
-      bindings' = Map.union newBindings oldBindings
-  liftIO $ putMVar bindingsMVar bindings'
-
-
-bindString :: String -> String -> String -> FruitTart ()
-bindString moduleName valueName value = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
-  oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = Map.fromList [((moduleName, valueName), TemplateString value)]
-      bindings' = Map.union newBindings oldBindings
-  liftIO $ putMVar bindingsMVar bindings'
-
-
-bindStringList :: String -> String -> [String] -> FruitTart ()
-bindStringList moduleName valueName value = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
-  oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = Map.fromList [((moduleName, valueName),
-                                   TemplateList $ map TemplateString value)]
+  let newBindings = Map.fromList [((moduleName, valueName), toTemplate bindable)]
       bindings' = Map.union newBindings oldBindings
   liftIO $ putMVar bindingsMVar bindings'
 

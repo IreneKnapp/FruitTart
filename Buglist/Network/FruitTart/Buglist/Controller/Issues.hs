@@ -183,14 +183,14 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                                     ++ currentPathWhichPart
                                                     ++ "module:" ++ (show id) ++ "/"))
                                            modules)
-  bindString "Templates" "pageTitle" reportName
-  bindString "Templates" "pageHeadItems" pageHeadItems
-  bindString "Templates" "navigationBar" navigationBar
-  bindString "Templates" "subnavigationBar" subnavigationBar
-  bindString "Templates" "loginButton" loginButton
-  bindString "Templates" "popupMessage" popupMessage
-  bindStringList "Buglist.Controller.Issues" "statusFilterList" statusFilterList
-  bindStringList "Buglist.Controller.Issues" "modulesFilterList" modulesFilterList
+  bind "Templates" "pageTitle" reportName
+  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Templates" "navigationBar" navigationBar
+  bind "Templates" "subnavigationBar" subnavigationBar
+  bind "Templates" "loginButton" loginButton
+  bind "Templates" "popupMessage" popupMessage
+  bind "Buglist.Controller.Issues" "statusFilterList" statusFilterList
+  bind "Buglist.Controller.Issues" "modulesFilterList" modulesFilterList
   bindQueryMultipleRows "Buglist.Controller.Issues" "rows"
                    [("id", TInt),
                     ("status", TString),
@@ -232,7 +232,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                    ([] ++ whereClauseParameters)
   pageContent <- getTemplate "Buglist.Controller.Issues" "index"
-  bindString "Templates" "pageContent" pageContent
+  bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
   output page
 
@@ -677,40 +677,21 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   modulePopup <- getModulePopup $ Just moduleID
   userSelectionFormControls <- getUserSelectionFormControls fullName email
   captchaTimestamp <- generateCaptcha
-  output $ "<html><head>\n"
-         ++ "<title>Report an Issue</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>Report an Issue</h1>\n"
-         ++ "<form method=\"POST\" action=\"/issues/create/\">\n"
-         ++ case maybeWarning of
-              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
-                              ++ "</div>\n"
-              Nothing -> ""
-         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>"
-         ++ "<div><b>Summary:</b> <input type=\"text\" size=\"40\" name=\"summary\" "
-         ++ "value=\"" ++ (escapeAttribute summary) ++ "\" /></div>\n"
-         ++ "<div><b>Description:</b><br />\n"
-         ++ "<textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
-         ++ (escapeHTML comment)
-         ++ "</textarea></div>\n"
-         ++ userSelectionFormControls
-         ++ "<div><b>The letters in this image:</b> "
-         ++ "<img class=\"captcha\" src=\"/captcha/index/"
-         ++ (show captchaTimestamp) ++ "/\"/> "
-         ++ "<input type=\"text\" size=\"6\" name=\"captcha-response\" value=\"\"/>"
-         ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
-         ++ (show captchaTimestamp) ++ "\"/>"
-         ++ "</div>"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Report\">Report</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</body></html>"
+  bind "Templates" "pageTitle" "Report an Issue"
+  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Templates" "navigationBar" navigationBar
+  bind "Templates" "loginButton" loginButton
+  bind "Templates" "popupMessage" popupMessage
+  bind "Buglist.Controller.Issues" "maybeWarning" maybeWarning
+  bind "Buglist.Controller.Issues" "modulePopup" modulePopup
+  bind "Buglist.Controller.Issues" "summary" summary
+  bind "Buglist.Controller.Issues" "comment" comment
+  bind "Buglist.Controller.Issues" "userSelectionFormControls" userSelectionFormControls
+  bind "Buglist.Controller.Issues" "captchaTimestamp" captchaTimestamp
+  pageContent <- getTemplate "Buglist.Controller.Issues" "create"
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page"
+  output page
 
 
 actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart CGIResult

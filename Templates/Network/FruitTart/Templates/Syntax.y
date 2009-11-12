@@ -61,7 +61,7 @@ readExpression defaultPackage input = parser $ lexer defaultPackage input
 
 
 parseError :: [TemplateToken] -> a
-parseError _ = error "Expression-parsing error."
+parseError _ = error $ "Expression-parsing error."
 
 
 lexer :: String -> String -> [TemplateToken]

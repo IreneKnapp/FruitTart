@@ -28,5 +28,7 @@ Library
                  containers >= 0.2.0.1,
                  mtl >= 1.1.0.2,
                  
+                 cgi >= 3001.1.7.1,
+                 
                  direct-sqlite >= 1.0,
                  FruitTartInterface >= 1.0 && < 2

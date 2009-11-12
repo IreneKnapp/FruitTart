@@ -48,7 +48,8 @@ module Network.FruitTart.Util (
                                
                                -- Types
                                FruitTartState(..),
-                               FruitTart
+                               FruitTart,
+                               catchFruitTart
                               )
     where
 

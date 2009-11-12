@@ -1,10 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, TypeSynonymInstances,
+             OverlappingInstances #-}
 module Network.FruitTart.Templates.Types (
                                           TemplateItemType(..),
                                           TemplateValueType(..),
                                           TemplateValue(..),
                                           TemplateExpression(..),
-                                          TemplateToken(..)
+                                          TemplateToken(..),
+                                          Bindable(..),
+                                          AnyBindable(..)
                                          )
     where
 
@@ -48,3 +51,18 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenComma
                    | TokenPlusPlus
                      deriving (Eq, Show)
+
+class Bindable a where
+    toTemplate :: a -> TemplateValue
+data AnyBindable = forall a . Bindable a => AnyBindable a deriving (Typeable)
+instance Bindable Bool where
+    toTemplate bool = TemplateBool bool
+instance Bindable Int64 where
+    toTemplate int = TemplateInteger int
+instance Bindable String where
+    toTemplate string = TemplateString string
+instance (Bindable a) => Bindable (Maybe a) where
+    toTemplate Nothing = TemplateMaybe Nothing
+    toTemplate (Just value) = TemplateMaybe $ Just $ toTemplate value
+instance (Bindable a) => Bindable [a] where
+    toTemplate values = TemplateList $ map toTemplate values

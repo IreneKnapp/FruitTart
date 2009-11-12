@@ -2,6 +2,7 @@
 module Network.FruitTart.Util.Types where
 
 import Control.Concurrent
+import Control.OldException
 import Control.Monad.State
 import Data.ByteString
 import Data.Int
@@ -32,3 +33,19 @@ liftCGI = lift
 instance MonadCGI FruitTart where
     cgiAddHeader name value = liftCGI $ cgiAddHeader name value
     cgiGet function = liftCGI $ cgiGet function
+
+catchFruitTart :: (FruitTart a) -> (Exception -> FruitTart a) -> FruitTart a
+catchFruitTart action handler = do
+  state <- get
+  (result, state') <- liftCGI $ catchCGI (evalStateT (do
+                                                        result <- action
+                                                        state' <- get
+                                                        return (result, state'))
+                                                     state)
+                                         (\e -> (evalStateT (do
+                                                               result <- handler e
+                                                               state' <- get
+                                                               return (result, state'))
+                                                            state))
+  put state'
+  return result

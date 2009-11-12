@@ -17,10 +17,7 @@ module Network.FruitTart.Buglist.Imports (
                                           getOrCreateUserID,
                                           getCanActAsUser,
                                           TemplateValueType(..),
-                                          bindBool,
-                                          bindInt,
-                                          bindString,
-                                          bindStringList,
+                                          bind,
                                           bindQuery,
                                           bindQueryMultipleRows,
                                           getTemplate
@@ -106,25 +103,11 @@ getCanActAsUser :: Int64 -> FruitTart Bool
 getCanActAsUser
     = importFunction importFunctionTableMVar "View.Users" "getCanActAsUser"
 
-bindBool :: String -> String -> Bool -> FruitTart ()
-bindBool
-    = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindBool"
-
-bindInt :: String -> String -> Int64 -> FruitTart ()
-bindInt
-    = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindInt"
-
-bindString :: String -> String -> String -> FruitTart ()
-bindString
-    = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindString"
-
-bindStringList :: String -> String -> [String] -> FruitTart ()
-bindStringList
-    = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindStringList"
+bind :: (Bindable a) => String -> String -> a -> FruitTart ()
+bind moduleName templateName bindable
+    = (importFunction importFunctionTableMVar
+       "Templates.Controller.Templates" "bind")
+      moduleName templateName $ AnyBindable bindable
 
 bindQuery :: String -> [(String, TemplateValueType)]
           -> String -> [SQLData]

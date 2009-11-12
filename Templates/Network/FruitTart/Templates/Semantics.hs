@@ -3,9 +3,13 @@ module Network.FruitTart.Templates.Semantics (
                                              )
     where
 
+import Control.Exception
+import Control.Monad.State
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Network.CGI.Monad
+import Prelude hiding (catch)
 
 import Network.FruitTart.Base
 import Network.FruitTart.Templates.Syntax
@@ -32,9 +36,14 @@ fillTemplate moduleName templateName bindings parameters = do
                       _ -> Content
          case kind of
            Content -> return body
-           Expression -> (evalExpression moduleName templateName bindings parameters
-                                         $ readExpression moduleName body)
-                         >>= return . valueToString)
+           Expression ->
+               catchFruitTart ((evalExpression moduleName templateName
+                                               bindings parameters
+                                               $ readExpression moduleName body)
+                               >>= return . valueToString)
+                              (\e -> error $ "While parsing template "
+                                           ++ moduleName ++ "."
+                                           ++ templateName ++ ": " ++ (show e)))
        items
        >>= return . concat
 
