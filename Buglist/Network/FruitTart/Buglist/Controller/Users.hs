@@ -42,36 +42,30 @@ functionTable
 
 index :: FruitTart CGIResult
 index = do
-  rows <- query "SELECT id, full_name, email FROM buglist_users" []
+  bind "Templates" "pageTitle" "Buglist Users"
   pageHeadItems <- getPageHeadItems
+  bind "Templates" "pageHeadItems" pageHeadItems
   currentPage <- return "/users/index/"
   navigationBar <- getNavigationBar currentPage
+  bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
+  bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  output  $ "<html><head>\n"
-         ++ "<title>Buglist Users</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>Buglist Users</h1>\n"
-         ++ "<table>\n"
-         ++ "<tr><th>Full Name</th><th>Email</th></tr>\n"
-         ++ (concat $ map (\[SQLInteger id, SQLText fullName, SQLText email] ->
-                  "<tr><td><a href=\"/users/view/" ++ (show id) ++ "/\">"
-                  ++ (escapeHTML fullName) ++ "</a></td>"
-                  ++ "<td><a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
-                  ++ (escapeHTML email) ++ "</a></td></tr>\n")
-                 rows)
-         ++ "</table>\n"
-         ++ "</body></html>"
+  bind "Templates" "popupMessage" popupMessage
+  bindQueryMultipleRows "Buglist.Controller.Users" "rows"
+                        [("id", TInt),
+                         ("fullName", TString),
+                         ("email", TString)]
+                        "SELECT id, full_name, email FROM users" []
+  pageContent <- getTemplate "Buglist.Controller.Users" "index"
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page"
+  output page
 
 
 view :: Int64 -> FruitTart CGIResult
 view id = do
-  rows <- query "SELECT full_name, email FROM buglist_users WHERE id = ?"
+  rows <- query "SELECT full_name, email FROM users WHERE id = ?"
                 [SQLInteger id]
   case rows of
     [[SQLText fullName, SQLText email]]
