@@ -15,6 +15,7 @@ import Data.Dynamic
 import Data.Int
 import Data.List
 import Data.Map (Map)
+import Data.Maybe
 import qualified Data.Map as Map
 
 import Network.FruitTart.Base
@@ -79,6 +80,12 @@ view id = do
                           ++ "WHERE issues.reporter = ? "
                           ++ "ORDER BY issues.timestamp_created DESC")
                           [SQLInteger id]
+                    >>= return . map
+                                 (convertRowToBindings "Buglist.Controller.Users"
+                                                       [("timestamp", TInt),
+                                                        ("action", TString),
+                                                        ("summary", TString),
+                                                        ("id", TInt)])
        changes <- query (  "SELECT "
                         ++ "user_issue_changes.timestamp, "
                         ++ "'Edit', "
@@ -92,6 +99,12 @@ view id = do
                         ++ "WHERE users.id = ? "
                         ++ "ORDER BY user_issue_changes.timestamp DESC")
                         [SQLInteger id]
+                  >>= return . map
+                               (convertRowToBindings "Buglist.Controller.Users"
+                                                     [("timestamp", TInt),
+                                                      ("action", TString),
+                                                      ("summary", TString),
+                                                      ("id", TInt)])
        comments <- query (  "SELECT "
                          ++ "user_issue_comments.timestamp, "
                          ++ "'Comment', "
@@ -105,6 +118,12 @@ view id = do
                          ++ "WHERE users.id = ? "
                          ++ "ORDER BY user_issue_comments.timestamp DESC")
                          [SQLInteger id]
+                   >>= return . map
+                                (convertRowToBindings "Buglist.Controller.Users"
+                                                      [("timestamp", TInt),
+                                                       ("action", TString),
+                                                       ("summary", TString),
+                                                       ("id", TInt)])
        files <- query (  "SELECT "
                       ++ "user_issue_attachments.timestamp, "
                       ++ "'Attachment', "
@@ -118,42 +137,40 @@ view id = do
                       ++ "WHERE users.id = ? "
                       ++ "ORDER BY user_issue_attachments.timestamp DESC")
                       [SQLInteger id]
-       rows <- return $ mergeBy (\[SQLInteger a, _, _, _] [SQLInteger b, _, _, _]
-                                 -> case compare a b of
+                >>= return . map
+                             (convertRowToBindings "Buglist.Controller.Users"
+                                                   [("timestamp", TInt),
+                                                    ("action", TString),
+                                                    ("summary", TString),
+                                                    ("id", TInt)])
+       rows <- return $ mergeBy (\bindingsA bindingsB ->
+                                 let key = ("Buglist.Controller.Users", "timestamp")
+                                     TemplateInteger a
+                                         = fromJust $ Map.lookup key bindingsA
+                                     TemplateInteger b
+                                         = fromJust $ Map.lookup key bindingsB
+                                 in case compare a b of
                                       LT -> GT
                                       GT -> LT
                                       EQ -> EQ)
                                 [changes, files, comments, creations]
+       bind "Templates" "pageTitle" $ escapeHTML fullName
        pageHeadItems <- getPageHeadItems
+       bind "Templates" "pageHeadItems" pageHeadItems
        currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
        navigationBar <- getNavigationBar currentPage
+       bind "Templates" "navigationBar" navigationBar
        loginButton <- getLoginButton currentPage
+       bind "Templates" "loginButton" loginButton
        popupMessage <- getPopupMessage
-       output
-         $  "<html><head>\n"
-         ++ "<title>" ++ (escapeHTML fullName) ++ "</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1><a href=\"mailto:" ++ (escapeAttribute email) ++ "\">"
-         ++ (escapeHTML fullName) ++ " &lt;" ++ (escapeHTML email) ++ "&gt;</a></h1>\n"
-         ++ "<table>\n"
-         ++ "<tr><th>When</th><th>Action</th><th>Issue</th></tr>\n"
-         ++ (concat $ map (\[SQLInteger timestamp,
-                             SQLText action,
-                             SQLText summary,
-                             SQLInteger id]
-                           -> "<tr><td>" ++ (escapeHTML $ timestampToString timestamp)
-                              ++ "</td><td>" ++ (escapeHTML action)
-                              ++ "</td><td><a href=\"/issues/view/"
-                              ++ (show id) ++ "/\">" ++ (escapeHTML summary)
-                              ++ "</a></td></tr>")
-                          rows)
-         ++ "</table>\n"
-         ++ "</body></html>"
+       bind "Templates" "popupMessage" popupMessage
+       bind "Buglist.Controller.Users" "fullName" fullName
+       bind "Buglist.Controller.Users" "email" email
+       bind "Buglist.Controller.Users" "rows" rows
+       pageContent <- getTemplate "Buglist.Controller.Users" "view"
+       bind "Templates" "pageContent" pageContent
+       page <- getTemplate "Templates" "page"
+       output page
     _ -> errorInvalidID "user"
 
 
