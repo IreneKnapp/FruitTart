@@ -17,15 +17,18 @@ module Network.FruitTart.Buglist.Imports (
                                           getOrCreateUserID,
                                           getCanActAsUser,
                                           TemplateValueType(..),
+                                          TemplateValue(..),
                                           bind,
                                           bindQuery,
                                           bindQueryMultipleRows,
+                                          convertRowToBindings,
                                           getTemplate
                                          )
     where
 
 import Control.Concurrent.MVar
 import Data.Int
+import Data.Map (Map)
 import System.IO.Unsafe
 
 import Network.FruitTart.PluginInterface
@@ -122,6 +125,12 @@ bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
 bindQueryMultipleRows
     = importFunction importFunctionTableMVar
       "Templates.Controller.Templates" "bindQueryMultipleRows"
+
+convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
+                     -> Map (String, String) TemplateValue
+convertRowToBindings
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "convertRowToBindings"
 
 getTemplate :: String -> String -> FruitTart String
 getTemplate

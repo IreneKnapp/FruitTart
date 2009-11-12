@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, TypeSynonymInstances,
-             OverlappingInstances #-}
+             FlexibleInstances, OverlappingInstances #-}
 module Network.FruitTart.Templates.Types (
                                           TemplateItemType(..),
                                           TemplateValueType(..),
@@ -66,3 +66,5 @@ instance (Bindable a) => Bindable (Maybe a) where
     toTemplate (Just value) = TemplateMaybe $ Just $ toTemplate value
 instance (Bindable a) => Bindable [a] where
     toTemplate values = TemplateList $ map toTemplate values
+instance Bindable [Map (String, String) TemplateValue] where
+    toTemplate rows = TemplateList $ map TemplateMap rows

@@ -29,6 +29,9 @@ fillTemplate moduleName templateName bindings parameters = do
                   ++ "WHERE templates.module = ? AND templates.name = ? "
                   ++ "ORDER BY template_items.item")
                  [SQLText moduleName, SQLText templateName]
+  if items == []
+    then error $ "Template " ++ moduleName ++ "." ++ templateName ++ " not found."
+    else return ()
   mapM (\[SQLText kindName, SQLText body] -> do
          let kind = case kindName of
                       "content" -> Content
@@ -45,6 +48,9 @@ fillTemplate moduleName templateName bindings parameters = do
                                            ++ moduleName ++ "."
                                            ++ templateName ++ ": " ++ (show e)))
        items
+       >>= (\a -> do
+              liftIO $ putStrLn $ "Filled template " ++ templateName ++ " getting " ++ (show a)
+              return a)
        >>= return . concat
 
 
@@ -157,7 +163,7 @@ handleFunctionCall moduleName
                           then evalExpression moduleName templateName bindings parameters
                                               value
                           else case' rest
-          case' subexpressions
+          case' $ tail subexpressions
         "call" -> do
           if length subexpressions < 1
              then error $ "Invalid number of parameters to call() in template "
@@ -171,7 +177,7 @@ handleFunctionCall moduleName
                    TemplateVariable result -> return result
                    _ -> error $ "First parameter is not a variable to call() in template "
                               ++ moduleName ++ "." ++ templateName ++ "."
-          result <- fillTemplate moduleName templateName Map.empty subparameters
+          result <- fillTemplate moduleName templateName bindings subparameters
           return $ TemplateString result
         "iterate" -> do
           if length subexpressions < 2
@@ -282,7 +288,7 @@ handleFunctionCall moduleName
           list <- (evalExpression moduleName templateName bindings parameters
                                   $ head subexpressions)
                   >>= return . valueToList
-          return $ TemplateString $ concat $ map valueToString list
+          return $ TemplateList $ concat $ map valueToList list
         "intercalate" -> do
           requireNParameters 2
           string <- (evalExpression moduleName templateName bindings parameters
@@ -322,3 +328,11 @@ handleFunctionCall moduleName
                                     $ head subexpressions)
                     >>= return . valueToString
           return $ TemplateString $ escapeHTML string
+        "newlinesToParagraphs" -> do
+          requireNParameters 1
+          string <- (evalExpression moduleName templateName bindings parameters
+                                    $ head subexpressions)
+                    >>= return . valueToString
+          return $ TemplateString $ newlinesToParagraphs string
+        _ -> do
+          error $ "Invalid function name " ++ functionName ++ "() in template."

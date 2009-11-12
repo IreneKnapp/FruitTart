@@ -355,6 +355,35 @@ outputView id comment fullName email maybeWarning = do
                          ++ "WHERE issues.id = ? "
                          ++ "ORDER BY user_issue_changes.timestamp")
                         [SQLInteger $ fromIntegral id]
+                   >>= return . map
+                                (convertRowToBindings "Buglist.Controller.Issues"
+                                                      [("timestamp", TInt),
+                                                       ("fullName", TString),
+                                                       ("email", TString),
+                                                       ("type", TString),
+                                                       ("statusChanged", TBool),
+                                                       ("resolutionChanged", TBool),
+                                                       ("moduleChanged", TBool),
+                                                       ("severityChanged", TBool),
+                                                       ("priorityChanged", TBool),
+                                                       ("assigneeChanged", TBool),
+                                                       ("summaryChanged", TBool),
+                                                       ("oldStatus", TString),
+                                                       ("oldResolution", TString),
+                                                       ("oldModule", TString),
+                                                       ("oldSeverity", TString),
+                                                       ("oldPriority", TString),
+                                                       ("oldAssigneeFullName", TString),
+                                                       ("oldAssigneeEmail", TString),
+                                                       ("oldSummary", TString),
+                                                       ("newStatus", TString),
+                                                       ("newResolution", TString),
+                                                       ("newModule", TString),
+                                                       ("newSeverity", TString),
+                                                       ("newPriority", TString),
+                                                       ("newAssigneeFullName", TString),
+                                                       ("newAssigneeEmail", TString),
+                                                       ("newSummary", TString)])
        comments <- query ("SELECT "
                           ++ "user_issue_comments.timestamp, "
                           ++ "users.full_name, "
@@ -369,6 +398,13 @@ outputView id comment fullName email maybeWarning = do
                           ++ "WHERE issues.id = ? "
                           ++ "ORDER BY user_issue_comments.timestamp")
                          [SQLInteger $ fromIntegral id]
+                   >>= return . map
+                                (convertRowToBindings "Buglist.Controller.Issues"
+                                                      [("timestamp", TInt),
+                                                       ("fullName", TString),
+                                                       ("email", TString),
+                                                       ("type", TString),
+                                                       ("text", TString)])
        files <- query ("SELECT "
                        ++ "user_issue_attachments.timestamp, "
                        ++ "users.full_name, "
@@ -384,108 +420,72 @@ outputView id comment fullName email maybeWarning = do
                        ++ "WHERE issues.id = ? "
                        ++ "ORDER BY user_issue_attachments.timestamp")
                       [SQLInteger $ fromIntegral id]
-       rows <- return $ mergeBy (\(SQLInteger a:_) (SQLInteger b:_)
-                                  -> compare a b)
+                >>= return . map
+                             (convertRowToBindings "Buglist.Controller.Issues"
+                                                   [("timestamp", TInt),
+                                                    ("fullName", TString),
+                                                    ("email", TString),
+                                                    ("type", TString),
+                                                    ("filename", TString),
+                                                    ("size", TInt)])
+       rows <- return $ mergeBy (\bindingsA bindingsB ->
+                                  let key = ("Buglist.Controller.Issues", "timestamp")
+                                      TemplateInteger a
+                                          = fromJust $ Map.lookup key bindingsA
+                                      TemplateInteger b
+                                          = fromJust $ Map.lookup key bindingsB
+                                  in compare a b)
                                 [changes, comments, files]
+       bind "Buglist.Controller.Issues" "rows" rows
+       bind "Buglist.Controller.Issues" "id" id
+       bind "Buglist.Controller.Issues" "comment" comment
+       bind "Buglist.Controller.Issues" "maybeWarning" maybeWarning
+       bind "Buglist.Controller.Issues" "status" status
+       bind "Buglist.Controller.Issues" "resolution" resolution
+       bind "Buglist.Controller.Issues" "module" module'
+       bind "Buglist.Controller.Issues" "severity" severity
+       bind "Buglist.Controller.Issues" "priority" priority
+       bind "Buglist.Controller.Issues" "assigneeFullName" assigneeFullName
+       bind "Buglist.Controller.Issues" "assigneeEmail" assigneeEmail
+       bind "Buglist.Controller.Issues" "reporterFullName" reporterFullName
+       bind "Buglist.Controller.Issues" "reporterEmail" reporterEmail
+       bind "Buglist.Controller.Issues" "summary" summary
+       bind "Buglist.Controller.Issues" "timestampCreated" timestampCreated
+       bind "Buglist.Controller.Issues" "timestampModified" timestampModified
+       bind "Templates" "pageTitle"
+            $ "Issue " ++ (show id) ++ ": " ++ (escapeHTML summary)
        pageHeadItems <- getPageHeadItems
+       bind "Templates" "pageHeadItems" pageHeadItems
        currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
        navigationBar <- getNavigationBar currentPage
+       bind "Templates" "navigationBar" navigationBar
        loginButton <- getLoginButton currentPage
+       bind "Templates" "loginButton" loginButton
        popupMessage <- getPopupMessage
+       bind "Templates" "popupMessage" popupMessage
        statusPopup <- getStatusPopup $ Just statusID
+       bind "Buglist.Controller.Issues" "statusPopup" statusPopup
        resolutionPopup <- getResolutionPopup $ Just resolutionID
+       bind "Buglist.Controller.Issues" "resolutionPopup" resolutionPopup
        modulePopup <- getModulePopup $ Just moduleID
+       bind "Buglist.Controller.Issues" "modulePopup" modulePopup
        severityPopup <- getSeverityPopup $ Just severityID
+       bind "Buglist.Controller.Issues" "severityPopup" severityPopup
        priorityPopup <- getPriorityPopup $ Just priorityID
+       bind "Buglist.Controller.Issues" "priorityPopup" priorityPopup
        userSelectionFormControls <- getUserSelectionFormControls fullName email
+       bind "Buglist.Controller.Issues" "userSelectionFormControls"
+            userSelectionFormControls
        captchaTimestamp <- generateCaptcha
+       bind "Buglist.Controller.Issues" "captchaTimestamp" captchaTimestamp
        rightComment <- getRightCommentIssues
-       commentForm <- return
-         $  "<div class=\"form\">\n"
-         ++ "<a name=\"comment\"><h2>Comment on this issue?</h2></a>\n"
-         ++ "<form method=\"POST\" action=\"/issues/comment/"
-         ++ (show id) ++ "/#comment\">\n"
-         ++ case maybeWarning of
-              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
-                              ++ "</div>\n"
-              Nothing -> ""
-         ++ "<div><textarea class=\"code\" name=\"comment\" rows=\"30\" cols=\"50\">"
-         ++ (escapeHTML comment)
-         ++ "</textarea></div>\n"
-         ++ userSelectionFormControls
-         ++ "<div><b>The letters in this image:</b> "
-         ++ "<img class=\"captcha\" src=\"/captcha/index/"
-         ++ (show captchaTimestamp) ++ "/\"/> "
-         ++ "<input type=\"text\" size=\"6\" name=\"captcha-response\" value=\"\"/>"
-         ++ "<input type=\"hidden\" name=\"captcha-timestamp\" value=\""
-         ++ (show captchaTimestamp) ++ "\"/>"
-         ++ "</div>"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Comment\">Comment</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
+       bind "Buglist.Controller.Issues" "rightComment" rightComment
        rightEdit <- getRightModifyIssues
-       editForm <- return
-         $  "<div class=\"form\">\n"
-         ++ "<h2>Edit this issue?</h2>\n"
-         ++ "<form method=\"POST\" action=\"/issues/edit/" ++ (show id) ++ "/\">\n"
-         ++ "<div><b>Status:</b> " ++ statusPopup ++ "</div>\n"
-         ++ "<div><b>Resolution:</b> " ++ resolutionPopup ++ "</div>\n"
-         ++ "<div><b>Module:</b> " ++ modulePopup ++ "</div>\n"
-         ++ "<div><b>Severity:</b> " ++ severityPopup ++ "</div>\n"
-         ++ "<div><b>Priority:</b> " ++ priorityPopup ++ "</div>\n"
-         ++ "<div><b>Assignee:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"assignee-email\" value=\""
-         ++ (escapeAttribute assigneeEmail)
-         ++ "\"/></div>\n"
-         ++ "<div><b>Summary:</b> "
-         ++ "<input type=\"text\" size=\"40\" name=\"summary\" value=\""
-         ++ (escapeAttribute summary)
-         ++ "\"/></div>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Edit\">Edit</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
-       output
-         $  "<html><head>\n"
-         ++ "<title>Issue " ++ (show id) ++ ": " ++ (escapeHTML summary) ++ "</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>Issue " ++ (show id) ++ ": " ++ (escapeHTML summary) ++ "</h1>\n"
-         ++ "<table class=\"issuestatus\">\n"
-         ++ "<tr><td>"
-         ++ "<b>Status:</b> " ++ (escapeHTML status) ++ "<br />\n"
-         ++ "<b>Resolution:</b> " ++ (escapeHTML resolution) ++ "<br />\n"
-         ++ "<b>Module:</b> " ++ (escapeHTML module') ++ "<br />\n"
-         ++ "<b>Severity:</b> " ++ (escapeHTML severity) ++ "<br />\n"
-         ++ "<b>Priority:</b> " ++ (escapeHTML priority) ++ "<br />\n"
-         ++ "</td><td>"
-         ++ "<b>Assignee:</b> <a href=\"mailto:" ++ (escapeAttribute assigneeEmail)
-         ++ "\">" ++ (escapeHTML assigneeFullName) ++ " &lt;"
-         ++ (escapeHTML assigneeEmail) ++ "&gt;</a><br />\n"
-         ++ "<b>Reporter:</b> <a href=\"mailto:" ++ (escapeAttribute reporterEmail)
-         ++ "\">" ++ (escapeHTML reporterFullName) ++ " &lt;"
-         ++ (escapeHTML reporterEmail) ++ "&gt;</a><br />\n"
-         ++ "<b>Created:</b> " ++ (escapeHTML $ timestampToString timestampCreated)
-         ++ "<br />\n"
-         ++ "<b>Modified:</b> " ++ (escapeHTML $ timestampToString timestampModified)
-         ++ "<br />\n"
-         ++ "</td></tr>\n"
-         ++ "</table>\n"
-         ++ (concat $ map (\row -> viewDetail id row) rows)
-         ++ (if rightComment
-               then commentForm
-               else "")
-         ++ (if rightEdit
-               then editForm
-               else "")
-         ++ "</body></html>"
+       bind "Buglist.Controller.Issues" "rightEdit" rightEdit
+       pageContent <- getTemplate "Buglist.Controller.Issues" "view"
+       bind "Templates" "pageContent" pageContent
+       page <- getTemplate "Templates" "page"
+       output page
     _ -> errorInvalidID "issue"
 
 

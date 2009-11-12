@@ -4,6 +4,7 @@ module Network.FruitTart.Templates.Controller.Templates (
                                                          bind,
                                                          bindQuery,
                                                          bindQueryMultipleRows,
+                                                         convertRowToBindings,
                                                          getTemplate
                                                         )
     where
@@ -38,6 +39,7 @@ functionTable
     = makeFunctionTable [("bind", toDyn bind),
                          ("bindQuery", toDyn bindQuery),
                          ("bindQueryMultipleRows", toDyn bindQueryMultipleRows),
+                         ("convertRowToBindings", toDyn convertRowToBindings),
                          ("getTemplate", toDyn getTemplate)]
 
 
@@ -443,20 +445,25 @@ bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
 convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
                      -> Map (String, String) TemplateValue
 convertRowToBindings moduleName valueNamesAndTypes row
-    = Map.fromList
-      $ map (\((columnName, valueType), value) ->
-                 ((moduleName, columnName),
-                  case valueType of
-                    TBool -> case value of
-                               SQLInteger integer -> TemplateBool $ integer /= 0
-                               _ -> error "Value from query not an integer."
-                    TInt -> case value of
-                              SQLInteger integer -> TemplateInteger integer
-                              _ -> error "Value from query not an integer."
-                    TString -> case value of
-                                 SQLText string -> TemplateString string
-                                 _ -> error "Value from query not a string."))
-            $ zip valueNamesAndTypes row
+    = if length valueNamesAndTypes /= length row
+        then error $ "Provided with " ++ (show $ length valueNamesAndTypes)
+                   ++ " value names and types, but " ++ (show $ length row)
+                   ++ " values."
+        else
+           Map.fromList
+           $ map (\((columnName, valueType), value) ->
+                      ((moduleName, columnName),
+                       case valueType of
+                         TBool -> case value of
+                                    SQLInteger integer -> TemplateBool $ integer /= 0
+                                    _ -> error "Value from query not an integer."
+                         TInt -> case value of
+                                   SQLInteger integer -> TemplateInteger integer
+                                   _ -> error "Value from query not an integer."
+                         TString -> case value of
+                                      SQLText string -> TemplateString string
+                                      _ -> error "Value from query not a string."))
+                 $ zip valueNamesAndTypes row
 
 
 getTemplate :: String -> String -> FruitTart String
