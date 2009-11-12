@@ -98,110 +98,41 @@ outputTemplatePage
     -> FruitTart CGIResult
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
+  bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
   pageHeadItems <- getPageHeadItems
-  navigationBar <- getNavigationBar currentPage
-  loginButton <- getLoginButton currentPage
-  popupMessage <- getPopupMessage
-  templateTypePopup <- getTypePopup Content 0
-  bodyRows
-      <- (mapM (\((itemType, body), index) -> do
-                 typePopup <- getTypePopup itemType index
-                 return $  "<tr><td>"
-                        ++ (if index /= 1
-                              then "<div class=\"template-button up\">▲</div>"
-                              else "")
-                        ++ (if (index /= 1)
-                               && (index /= (fromIntegral $ length bodies))
-                              then "<br />"
-                              else "")
-                        ++ (if index /= (fromIntegral $ length bodies)
-                              then "<div class=\"template-button down\">▼</div>"
-                              else "")
-                        ++ "</td><td>"
-                        ++ "<div class=\"template-button add\"><b>+</b></div>"
-                        ++ (if length bodies > 1
-                              then "<div class=\"template-button remove\"><b>-</b></div>"
-                              else "")
-                        ++ "</td><td>"
-                        ++ typePopup
-                        ++ "</td><td>"
-                        ++ "<textarea class=\"code autosizing\" "
-                        ++ "name=\"body" ++ (show index) ++ "\" "
-                        ++ "rows=\"" ++ (show $ rowCount body) ++ "\" cols=\"60\">"
-                        ++ (escapeHTML body)
-                        ++ "</textarea></td></tr>\n")
-               $ zip bodies [1..])
-         >>= return . concat
-  output  $ "<html><head>\n"
-         ++ "<title>" ++ moduleName ++ "." ++ templateName ++ "</title>\n"
-         ++ pageHeadItems
+  bind "Templates" "pageHeadItems" $ pageHeadItems
          ++ "<link href=\"/css/templates.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "<script src=\"/js/templates.js\" type=\"text/ecmascript\"></script>\n"
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<noscript>\n"
-         ++ "<h1>Javascript Required</h1>\n"
-         ++ "<p>To use this page, you must have Javascript support in your browser, "
-         ++ "and it must be enabled.</p>\n"
-         ++ "</noscript>\n"
-         ++ "<div id=\"noscript\" style=\"display: none;\">\n"
-         ++ "<div id=\"templates\" style=\"display: none;\">\n"
-         ++ "<table><tr id=\"template-row\"><td></td><td></td><td>"
-         ++ templateTypePopup
-         ++ "</td><td><textarea class=\"code autosizing\" name=\"body0\" "
-         ++ "rows=\"1\" cols=\"60\"></textarea></td></tr></table>\n"
-         ++ "<div id=\"template-button-up\" "
-         ++ "class=\"template-button up\">▲</div>\n"
-         ++ "<div id=\"template-button-down\" "
-         ++ "class=\"template-button down\">▼</div>"
-         ++ "<div id=\"template-button-add\" "
-         ++ "class=\"template-button add\"><b>+</b></div>"
-         ++ "<div id=\"template-button-remove\" "
-         ++ "class=\"template-button remove\"><b>-</b></div>"
-         ++ "</div>\n"
-         ++ "<div class=\"form\">\n"
-         ++ "<h1>" ++ moduleName ++ "." ++ templateName ++ "</h1>\n"
-         ++ "<form method=\"POST\" action=\""
-         ++ targetPage
-         ++ "\">\n"
-         ++ case maybeWarning of
-              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
-                              ++ "</div>\n"
-              Nothing -> ""
-         ++ "<div>\n"
-         ++ "<b>Module:</b> "
-         ++ "<input type=\"text\" size=\"25\" name=\"module\" value=\""
-         ++ (escapeAttribute moduleName)
-         ++ "\"/>\n"
-         ++ "<b>Name:</b> "
-         ++ "<input type=\"text\" size=\"25\" name=\"name\" value=\""
-         ++ (escapeAttribute templateName)
-         ++ "\"/>\n"
-         ++ "</div>\n"
-         ++ "<table class=\"layout template-editor\">\n"
-         ++ bodyRows
-         ++ "<tr><td></td><td>"
-         ++ "<div class=\"template-button add\"><b>+</b></div>"
-         ++ "</td><td></td></tr>\n"
-         ++ "</table>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Save\">Save</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
-         ++ "</div>\n"
-         ++ (case maybeTemplateID of
-               Just templateID ->
-                    "<h1>Actions</h1>\n"
-                    ++ "<ul>\n"
-                    ++ "<li><a href=\"/templates/delete/" ++ (show templateID)
-                    ++ "/\">Delete template</a></li>\n"
-                    ++ "</ul>\n"
-               Nothing -> "")
-         ++ "</body></html>"
+  navigationBar <- getNavigationBar currentPage
+  bind "Templates" "navigationBar" navigationBar
+  loginButton <- getLoginButton currentPage
+  bind "Templates" "loginButton" loginButton
+  popupMessage <- getPopupMessage
+  bind "Templates" "popupMessage" popupMessage
+  templateTypePopup <- getTypePopup Content 0
+  bind "Templates.Controller.Templates" "bodies"
+       $ map (\((itemType, body), index)
+                  -> Map.fromList [(("Templates.Controller.Templates",
+                                     "itemType"),
+                                    TemplateString $ case itemType of
+                                                       Content -> "content"
+                                                       Expression -> "expression"),
+                                   (("Templates.Controller.Templates", "body"),
+                                    TemplateString body),
+                                   (("Templates.Controller.Templates", "rowCount"),
+                                    TemplateInteger $ fromIntegral $ findRowCount body),
+                                   (("Templates.Controller.Templates", "index"),
+                                    TemplateInteger index)])
+             $ zip bodies [1..]
+  bind "Templates.Controller.Templates" "targetPage" targetPage
+  bind "Templates.Controller.Templates" "maybeWarning" maybeWarning
+  bind "Templates.Controller.Templates" "maybeTemplateID" maybeTemplateID
+  bind "Templates.Controller.Templates" "moduleName" moduleName
+  bind "Templates.Controller.Templates" "templateName" templateName
+  pageContent <- getTemplate "Templates.Controller.Templates" "template"
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page-noscript"
+  output page
 
 
 createPOST :: FruitTart CGIResult
@@ -368,5 +299,5 @@ getInputItems
       in getInputItemsFrom 1
 
 
-rowCount :: String -> Int
-rowCount body = length $ split '\n' $ wordWrap body 60
+findRowCount :: String -> Int
+findRowCount body = length $ split '\n' $ wordWrap body 60
