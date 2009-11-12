@@ -32,4 +32,5 @@ Library
                  mtl >= 1.1.0.2,
                  
                  direct-sqlite >= 1.0,
-                 FruitTartInterface >= 1.0 && < 2
+                 FruitTartInterface >= 1.0 && < 2,
+                 FruitTart-Templates >= 1.0 && < 2

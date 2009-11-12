@@ -130,34 +130,6 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                 Nothing -> "All Modules"
                                 Just moduleName -> moduleName
   reportName <- return $ reportNamePart1 ++ " in " ++ reportNamePart2
-  values <- query ("SELECT "
-                   ++ "issues.id, "
-                   ++ "statuses.name, "
-                   ++ "resolutions.name, "
-                   ++ "modules.name, "
-                   ++ "severities.name, "
-                   ++ "priorities.name, "
-                   ++ "assignee.email, "
-                   ++ "reporter.email, "
-                   ++ "issues.summary, "
-                   ++ "issues.timestamp_created, "
-                   ++ "issues.timestamp_modified "
-                   ++ "FROM buglist_issues AS issues "
-                   ++ "INNER JOIN buglist_statuses AS statuses "
-                   ++ "ON issues.status = statuses.id "
-                   ++ "INNER JOIN buglist_resolutions AS resolutions "
-                   ++ "ON issues.resolution = resolutions.id "
-                   ++ "INNER JOIN buglist_modules AS modules "
-                   ++ "ON issues.module = modules.id "
-                   ++ "INNER JOIN buglist_severities AS severities "
-                   ++ "ON issues.severity = severities.id "
-                   ++ "INNER JOIN buglist_priorities AS priorities "
-                   ++ "ON issues.priority = priorities.id "
-                   ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
-                   ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
-                   ++ whereClause
-                   ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
-                  ([] ++ whereClauseParameters)
   pageHeadItems <- getPageHeadItems
   currentPage <- return "/issues/index/"
   navigationBar <- getNavigationBar currentPage
@@ -211,54 +183,58 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                                     ++ currentPathWhichPart
                                                     ++ "module:" ++ (show id) ++ "/"))
                                            modules)
-  output  $ "<html><head>\n"
-         ++ "<title>" ++ reportName ++ "</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ subnavigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>" ++ reportName ++ "</h1>\n"
-         ++ "<table>\n"
-         ++ "<tr><th>ID</th><th>Modified</th><th>Status</th><th>Resolution</th>"
-         ++ "<th>Module</th><th>Severity</th><th>Priority</th>"
-         ++ "<th>Summary</th></tr>\n"
-         ++ (concat $ map (\[SQLInteger id,
-                             SQLText status,
-                             SQLText resolution,
-                             SQLText module',
-                             SQLText severity,
-                             SQLText priority,
-                             SQLText assignee,
-                             SQLText reporter,
-                             SQLText summary,
-                             SQLInteger created,
-                             SQLInteger modified] ->
-                  "<tr><td><a href=\"/issues/view/" ++ (show id) ++ "/\">"
-                  ++ (show id) ++ "</a></td>"
-                  ++ "<td>" ++ (escapeHTML $ timestampToString modified) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML status) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML resolution) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML module') ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML severity) ++ "</td>"
-                  ++ "<td>" ++ (escapeHTML priority) ++ "</td>"
-                  ++ "<td><a href=\"/issues/view/" ++ (show id) ++ "/\">"
-                  ++ (escapeHTML summary) ++ "</a></td>"
-                  ++ "</tr>\n")
-                 values)
-         ++ "</table>\n"
-         ++ "<h1>Filter Options</h1>\n"
-         ++ "<ul>\n"
-         ++ "<li><b>By Status</b><ul>\n"
-         ++ (concat $ map (\item -> "<li>" ++ item ++ "</li>\n") statusFilterList)
-         ++ "</ul></li>\n"
-         ++ "<li><b>By Module</b><ul>\n"
-         ++ (concat $ map (\item -> "<li>" ++ item ++ "</li>\n") modulesFilterList)
-         ++ "</ul></li>\n"
-         ++ "</ul>\n"
-         ++ "</body></html>"
+  bindString "Templates" "pageTitle" reportName
+  bindString "Templates" "pageHeadItems" pageHeadItems
+  bindString "Templates" "navigationBar" navigationBar
+  bindString "Templates" "subnavigationBar" subnavigationBar
+  bindString "Templates" "loginButton" loginButton
+  bindString "Templates" "popupMessage" popupMessage
+  bindStringList "Buglist.Controller.Issues" "statusFilterList" statusFilterList
+  bindStringList "Buglist.Controller.Issues" "modulesFilterList" modulesFilterList
+  bindQueryMultipleRows "Buglist.Controller.Issues" "rows"
+                   [("id", TInt),
+                    ("status", TString),
+                    ("resolution", TString),
+                    ("module", TString),
+                    ("severity", TString),
+                    ("priority", TString),
+                    ("assignee", TString),
+                    ("reporter", TString),
+                    ("summary", TString),
+                    ("created", TInt),
+                    ("modified", TInt)]
+                   (  "SELECT "
+                   ++ "issues.id, "
+                   ++ "statuses.name, "
+                   ++ "resolutions.name, "
+                   ++ "modules.name, "
+                   ++ "severities.name, "
+                   ++ "priorities.name, "
+                   ++ "assignee.email, "
+                   ++ "reporter.email, "
+                   ++ "issues.summary, "
+                   ++ "issues.timestamp_created, "
+                   ++ "issues.timestamp_modified "
+                   ++ "FROM buglist_issues AS issues "
+                   ++ "INNER JOIN buglist_statuses AS statuses "
+                   ++ "ON issues.status = statuses.id "
+                   ++ "INNER JOIN buglist_resolutions AS resolutions "
+                   ++ "ON issues.resolution = resolutions.id "
+                   ++ "INNER JOIN buglist_modules AS modules "
+                   ++ "ON issues.module = modules.id "
+                   ++ "INNER JOIN buglist_severities AS severities "
+                   ++ "ON issues.severity = severities.id "
+                   ++ "INNER JOIN buglist_priorities AS priorities "
+                   ++ "ON issues.priority = priorities.id "
+                   ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
+                   ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
+                   ++ whereClause
+                   ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
+                   ([] ++ whereClauseParameters)
+  pageContent <- getTemplate "Buglist.Controller.Issues" "index"
+  bindString "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page"
+  output page
 
 
 view :: Int64 -> FruitTart CGIResult

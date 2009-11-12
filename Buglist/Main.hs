@@ -30,8 +30,10 @@ fruitTartPlugin = Interface {
                     interfaceModuleVersion = moduleVersion,
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1),
+                                              ("Templates", 1),
                                               ("Captcha", 1)],
                     interfaceInitDatabase = initDatabase,
+                    interfaceInitState = initState,
                     interfaceImportFunctionTableMVar = importFunctionTableMVar
                   }
 
@@ -375,3 +377,9 @@ initDatabase database = do
              ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
              []
   return ()
+
+
+initState :: IO Dynamic
+initState = do
+  mVar <- newEmptyMVar :: IO (MVar String)
+  return $ toDyn mVar

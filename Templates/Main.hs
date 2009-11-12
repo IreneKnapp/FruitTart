@@ -4,6 +4,8 @@ import Control.Concurrent
 import Control.Monad.State
 import Data.Dynamic
 import Data.Int
+import Data.Map (Map)
+import qualified Data.Map as Map
 import System.Environment
 import System.Exit
 import Database.SQLite3
@@ -11,6 +13,7 @@ import Database.SQLite3
 import Network.FruitTart.Templates.Imports
 import qualified Network.FruitTart.Templates.Controller.Templates
     as Controller.Templates
+import Network.FruitTart.Templates.Types
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
@@ -25,6 +28,7 @@ fruitTartPlugin = Interface {
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1)],
                     interfaceInitDatabase = initDatabase,
+                    interfaceInitState = initState,
                     interfaceImportFunctionTableMVar = importFunctionTableMVar
                   }
 
@@ -38,7 +42,7 @@ dispatchTable
 functionTable :: CombinedFunctionTable
 functionTable
     = combineFunctionTables
-      [("Templates.Controller.Issues", Controller.Templates.functionTable)]
+      [("Templates.Controller.Templates", Controller.Templates.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -80,3 +84,9 @@ initDatabase database = do
              ++ ")")
              []
   return ()
+
+
+initState :: IO Dynamic
+initState = do
+  mVar <- newMVar (Map.empty :: Map (String, String) TemplateValue)
+  return $ toDyn mVar

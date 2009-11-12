@@ -55,6 +55,7 @@ data Interface = Interface {
       interfaceModuleSchemaVersion :: Int64,
       interfacePrerequisites :: [(String, Int64)],
       interfaceInitDatabase :: Database -> IO (),
+      interfaceInitState :: IO Dynamic,
       interfaceImportFunctionTableMVar :: MVar CombinedFunctionTable
     }
 

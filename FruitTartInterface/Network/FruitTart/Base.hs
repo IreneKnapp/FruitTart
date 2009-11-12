@@ -1,4 +1,5 @@
 module Network.FruitTart.Base (
+                               getInterfaceStateMVar,
                                getInput,
                                output,
                                permanentRedirect,
@@ -16,13 +17,31 @@ module Network.FruitTart.Base (
                               )
     where
 
+import Control.Concurrent.MVar
 import Control.Monad.State
 import Data.Char
 import qualified Data.ByteString.Lazy.UTF8 as UTF8
+import Data.Dynamic
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 import Network.FastCGI hiding (getInput, output, logCGI)
 
 import Network.FruitTart.Util
+
+
+getInterfaceStateMVar :: (Typeable a) => String -> FruitTart (MVar a)
+getInterfaceStateMVar moduleName = do
+  FruitTartState { interfaceStateMVarMap = theMap } <- get
+  let maybeDynamicState = Map.lookup moduleName theMap
+  case maybeDynamicState of
+    Nothing -> error $ "No state found for module " ++ moduleName ++ "."
+    Just _ -> return ()
+  let maybeState = fromDynamic $ fromJust maybeDynamicState
+  case maybeState of
+    Nothing -> error $ "State for module "++ moduleName ++ " has an unexpected type."
+    Just _ -> return ()
+  return $ fromJust maybeState
 
 
 getInput :: String -> FruitTart (Maybe String)

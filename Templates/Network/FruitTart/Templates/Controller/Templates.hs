@@ -1,13 +1,27 @@
 module Network.FruitTart.Templates.Controller.Templates (
                                                          actionTable,
                                                          functionTable,
+                                                         clearBindings,
+                                                         bindBool,
+                                                         bindInt,
+                                                         bindString,
+                                                         bindStringList,
+                                                         bindQuery,
+                                                         bindQueryMultipleRows,
                                                          getTemplate
                                                         )
     where
 
+import Control.Concurrent.MVar
+import Control.Monad.State
+import Data.Map (Map)
+import qualified Data.Map as Map
+
 import Network.FruitTart.Base
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Templates.Imports
+import Network.FruitTart.Templates.Semantics
+import Network.FruitTart.Templates.Types
 import Network.FruitTart.Util
 
 
@@ -24,12 +38,13 @@ actionTable
 
 functionTable :: FunctionTable
 functionTable
-    = makeFunctionTable [("getTemplate", toDyn getTemplate)]
-
-
-data TemplateItemType = Content
-                      | Expression
-                        deriving (Eq, Show);
+    = makeFunctionTable [("bindBool", toDyn bindBool),
+                         ("bindInt", toDyn bindInt),
+                         ("bindString", toDyn bindString),
+                         ("bindStringList", toDyn bindStringList),
+                         ("bindQuery", toDyn bindQuery),
+                         ("bindQueryMultipleRows", toDyn bindQueryMultipleRows),
+                         ("getTemplate", toDyn getTemplate)]
 
 
 index :: FruitTart CGIResult
@@ -185,7 +200,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
          ++ (escapeAttribute moduleName)
          ++ "\"/>\n"
          ++ "<b>Name:</b> "
-         ++ "<input type=\"text\" size=\"15\" name=\"name\" value=\""
+         ++ "<input type=\"text\" size=\"25\" name=\"name\" value=\""
          ++ (escapeAttribute templateName)
          ++ "\"/>\n"
          ++ "</div>\n"
@@ -389,5 +404,109 @@ rowCount :: String -> Int
 rowCount body = length $ split '\n' $ wordWrap body 60
 
 
+clearBindings :: FruitTart ()
+clearBindings = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  liftIO $ swapMVar bindingsMVar $ Map.empty
+  return ()
+
+
+bindBool :: String -> String -> Bool -> FruitTart ()
+bindBool moduleName valueName value = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = Map.fromList [((moduleName, valueName), TemplateBool value)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindInt :: String -> String -> Int64 -> FruitTart ()
+bindInt moduleName valueName value = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = Map.fromList [((moduleName, valueName), TemplateInteger value)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindString :: String -> String -> String -> FruitTart ()
+bindString moduleName valueName value = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = Map.fromList [((moduleName, valueName), TemplateString value)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindStringList :: String -> String -> [String] -> FruitTart ()
+bindStringList moduleName valueName value = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = Map.fromList [((moduleName, valueName),
+                                   TemplateList $ map TemplateString value)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindQuery :: String -> [(String, TemplateValueType)]
+          -> String -> [SQLData] -> FruitTart ()
+bindQuery moduleName valueNamesAndTypes queryText queryValues = do
+  [row] <- query queryText queryValues
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = convertRowToBindings moduleName valueNamesAndTypes row
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
+                      -> String -> [SQLData] -> FruitTart ()
+bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
+                      queryText queryValues = do
+  rows <- query queryText queryValues
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings
+          = Map.fromList [((moduleName, overallValueName),
+                           TemplateList
+                           $ map (\row -> TemplateMap
+                                          $ convertRowToBindings moduleName
+                                                                 valueNamesAndTypes
+                                                                 row)
+                                 rows)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
+                     -> Map (String, String) TemplateValue
+convertRowToBindings moduleName valueNamesAndTypes row
+    = Map.fromList
+      $ map (\((columnName, valueType), value) ->
+                 ((moduleName, columnName),
+                  case valueType of
+                    TBool -> case value of
+                               SQLInteger integer -> TemplateBool $ integer /= 0
+                               _ -> error "Value from query not an integer."
+                    TInt -> case value of
+                              SQLInteger integer -> TemplateInteger integer
+                              _ -> error "Value from query not an integer."
+                    TString -> case value of
+                                 SQLText string -> TemplateString string
+                                 _ -> error "Value from query not a string."))
+            $ zip valueNamesAndTypes row
+
+
 getTemplate :: String -> String -> FruitTart String
-getTemplate moduleName templateName = return ""
+getTemplate moduleName templateName = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  bindings <- liftIO $ readMVar bindingsMVar
+  fillTemplate moduleName templateName bindings []

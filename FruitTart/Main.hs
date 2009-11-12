@@ -32,13 +32,12 @@ main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
   interfacesMapMVar <- newMVar $ Map.empty
-  loadInstalledModules database interfacesMapMVar
-  captchaCacheMVar <- newMVar $ Map.empty
+  interfaceStateMVarMap <- loadInstalledModules database interfacesMapMVar
   state <- return $ FruitTartState {
              database = database,
              interfacesMapMVar = interfacesMapMVar,
-             sessionID = Nothing,
-             captchaCacheMVar = captchaCacheMVar
+             interfaceStateMVarMap = interfaceStateMVarMap,
+             sessionID = Nothing
            }
   interfacesMap <- readMVar interfacesMapMVar
   combinedDispatchTable
@@ -50,7 +49,7 @@ main = do
   return ()
 
 
-loadInstalledModules :: Database -> MVar (Map String Interface) -> IO ()
+loadInstalledModules :: Database -> MVar (Map String Interface) -> IO (Map String Dynamic)
 loadInstalledModules database interfacesMapMVar = do
   initLinker
   names <- earlyQuery database "SELECT name FROM installed_modules" []
@@ -222,10 +221,12 @@ loadInstalledModules database interfacesMapMVar = do
                             moduleName
                             moduleVersion
                             (interfaceInitDatabase interface)
+          stateMVarDynamic <- interfaceInitState interface
           interfacesMap' <- return $ Map.insert moduleName interface interfacesMap
-          putMVar interfacesMapMVar interfacesMap')
+          putMVar interfacesMapMVar interfacesMap'
+          return (moduleName, stateMVarDynamic))
        loadOrder
-  return ()
+       >>= return . Map.fromList
 
 
 importFunctionTableMVar :: MVar CombinedFunctionTable
@@ -242,6 +243,7 @@ baseInterface = Interface {
                   interfaceModuleSchemaVersion = schemaVersion,
                   interfacePrerequisites = [],
                   interfaceInitDatabase = initDatabase,
+                  interfaceInitState = initState,
                   interfaceImportFunctionTableMVar = importFunctionTableMVar
                 }
 
@@ -365,3 +367,9 @@ initDatabase database = do
             ++ "SET owner_users = 1, anonymous_user = 3, nobody_user = 2")
             []
   return ()
+
+
+initState :: IO Dynamic
+initState = do
+  mVar <- newEmptyMVar :: IO (MVar String)
+  return $ toDyn mVar

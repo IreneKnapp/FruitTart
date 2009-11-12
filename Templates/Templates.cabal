@@ -16,10 +16,14 @@ description:
   edit and customize it.  It is used by most other substantial FruitTart modules.
 
 Library
-  exposed-modules: Main
+  exposed-modules: Main,
+                   Network.FruitTart.Templates.Types
   other-modules: Network.FruitTart.Templates.Controller.Templates,
-                 Network.FruitTart.Templates.Imports
+                 Network.FruitTart.Templates.Imports,
+                 Network.FruitTart.Templates.Semantics,
+                 Network.FruitTart.Templates.Syntax
   build-depends: base >= 4.1 && < 5,
+                 array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,
                  containers >= 0.2.0.1,
                  mtl >= 1.1.0.2,

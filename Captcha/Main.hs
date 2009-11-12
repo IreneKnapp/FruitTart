@@ -2,8 +2,11 @@ module Main (fruitTartPlugin) where
 
 import Control.Concurrent
 import Control.Monad.State
+import Data.ByteString
 import Data.Dynamic
 import Data.Int
+import Data.Map (Map)
+import qualified Data.Map as Map
 import System.Environment
 import System.Exit
 import Database.SQLite3
@@ -25,6 +28,7 @@ fruitTartPlugin = Interface {
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1)],
                     interfaceInitDatabase = initDatabase,
+                    interfaceInitState = initState,
                     interfaceImportFunctionTableMVar = importFunctionTableMVar
                   }
 
@@ -63,3 +67,9 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   return ()
+
+
+initState :: IO Dynamic
+initState = do
+  mVar <- newMVar (Map.empty :: Map Int64 (String, ByteString))
+  return $ toDyn mVar

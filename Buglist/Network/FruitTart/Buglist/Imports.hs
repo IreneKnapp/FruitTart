@@ -15,7 +15,15 @@ module Network.FruitTart.Buglist.Imports (
                                           getPopupMessage,
                                           setPopupMessage,
                                           getOrCreateUserID,
-                                          getCanActAsUser
+                                          getCanActAsUser,
+                                          TemplateValueType(..),
+                                          bindBool,
+                                          bindInt,
+                                          bindString,
+                                          bindStringList,
+                                          bindQuery,
+                                          bindQueryMultipleRows,
+                                          getTemplate
                                          )
     where
 
@@ -25,6 +33,7 @@ import System.IO.Unsafe
 
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
+import Network.FruitTart.Templates.Types
 
 
 importFunctionTableMVar :: MVar CombinedFunctionTable
@@ -96,3 +105,42 @@ getOrCreateUserID
 getCanActAsUser :: Int64 -> FruitTart Bool
 getCanActAsUser
     = importFunction importFunctionTableMVar "View.Users" "getCanActAsUser"
+
+bindBool :: String -> String -> Bool -> FruitTart ()
+bindBool
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindBool"
+
+bindInt :: String -> String -> Int64 -> FruitTart ()
+bindInt
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindInt"
+
+bindString :: String -> String -> String -> FruitTart ()
+bindString
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindString"
+
+bindStringList :: String -> String -> [String] -> FruitTart ()
+bindStringList
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindStringList"
+
+bindQuery :: String -> [(String, TemplateValueType)]
+          -> String -> [SQLData]
+          -> FruitTart ()
+bindQuery
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindQuery"
+
+bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
+                      -> String -> [SQLData]
+                      -> FruitTart ()
+bindQueryMultipleRows
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "bindQueryMultipleRows"
+
+getTemplate :: String -> String -> FruitTart String
+getTemplate
+    = importFunction importFunctionTableMVar
+      "Templates.Controller.Templates" "getTemplate"
