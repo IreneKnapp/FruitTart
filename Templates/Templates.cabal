@@ -21,7 +21,8 @@ Library
   other-modules: Network.FruitTart.Templates.Controller.Templates,
                  Network.FruitTart.Templates.Imports,
                  Network.FruitTart.Templates.Semantics,
-                 Network.FruitTart.Templates.Syntax
+                 Network.FruitTart.Templates.Syntax,
+                 Network.FruitTart.Templates.View.Templates
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,

@@ -14,6 +14,8 @@ import Network.FruitTart.Templates.Imports
 import qualified Network.FruitTart.Templates.Controller.Templates
     as Controller.Templates
 import Network.FruitTart.Templates.Types
+import qualified Network.FruitTart.Templates.View.Templates
+    as View.Templates
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
@@ -42,7 +44,8 @@ dispatchTable
 functionTable :: CombinedFunctionTable
 functionTable
     = combineFunctionTables
-      [("Templates.Controller.Templates", Controller.Templates.functionTable)]
+      [("Templates.Controller.Templates", Controller.Templates.functionTable),
+       ("Templates.View.Templates", View.Templates.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
