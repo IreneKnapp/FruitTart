@@ -295,34 +295,25 @@ deleteGET :: Int64 -> FruitTart CGIResult
 deleteGET templateID = do
   let currentPage = "/templates/delete/" ++ (show templateID) ++ "/"
       targetPage = "/templates/delete/" ++ (show templateID) ++ "/"
+  bind "Templates" "pageTitle" "Delete Confirmation"
   pageHeadItems <- getPageHeadItems
+  bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar currentPage
+  bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
+  bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  [[SQLText moduleName, SQLText templateName]]
-      <- query "SELECT module, name FROM templates WHERE id = ?"
-               [SQLInteger templateID]
-  output  $ "<html><head>\n"
-         ++ "<title>Delete Confirmation</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<div class=\"form mini\">\n"
-         ++ "<h2>Really delete "
-         ++ (escapeHTML moduleName) ++ "."
-         ++ (escapeHTML templateName) ++ "?</h2>\n"
-         ++ "<form method=\"POST\" action=\"" ++ targetPage ++ "\">\n"
-         ++ "<p>This action cannot be undone.</p>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button value=\"Cancel\">Cancel</button>"
-         ++ "<button type=\"submit\" value=\"Delete\">Delete</button>"
-         ++ "</div>\n"
-         ++ "</form>"
-         ++ "</div>\n"
-         ++ "</body></html>"
+  bind "Templates" "popupMessage" popupMessage
+  bindQuery "Templates.Controller.Templates"
+            [("moduleName", TString),
+             ("templateName", TString)]
+            "SELECT module, name FROM templates WHERE id = ?"
+            [SQLInteger templateID]
+  bind "Templates.Controller.Templates" "targetPage" targetPage
+  pageContent <- getTemplate "Templates.Controller.Templates" "delete"
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page"
+  output page
 
 
 deletePOST :: Int64 -> FruitTart CGIResult
