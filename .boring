@@ -55,6 +55,7 @@
 (^|/)\.lock-wscript$
 ^\.darcs-temp-mail$
 ^fruittart.db$
+^Adventure/dist($|/)
 ^Buglist/dist($|/)
 ^Captcha/dist($|/)
 ^FruitTart/dist($|/)
