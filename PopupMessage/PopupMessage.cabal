@@ -22,12 +22,8 @@ Library
   exposed-modules: Main,
                    Network.FruitTart.PopupMessage.View.PopupMessage
   build-depends: base >= 4.1 && < 5,
-                 array >= 0.2.0.0,
-                 bytestring >= 0.9.1.4,
                  containers >= 0.2.0.1,
                  mtl >= 1.1.0.2,
-                 
-                 cgi >= 3001.1.7.1,
                  
                  direct-sqlite >= 1.0,
                  FruitTartInterface >= 1.0 && < 2
