@@ -109,7 +109,7 @@ getCanActAsUser
 bind :: (Bindable a) => String -> String -> a -> FruitTart ()
 bind moduleName templateName bindable
     = (importFunction importFunctionTableMVar
-       "Templates.Controller.Templates" "bind")
+       "Templates.View.Templates" "bind")
       moduleName templateName $ AnyBindable bindable
 
 bindQuery :: String -> [(String, TemplateValueType)]
@@ -117,22 +117,22 @@ bindQuery :: String -> [(String, TemplateValueType)]
           -> FruitTart ()
 bindQuery
     = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindQuery"
+      "Templates.View.Templates" "bindQuery"
 
 bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
                       -> String -> [SQLData]
                       -> FruitTart ()
 bindQueryMultipleRows
     = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "bindQueryMultipleRows"
+      "Templates.View.Templates" "bindQueryMultipleRows"
 
 convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
                      -> Map (String, String) TemplateValue
 convertRowToBindings
     = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "convertRowToBindings"
+      "Templates.View.Templates" "convertRowToBindings"
 
 getTemplate :: String -> String -> FruitTart String
 getTemplate
     = importFunction importFunctionTableMVar
-      "Templates.Controller.Templates" "getTemplate"
+      "Templates.View.Templates" "getTemplate"
