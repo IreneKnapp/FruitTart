@@ -72,7 +72,13 @@ makeActionTable allActions
                         -> (method, (parameters, namedParameters, function)))
                        actionsWithName))
             $ groupBy (\(nameA, _, _, _, _) (nameB, _, _, _, _) -> nameA == nameB)
-                      allActions
+                      $ sortBy (\(nameA, methodA, _, _, _) (nameB, methodB, _, _, _)
+                                -> let compareNames = compare nameA nameB
+                                       compareMethods = compare methodA methodB
+                                   in if compareNames == EQ
+                                        then compareMethods
+                                        else compareNames)
+                               allActions
 
 
 makeFunctionTable :: [(String, Dynamic)] -> FunctionTable
