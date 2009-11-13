@@ -7,14 +7,9 @@ module Network.FruitTart.PluginInterface
      ActionTable,
      ControllerTable,
      ParameterType(..),
-     FunctionTable,
-     CombinedFunctionTable,
      Interface(..),
      makeActionTable,
-     makeFunctionTable,
-     combineActionTables,
-     combineFunctionTables,
-     importFunction
+     combineActionTables
     )
     where
 
@@ -42,21 +37,16 @@ data ParameterType = IDParameter
                    | EitherStringIDParameter
                      deriving (Eq)
 
-type FunctionTable = Map String Dynamic
-type CombinedFunctionTable = Map (String, String) Dynamic
-
 
 data Interface = Interface {
       interfaceVersion :: Integer,
       interfaceDispatchTable :: ControllerTable,
-      interfaceFunctionTable :: CombinedFunctionTable,
       interfaceModuleName :: String,
       interfaceModuleVersion :: Int64,
       interfaceModuleSchemaVersion :: Int64,
       interfacePrerequisites :: [(String, Int64)],
       interfaceInitDatabase :: Database -> IO (),
-      interfaceInitState :: IO Dynamic,
-      interfaceImportFunctionTableMVar :: MVar CombinedFunctionTable
+      interfaceInitState :: IO Dynamic
     }
 
 
@@ -81,36 +71,5 @@ makeActionTable allActions
                                allActions
 
 
-makeFunctionTable :: [(String, Dynamic)] -> FunctionTable
-makeFunctionTable = Map.fromList
-
-
 combineActionTables :: [(String, ActionTable)] -> ControllerTable
 combineActionTables = Map.fromList
-
-
-combineFunctionTables :: [(String, FunctionTable)] -> CombinedFunctionTable
-combineFunctionTables functionTables
-    = Map.fromList
-      $ concat
-      $ map (\(moduleName, table)
-             -> map (\(functionName, function)
-                     -> ((moduleName, functionName), function))
-                    $ Map.toList table)
-            functionTables
-
-
-importFunction :: (Typeable a) => (MVar CombinedFunctionTable) -> String -> String -> a
-importFunction functionTableMVar moduleName functionName
-    = unsafePerformIO $ do
-        functionTable <- readMVar functionTableMVar
-        maybeDynamicFunction
-            <- return $ Map.lookup (moduleName, functionName) functionTable
-        case maybeDynamicFunction of
-          Nothing -> error $ "The function " ++ functionName
-                     ++ " was not found in the module " ++ moduleName ++ "."
-          Just dynamicFunction -> do
-            case fromDynamic dynamicFunction of
-              Nothing -> error $ "The function " ++ moduleName ++ "." ++ functionName
-                               ++ " did not have the expected type signature."
-              Just function -> return function
