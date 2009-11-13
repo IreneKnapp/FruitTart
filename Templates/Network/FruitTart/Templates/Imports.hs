@@ -10,8 +10,6 @@ module Network.FruitTart.Templates.Imports (
                                             privacyNote,
                                             getDefaultPage,
                                             getNavigationBar,
-                                            getPopupMessage,
-                                            setPopupMessage,
                                             getOrCreateUserID,
                                             getCanActAsUser
                                            )
@@ -68,14 +66,6 @@ getDefaultPage
 getNavigationBar :: String -> FruitTart String
 getNavigationBar
     = importFunction importFunctionTableMVar "View.Navigation" "getNavigationBar"
-
-getPopupMessage :: FruitTart String
-getPopupMessage
-    = importFunction importFunctionTableMVar "View.PopupMessage" "getPopupMessage"
-
-setPopupMessage :: Maybe String -> FruitTart ()
-setPopupMessage
-    = importFunction importFunctionTableMVar "View.PopupMessage" "setPopupMessage"
 
 getOrCreateUserID :: String -> String -> FruitTart Int64
 getOrCreateUserID

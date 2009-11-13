@@ -348,33 +348,22 @@ initDatabase database = do
              ++ ")")
              []
   earlyQuery database
-             (  "CREATE TABLE buglist_navigation_items (\n"
-             ++ "id INTEGER PRIMARY KEY,\n"
-             ++ "name TEXT,\n"
-             ++ "link TEXT,\n"
-             ++ "within_buglist_tree INTEGER,\n"
-             ++ "separator INTEGER,\n"
-             ++ "always_enabled INTEGER,\n"
-             ++ "class TEXT\n"
-             ++ ")")
-             []
-  earlyQuery database
-             (  "INSERT INTO buglist_navigation_items "
+             (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
              ++ "always_enabled, class) "
-             ++ "VALUES (1, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
+             ++ "VALUES (101, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
              []
   earlyQuery database
-             (  "INSERT INTO buglist_navigation_items "
+             (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
              ++ "always_enabled, class) "
-             ++ "VALUES (2, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
+             ++ "VALUES (102, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
              []
   earlyQuery database
-             (  "INSERT INTO buglist_navigation_items "
+             (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
              ++ "always_enabled, class) "
-             ++ "VALUES (3, 'User List', '/users/index/', 1, 0, 0, NULL)")
+             ++ "VALUES (103, 'User List', '/users/index/', 1, 0, 0, NULL)")
              []
   return ()
 

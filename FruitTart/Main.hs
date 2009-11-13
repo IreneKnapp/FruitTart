@@ -261,7 +261,6 @@ functionTable
        ("View.Login", View.Login.functionTable),
        ("View.Misc", View.Misc.functionTable),
        ("View.Navigation", View.Navigation.functionTable),
-       ("View.PopupMessage", View.PopupMessage.functionTable),
        ("View.Users", View.Users.functionTable)]
 
 

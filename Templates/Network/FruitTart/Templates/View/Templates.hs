@@ -1,5 +1,6 @@
 module Network.FruitTart.Templates.View.Templates (
                                                    functionTable,
+                                                   unbind,
                                                    bind,
                                                    bindQuery,
                                                    bindQueryMultipleRows,
@@ -28,6 +29,7 @@ functionTable
                          ("bindQuery", toDyn bindQuery),
                          ("bindQueryMultipleRows", toDyn bindQueryMultipleRows),
                          ("convertRowToBindings", toDyn convertRowToBindings),
+                         ("unbind", toDyn unbind),
                          ("getTemplate", toDyn getTemplate)]
 
 
@@ -99,6 +101,15 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                       SQLText string -> TemplateString string
                                       _ -> error "Value from query not a string."))
                  $ zip valueNamesAndTypes row
+
+
+unbind :: String -> String -> FruitTart ()
+unbind moduleName valueName = do
+  bindingsMVar <- getInterfaceStateMVar "Templates"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let bindings' = Map.delete (moduleName, valueName) oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
 
 
 getTemplate :: String -> String -> FruitTart String

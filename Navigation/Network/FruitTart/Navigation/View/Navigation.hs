@@ -1,16 +1,9 @@
-module Network.FruitTart.View.Navigation (functionTable,
-                                          getDefaultPage,
-                                          getNavigationBar)
+module Network.FruitTart.Navigation.View.Navigation (getDefaultPage,
+                                                     getNavigationBar)
     where
 
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getDefaultPage", toDyn getDefaultPage),
-                         ("getNavigationBar", toDyn getNavigationBar)]
 
 
 getDefaultPage :: FruitTart String
