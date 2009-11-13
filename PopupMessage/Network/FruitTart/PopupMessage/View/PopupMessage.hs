@@ -1,16 +1,9 @@
-module Network.FruitTart.View.PopupMessage (functionTable,
-                                            setPopupMessage,
-                                            getPopupMessage) where
+module Network.FruitTart.PopupMessage.View.PopupMessage (setPopupMessage,
+                                                        getPopupMessage) where
 
 import Network.FruitTart.Base
 import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getPopupMessage", toDyn getPopupMessage),
-                         ("setPopupMessage", toDyn setPopupMessage)]
 
 
 setPopupMessage :: Maybe String -> FruitTart ()
