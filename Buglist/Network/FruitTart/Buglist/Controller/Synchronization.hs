@@ -1,5 +1,4 @@
-module Network.FruitTart.Buglist.Controller.Synchronization (actionTable,
-                                                             functionTable)
+module Network.FruitTart.Buglist.Controller.Synchronization (actionTable)
     where
 
 import Control.Concurrent
@@ -14,10 +13,9 @@ import Data.Int
 import Data.List
 
 import Network.FruitTart.Base
-import Network.FruitTart.Buglist.Controller.Users hiding (actionTable, functionTable)
-import Network.FruitTart.Buglist.Imports
-import Network.FruitTart.PluginInterface
+import Network.FruitTart.Buglist.Controller.Users hiding (actionTable)
 import Network.FruitTart.Util
+import Network.FruitTart.Base.View.Navigation
 
 
 actionTable :: ActionTable
@@ -44,11 +42,6 @@ actionTable
                        ("user-issue-attachment", "POST",
                         [IDParameter, IDParameter, IDParameter], [],
                         toDyn userIssueAttachmentPOST)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable []
 
 
 now :: FruitTart CGIResult

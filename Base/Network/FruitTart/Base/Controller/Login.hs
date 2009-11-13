@@ -1,8 +1,4 @@
-module Network.FruitTart.Controller.Login (actionTable,
-                                           functionTable,
-                                           getLoggedInUserID,
-                                           getEffectiveUserID,
-                                           outputMustLoginPage)
+module Network.FruitTart.Base.Controller.Login (actionTable)
     where
 
 import Control.Concurrent
@@ -16,12 +12,11 @@ import Data.Int
 import Data.List
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-import Network.FruitTart.View.Login hiding (functionTable)
-import Network.FruitTart.View.Misc hiding (functionTable)
-import Network.FruitTart.View.Navigation hiding (functionTable)
-import Network.FruitTart.View.PopupMessage hiding (functionTable)
+import Network.FruitTart.Base.View.Login
+import Network.FruitTart.Base.View.Navigation
+import Network.FruitTart.Base.View.PopupMessage
+import Network.FruitTart.Base.View.Templates
 
 
 actionTable :: ActionTable
@@ -33,27 +28,6 @@ actionTable
                        ("account", "POST", [], [], toDyn accountPOST),
                        ("password", "GET", [], [], toDyn passwordGET),
                        ("password", "POST", [], [], toDyn passwordPOST)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getLoggedInUserID", toDyn getLoggedInUserID),
-                         ("getEffectiveUserID", toDyn getEffectiveUserID),
-                         ("outputMustLoginPage", toDyn outputMustLoginPage)]
-
-
-outputMustLoginPage :: String -> FruitTart CGIResult
-outputMustLoginPage currentPage = do
-  pageHeadItems <- getPageHeadItems
-  navigationBar <- getNavigationBar currentPage
-  output $ "<html><head>\n"
-         ++ "<title>Buglist Users</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ "<h1>You must log in to access this page.</h1>\n"
-         ++ "</body></html>"
 
 
 loginGET :: FruitTart CGIResult
@@ -300,24 +274,3 @@ getReferrer = do
                 case maybeHTTPReferrer of
                   Just referrer -> return referrer
                   Nothing -> getDefaultPage
-
-
-getLoggedInUserID :: FruitTart (Maybe Int64)
-getLoggedInUserID = do
-  sessionID <- getSessionID
-  [[maybeUserID]] <- query "SELECT logged_in_user FROM sessions WHERE id = ?"
-                           [SQLInteger sessionID]
-  return $ case maybeUserID of
-             SQLNull -> Nothing
-             SQLInteger userID -> Just userID
-
-
-getEffectiveUserID :: FruitTart Int64
-getEffectiveUserID = do
-  maybeUserID <- getLoggedInUserID
-  case maybeUserID of
-    Just userID -> return userID
-    Nothing -> do
-      [[SQLInteger anonymousID]] <- query "SELECT anonymous_user FROM settings LIMIT 1"
-                                          []
-      return anonymousID

@@ -24,7 +24,6 @@ Library
   other-modules: Network.FruitTart.Buglist.Controller.Issues,
                  Network.FruitTart.Buglist.Controller.Synchronization,
                  Network.FruitTart.Buglist.Controller.Users,
-                 Network.FruitTart.Buglist.Imports,
                  Network.FruitTart.Buglist.View.Navigation
   build-depends: base >= 4.1 && < 5,
                  bytestring >= 0.9.1.4,
@@ -33,4 +32,5 @@ Library
                  
                  direct-sqlite >= 1.0,
                  FruitTartInterface >= 1.0 && < 2,
-                 FruitTart-Templates >= 1.0 && < 2
+                 FruitTart-Base >= 1.0 && < 2,
+                 FruitTart-Captcha >= 1.0 && < 2

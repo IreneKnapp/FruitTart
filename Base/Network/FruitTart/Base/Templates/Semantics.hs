@@ -1,6 +1,6 @@
-module Network.FruitTart.Templates.Semantics (
-                                              fillTemplate
-                                             )
+module Network.FruitTart.Base.Templates.Semantics (
+                                                   fillTemplate
+                                                  )
     where
 
 import Control.Exception
@@ -12,8 +12,8 @@ import Network.CGI.Monad
 import Prelude hiding (catch)
 
 import Network.FruitTart.Base
-import Network.FruitTart.Templates.Syntax
-import Network.FruitTart.Templates.Types
+import Network.FruitTart.Base.Templates.Syntax
+import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 

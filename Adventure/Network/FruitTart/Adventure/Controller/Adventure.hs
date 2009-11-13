@@ -1,6 +1,5 @@
 module Network.FruitTart.Adventure.Controller.Adventure (
                                                          actionTable,
-                                                         functionTable,
                                                          getRightEdit
                                                         )
     where
@@ -13,11 +12,11 @@ import Data.Maybe
 import qualified Data.Map as Map
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-import Network.FruitTart.Adventure.Imports
-import Network.FruitTart.Templates.Types
-import Network.FruitTart.Templates.View.Templates hiding (functionTable)
+import Network.FruitTart.Base.View.Login
+import Network.FruitTart.Base.View.Navigation
+import Network.FruitTart.Base.View.PopupMessage
+import Network.FruitTart.Base.View.Templates
 
 
 actionTable :: ActionTable
@@ -34,11 +33,6 @@ actionTable
                         toDyn editVariablePOST),
                        ("create-node", "POST", [], [], toDyn createNodePOST),
                        ("create-variable", "POST", [], [], toDyn createVariablePOST)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getRightEdit", toDyn getRightEdit)]
 
 
 index :: FruitTart CGIResult

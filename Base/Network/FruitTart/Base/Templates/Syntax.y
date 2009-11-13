@@ -1,15 +1,15 @@
 {
-module Network.FruitTart.Templates.Syntax (
-                                           readExpression,
-                                           parser,
-                                           lexer
-                                          )
+module Network.FruitTart.Base.Templates.Syntax (
+						readExpression,
+						parser,
+						lexer
+						)
     where
 
 import Data.Char
 import Numeric
 
-import Network.FruitTart.Templates.Types
+import Network.FruitTart.Base.Templates.Types
 
 }
 

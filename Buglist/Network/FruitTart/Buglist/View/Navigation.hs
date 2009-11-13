@@ -1,14 +1,7 @@
-module Network.FruitTart.Buglist.View.Navigation (functionTable,
-                                                  getSubnavigationBar)
+module Network.FruitTart.Buglist.View.Navigation (getSubnavigationBar)
     where
 
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("subnavigationBar", toDyn getSubnavigationBar)]
 
 
 getSubnavigationBar :: String -> [Maybe (String, String)] -> FruitTart String

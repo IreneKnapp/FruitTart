@@ -10,8 +10,11 @@ import System.Environment
 import System.Exit
 import Database.SQLite3
 
-import Network.FruitTart.PluginInterface
+import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
+import qualified Network.FruitTart.Base.Controller.Login as Controller.Login
+import qualified Network.FruitTart.Base.Controller.Templates as Controller.Templates
+import qualified Network.FruitTart.Base.View.Templates as View.Templates
 
 
 fruitTartPlugin :: Interface
@@ -23,13 +26,16 @@ fruitTartPlugin = Interface {
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState
+                    interfaceInitState = initState,
+                    interfaceInitRequest = initRequest
                   }
 
 
 dispatchTable :: ControllerTable
 dispatchTable
-    = combineActionTables []
+    = combineActionTables
+      [("login", Controller.Login.actionTable),
+       ("templates", Controller.Templates.actionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -37,7 +43,7 @@ fruitTartSchemaVersion = 1
 
 
 moduleName :: String
-moduleName = "Navigation"
+moduleName = "Base"
 
 
 moduleVersion :: Int64
@@ -54,14 +60,20 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
-             (  "CREATE TABLE navigation_items (\n"
-             ++ "id INTEGER PRIMARY KEY,\n"
+             (  "CREATE TABLE templates (\n"
+             ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+             ++ "module TEXT,\n"
              ++ "name TEXT,\n"
-             ++ "link TEXT,\n"
-             ++ "within_managed_tree INTEGER,\n"
-             ++ "separator INTEGER,\n"
-             ++ "always_enabled INTEGER,\n"
-             ++ "class TEXT\n"
+             ++ "CONSTRAINT key UNIQUE (module, name)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE template_items (\n"
+             ++ "template INTEGER,\n"
+             ++ "item INTEGER,\n"
+             ++ "kind TEXT,\n"
+             ++ "body TEXT,\n"
+             ++ "CONSTRAINT key PRIMARY KEY (template, item)\n"
              ++ ")")
              []
   return ()
@@ -69,5 +81,10 @@ initDatabase database = do
 
 initState :: IO Dynamic
 initState = do
-  mVar <- newEmptyMVar :: IO (MVar String)
+  mVar <- newMVar (Map.empty :: Map (String, String) TemplateValue)
   return $ toDyn mVar
+
+
+initRequest :: FruitTart ()
+initRequest = do
+  View.Templates.clearBindings

@@ -1,7 +1,6 @@
-module Network.FruitTart.Templates.Controller.Templates (
-                                                         actionTable,
-                                                         functionTable
-                                                        )
+module Network.FruitTart.Base.Controller.Templates (
+                                                    actionTable,
+                                                   )
     where
 
 import Control.Concurrent.MVar
@@ -11,11 +10,12 @@ import qualified Data.Map as Map
 import Data.Typeable
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
-import Network.FruitTart.Templates.Imports
-import Network.FruitTart.Templates.Semantics
-import Network.FruitTart.Templates.Types
-import Network.FruitTart.Templates.View.Templates hiding (functionTable)
+import Network.FruitTart.Base.Templates.Semantics
+import Network.FruitTart.Base.Templates.Types
+import Network.FruitTart.Base.View.Login
+import Network.FruitTart.Base.View.Navigation
+import Network.FruitTart.Base.View.PopupMessage
+import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Util
 
 
@@ -29,11 +29,6 @@ actionTable
                        ("copy", "GET", [IDParameter], [], toDyn copy),
                        ("delete", "GET", [IDParameter], [], toDyn deleteGET),
                        ("delete", "POST", [IDParameter], [], toDyn deletePOST)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable []
 
 
 index :: FruitTart CGIResult

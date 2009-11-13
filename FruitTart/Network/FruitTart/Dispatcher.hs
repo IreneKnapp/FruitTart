@@ -16,7 +16,6 @@ import System.Time
 
 import qualified Database.SQLite3 as SQL
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
@@ -31,6 +30,7 @@ processRequest dispatchTable  = do
 processRequest' :: ControllerTable -> FruitTart CGIResult
 processRequest' dispatchTable = do
   initializeSession
+  callModuleInitRequestMethods
   setHeader "Content-Type" "text/html; charset=UTF8"
   url <- queryString
   (controllerName, actionName, urlParameters, namedParameters)
@@ -224,3 +224,12 @@ generateSessionID = do
          ++ "VALUES (?, ?, NULL)")
         [SQLInteger sessionID, SQLInteger timestamp]
   return sessionID
+
+
+callModuleInitRequestMethods :: FruitTart ()
+callModuleInitRequestMethods = do
+  FruitTartState { interfacesMapMVar = interfacesMapMVar } <- get
+  interfacesMap <- liftIO $ readMVar interfacesMapMVar
+  mapM (\interface -> interfaceInitRequest interface)
+       $ Map.elems interfacesMap
+  return ()

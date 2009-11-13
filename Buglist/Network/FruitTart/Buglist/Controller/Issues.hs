@@ -1,6 +1,5 @@
 module Network.FruitTart.Buglist.Controller.Issues (
                                                     actionTable,
-                                                    functionTable,
                                                     getStatusPopup,
                                                     getResolutionPopup,
                                                     getModulePopup,
@@ -17,11 +16,14 @@ import qualified Data.Map as Map
 import Data.Maybe
 
 import Network.FruitTart.Base
-import Network.FruitTart.Buglist.Controller.Users hiding (actionTable, functionTable)
-import Network.FruitTart.Buglist.Imports
-import Network.FruitTart.Buglist.View.Navigation hiding (functionTable)
-import Network.FruitTart.PluginInterface
+import Network.FruitTart.Buglist.Controller.Users hiding (actionTable)
+import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
+import Network.FruitTart.Base.View.Navigation
+import Network.FruitTart.Base.View.Login
+import Network.FruitTart.Base.View.PopupMessage
+import Network.FruitTart.Base.View.Templates
+import Network.FruitTart.Captcha.Controller.Captcha hiding (actionTable)
 
 
 actionTable :: ActionTable
@@ -35,15 +37,6 @@ actionTable
                        ("create", "POST", [], [], toDyn createPOST),
                        ("comment", "POST", [IDParameter], [], toDyn comment),
                        ("edit", "POST", [IDParameter], [], toDyn edit)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getStatusPopup", toDyn getStatusPopup),
-                         ("getResolutionPopup", toDyn getResolutionPopup),
-                         ("getModulePopup", toDyn getModulePopup),
-                         ("getSeverityPopup", toDyn getSeverityPopup),
-                         ("getPriorityPopup", toDyn getPriorityPopup)]
 
 
 index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult

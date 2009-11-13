@@ -11,10 +11,8 @@ import System.Environment
 import System.Exit
 import Database.SQLite3
 
-import Network.FruitTart.Captcha.Imports
 import qualified Network.FruitTart.Captcha.Controller.Captcha
     as Controller.Captcha
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
@@ -22,14 +20,13 @@ fruitTartPlugin :: Interface
 fruitTartPlugin = Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
-                    interfaceFunctionTable = functionTable,
                     interfaceModuleName = moduleName,
                     interfaceModuleVersion = moduleVersion,
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
-                    interfacePrerequisites = [("FruitTart", 1)],
+                    interfacePrerequisites = [("Base", 1)],
                     interfaceInitDatabase = initDatabase,
                     interfaceInitState = initState,
-                    interfaceImportFunctionTableMVar = importFunctionTableMVar
+                    interfaceInitRequest = initRequest
                   }
 
 
@@ -37,12 +34,6 @@ dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
       [("captcha", Controller.Captcha.actionTable)]
-
-
-functionTable :: CombinedFunctionTable
-functionTable
-    = combineFunctionTables
-      [("Captcha.Controller.Captcha", Controller.Captcha.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -73,3 +64,7 @@ initState :: IO Dynamic
 initState = do
   mVar <- newMVar (Map.empty :: Map Int64 (String, ByteString))
   return $ toDyn mVar
+
+
+initRequest :: FruitTart ()
+initRequest = return ()

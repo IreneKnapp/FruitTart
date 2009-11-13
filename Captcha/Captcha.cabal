@@ -17,9 +17,9 @@ description:
   automated program.
 
 Library
-  exposed-modules: Main
-  other-modules: Network.FruitTart.Captcha.Controller.Captcha,
-                 Network.FruitTart.Captcha.Imports
+  exposed-modules: Main,
+                   Network.FruitTart.Captcha.Controller.Captcha
+  other-modules:
   build-depends: base >= 4.1 && < 5,
                  bytestring >= 0.9.1.4,
                  containers >= 0.2.0.1,

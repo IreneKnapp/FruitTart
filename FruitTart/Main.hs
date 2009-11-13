@@ -16,15 +16,8 @@ import System.IO.Unsafe
 import System.Plugins
 
 import Database.SQLite3
-import Network.FruitTart.PluginInterface as PluginInterface
 import Network.FruitTart.Util
-import qualified Network.FruitTart.Controller.Login as Controller.Login
 import qualified Network.FruitTart.Dispatcher as Dispatcher
-import qualified Network.FruitTart.View.Login as View.Login
-import qualified Network.FruitTart.View.Misc as View.Misc
-import qualified Network.FruitTart.View.Navigation as View.Navigation
-import qualified Network.FruitTart.View.PopupMessage as View.PopupMessage
-import qualified Network.FruitTart.View.Users as View.Users
 
 
 main :: IO ()
@@ -210,13 +203,6 @@ loadInstalledModules database interfacesMapMVar = do
   mapM (\moduleToLoad@(moduleName, moduleVersion) -> do
           interfacesMap <- takeMVar interfacesMapMVar
           let interface = fromJust $ Map.lookup moduleToLoad availableModuleMap
-              prerequisiteFunctionTables
-                  = map interfaceFunctionTable
-                        $ map (\(name, _) -> fromJust $ Map.lookup name interfacesMap)
-                              $ interfacePrerequisites interface
-              importFunctionTable
-                  = Map.fromList $ concat $ map Map.toList prerequisiteFunctionTables
-          putMVar (interfaceImportFunctionTableMVar interface) importFunctionTable
           maybeInitDatabase database
                             moduleName
                             moduleVersion
@@ -229,39 +215,23 @@ loadInstalledModules database interfacesMapMVar = do
        >>= return . Map.fromList
 
 
-importFunctionTableMVar :: MVar CombinedFunctionTable
-importFunctionTableMVar = unsafePerformIO newEmptyMVar
-
-
 baseInterface :: Interface
 baseInterface = Interface {
                   interfaceVersion = 1,
                   interfaceDispatchTable = dispatchTable,
-                  interfaceFunctionTable = functionTable,
                   interfaceModuleName = "FruitTart",
                   interfaceModuleVersion = moduleVersion,
                   interfaceModuleSchemaVersion = schemaVersion,
                   interfacePrerequisites = [],
                   interfaceInitDatabase = initDatabase,
                   interfaceInitState = initState,
-                  interfaceImportFunctionTableMVar = importFunctionTableMVar
+                  interfaceInitRequest = initRequest
                 }
 
 
 dispatchTable :: ControllerTable
 dispatchTable
-    = combineActionTables
-      [("login", Controller.Login.actionTable)]
-
-
-functionTable :: CombinedFunctionTable
-functionTable
-    = combineFunctionTables
-      [("Controller.Login", Controller.Login.functionTable),
-       ("View.Login", View.Login.functionTable),
-       ("View.Misc", View.Misc.functionTable),
-       ("View.Navigation", View.Navigation.functionTable),
-       ("View.Users", View.Users.functionTable)]
+    = combineActionTables []
 
 
 moduleVersion :: Int64
@@ -372,3 +342,7 @@ initState :: IO Dynamic
 initState = do
   mVar <- newEmptyMVar :: IO (MVar String)
   return $ toDyn mVar
+
+
+initRequest :: FruitTart ()
+initRequest = return ()

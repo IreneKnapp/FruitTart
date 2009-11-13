@@ -1,8 +1,7 @@
-module Network.FruitTart.PopupMessage.View.PopupMessage (setPopupMessage,
-                                                        getPopupMessage) where
+module Network.FruitTart.Base.View.PopupMessage (setPopupMessage,
+                                                 getPopupMessage) where
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 

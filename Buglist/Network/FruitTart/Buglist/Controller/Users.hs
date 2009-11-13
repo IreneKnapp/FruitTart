@@ -1,6 +1,5 @@
 module Network.FruitTart.Buglist.Controller.Users (
                                                    actionTable,
-                                                   functionTable,
                                                    getRightSynchronize,
                                                    getRightAdminUsers,
                                                    getRightSeeEmails,
@@ -19,26 +18,17 @@ import Data.Maybe
 import qualified Data.Map as Map
 
 import Network.FruitTart.Base
-import Network.FruitTart.Buglist.Imports
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
+import Network.FruitTart.Base.View.Login
+import Network.FruitTart.Base.View.Navigation
+import Network.FruitTart.Base.View.PopupMessage
+import Network.FruitTart.Base.View.Templates
 
 
 actionTable :: ActionTable
 actionTable
     = makeActionTable [("index", "GET", [], [], toDyn index),
                        ("view", "GET", [IDParameter], [], toDyn view)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("getRightSynchronize", toDyn getRightSynchronize),
-                         ("getRightAdminUsers", toDyn getRightAdminUsers),
-                         ("getRightSeeEmails", toDyn getRightSeeEmails),
-                         ("getRightReportIssues", toDyn getRightReportIssues),
-                         ("getRightModifyIssues", toDyn getRightModifyIssues),
-                         ("getRightUploadFiles", toDyn getRightUploadFiles),
-                         ("getRightCommentIssues", toDyn getRightCommentIssues)]
 
 
 index :: FruitTart CGIResult

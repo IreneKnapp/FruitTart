@@ -1,8 +1,7 @@
-module Network.FruitTart.Navigation.View.Navigation (getDefaultPage,
-                                                     getNavigationBar)
+module Network.FruitTart.Base.View.Navigation (getDefaultPage,
+                                               getNavigationBar)
     where
 
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 

@@ -1,12 +1,18 @@
-module Network.FruitTart.Templates.View.Templates (
-                                                   functionTable,
-                                                   unbind,
-                                                   bind,
-                                                   bindQuery,
-                                                   bindQueryMultipleRows,
-                                                   convertRowToBindings,
-                                                   getTemplate
-                                                  )
+module Network.FruitTart.Base.View.Templates (
+                                              -- Templates.Types
+                                              TemplateValueType(..),
+                                              TemplateValue(..),
+                                              
+                                              -- View.Templates
+                                              getPageHeadItems,
+                                              bind,
+                                              bindQuery,
+                                              bindQueryMultipleRows,
+                                              convertRowToBindings,
+                                              unbind,
+                                              clearBindings,
+                                              getTemplate
+                                             )
     where
 
 import Control.Concurrent.MVar
@@ -16,21 +22,18 @@ import qualified Data.Map as Map
 import Data.Typeable
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
-import Network.FruitTart.Templates.Imports
-import Network.FruitTart.Templates.Semantics
-import Network.FruitTart.Templates.Types
+import Network.FruitTart.Base.Templates.Semantics
+import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("bind", toDyn bind'),
-                         ("bindQuery", toDyn bindQuery),
-                         ("bindQueryMultipleRows", toDyn bindQueryMultipleRows),
-                         ("convertRowToBindings", toDyn convertRowToBindings),
-                         ("unbind", toDyn unbind),
-                         ("getTemplate", toDyn getTemplate)]
+getPageHeadItems :: FruitTart String
+getPageHeadItems
+    = return 
+      ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+       ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+       ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
+       ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
 
 
 bind :: Bindable a => String -> String -> a -> FruitTart ()
@@ -39,7 +42,7 @@ bind moduleName valueName bindable = bind' moduleName valueName $ AnyBindable bi
 
 bind' :: String -> String -> AnyBindable -> FruitTart ()
 bind' moduleName valueName (AnyBindable bindable) = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
+  bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings = Map.fromList [((moduleName, valueName), toTemplate bindable)]
@@ -51,7 +54,7 @@ bindQuery :: String -> [(String, TemplateValueType)]
           -> String -> [SQLData] -> FruitTart ()
 bindQuery moduleName valueNamesAndTypes queryText queryValues = do
   [row] <- query queryText queryValues
-  bindingsMVar <- getInterfaceStateMVar "Templates"
+  bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings = convertRowToBindings moduleName valueNamesAndTypes row
@@ -64,7 +67,7 @@ bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
 bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
                       queryText queryValues = do
   rows <- query queryText queryValues
-  bindingsMVar <- getInterfaceStateMVar "Templates"
+  bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings
@@ -99,22 +102,44 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                    _ -> error "Value from query not an integer."
                          TString -> case value of
                                       SQLText string -> TemplateString string
-                                      _ -> error "Value from query not a string."))
+                                      _ -> error "Value from query not a string."
+                         TMaybeInt -> case value of
+                                        SQLNull -> TemplateMaybe Nothing
+                                        SQLInteger integer -> TemplateMaybe
+                                                              $ Just
+                                                              $ TemplateInteger integer
+                                        _ -> error
+                                             "Value from query not an integer or null."
+                         TMaybeString -> case value of
+                                        SQLNull -> TemplateMaybe Nothing
+                                        SQLText string -> TemplateMaybe
+                                                              $ Just
+                                                              $ TemplateString string
+                                        _ -> error
+                                             "Value from query not a string or null."))
                  $ zip valueNamesAndTypes row
 
 
 unbind :: String -> String -> FruitTart ()
 unbind moduleName valueName = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
+  bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let bindings' = Map.delete (moduleName, valueName) oldBindings
   liftIO $ putMVar bindingsMVar bindings'
 
 
+clearBindings :: FruitTart ()
+clearBindings = do
+  bindingsMVar <- getInterfaceStateMVar "Base"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  liftIO $ takeMVar bindingsMVar
+  liftIO $ putMVar bindingsMVar Map.empty
+
+
 getTemplate :: String -> String -> FruitTart String
 getTemplate moduleName templateName = do
-  bindingsMVar <- getInterfaceStateMVar "Templates"
+  bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   bindings <- liftIO $ readMVar bindingsMVar
   fillTemplate moduleName templateName bindings []

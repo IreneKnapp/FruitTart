@@ -1,4 +1,7 @@
 module Network.FruitTart.Util (
+                               -- Data.Dynamic
+                               toDyn,
+                               
                                -- Data.Int
                                Int64,
                                
@@ -49,10 +52,17 @@ module Network.FruitTart.Util (
                                -- Types
                                FruitTartState(..),
                                FruitTart,
-                               catchFruitTart
+                               catchFruitTart,
+                               ActionTable,
+                               ControllerTable,
+                               ParameterType(..),
+                               Interface(..),
+                               makeActionTable,
+                               combineActionTables
                               )
     where
 
+import Data.Dynamic
 import Data.Int
 import Network.FastCGI hiding (output, logCGI)
 

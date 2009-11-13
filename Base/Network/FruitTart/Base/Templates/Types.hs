@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, TypeSynonymInstances,
              FlexibleInstances, OverlappingInstances #-}
-module Network.FruitTart.Templates.Types (
-                                          TemplateItemType(..),
-                                          TemplateValueType(..),
-                                          TemplateValue(..),
-                                          TemplateExpression(..),
-                                          TemplateToken(..),
-                                          Bindable(..),
-                                          AnyBindable(..)
-                                         )
+module Network.FruitTart.Base.Templates.Types (
+                                               TemplateItemType(..),
+                                               TemplateValueType(..),
+                                               TemplateValue(..),
+                                               TemplateExpression(..),
+                                               TemplateToken(..),
+                                               Bindable(..),
+                                               AnyBindable(..)
+                                              )
     where
 
 import Data.Int
@@ -23,6 +23,8 @@ data TemplateItemType = Content
 data TemplateValueType = TBool
                        | TInt
                        | TString
+                       | TMaybeInt
+                       | TMaybeString
                          deriving (Eq, Show, Typeable);
 
 data TemplateValue = TemplateBool Bool

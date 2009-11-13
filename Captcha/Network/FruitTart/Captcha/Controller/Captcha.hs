@@ -1,5 +1,5 @@
 module Network.FruitTart.Captcha.Controller.Captcha
-    (actionTable, functionTable, generateCaptcha, checkCaptcha) where
+    (actionTable, generateCaptcha, checkCaptcha) where
 
 import Control.Concurrent
 import Control.Monad.State
@@ -14,19 +14,12 @@ import Data.List
 import Graphics.Captcha
 
 import Network.FruitTart.Base
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
 actionTable :: ActionTable
 actionTable
     = makeActionTable [("index", "GET", [IDParameter], [], toDyn index)]
-
-
-functionTable :: FunctionTable
-functionTable
-    = makeFunctionTable [("generateCaptcha", toDyn generateCaptcha),
-                         ("checkCaptcha", toDyn checkCaptcha)]
 
 
 index :: Int64 -> FruitTart CGIResult

@@ -18,8 +18,7 @@ description:
 
 Library
   exposed-modules: Main
-  other-modules: Network.FruitTart.Adventure.Controller.Adventure,
-                 Network.FruitTart.Adventure.Imports
+  other-modules: Network.FruitTart.Adventure.Controller.Adventure
   build-depends: base >= 4.1 && < 5,
                  bytestring >= 0.9.1.4,
                  containers >= 0.2.0.1,
@@ -27,4 +26,4 @@ Library
                  
                  direct-sqlite >= 1.0,
                  FruitTartInterface >= 1.0 && < 2,
-                 FruitTart-Templates >= 1.0 && < 2
+                 FruitTart-Base >= 1.0 && < 2

@@ -10,8 +10,6 @@ import Database.SQLite3
 
 import qualified Network.FruitTart.Adventure.Controller.Adventure
     as Controller.Adventure
-import Network.FruitTart.Adventure.Imports
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
@@ -19,15 +17,14 @@ fruitTartPlugin :: Interface
 fruitTartPlugin = Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
-                    interfaceFunctionTable = functionTable,
                     interfaceModuleName = moduleName,
                     interfaceModuleVersion = moduleVersion,
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1),
-                                              ("Templates", 1)],
+                                              ("Base", 1)],
                     interfaceInitDatabase = initDatabase,
                     interfaceInitState = initState,
-                    interfaceImportFunctionTableMVar = importFunctionTableMVar
+                    interfaceInitRequest = initRequest
                   }
 
 
@@ -35,12 +32,6 @@ dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
       [("adventure", Controller.Adventure.actionTable)]
-
-
-functionTable :: CombinedFunctionTable
-functionTable
-    = combineFunctionTables
-      [("Adventure.Controller.Adventure", Controller.Adventure.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -137,3 +128,7 @@ initState :: IO Dynamic
 initState = do
   mVar <- newEmptyMVar :: IO (MVar String)
   return $ toDyn mVar
+
+
+initRequest :: FruitTart ()
+initRequest = return ()

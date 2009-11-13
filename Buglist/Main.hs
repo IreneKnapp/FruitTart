@@ -8,7 +8,6 @@ import System.Environment
 import System.Exit
 import Database.SQLite3
 
-import Network.FruitTart.Buglist.Imports
 import qualified Network.FruitTart.Buglist.Controller.Issues
     as Controller.Issues
 import qualified Network.FruitTart.Buglist.Controller.Users
@@ -17,7 +16,6 @@ import qualified Network.FruitTart.Buglist.Controller.Synchronization
     as Controller.Synchronization
 import qualified Network.FruitTart.Buglist.View.Navigation
     as View.Navigation
-import Network.FruitTart.PluginInterface
 import Network.FruitTart.Util
 
 
@@ -25,16 +23,14 @@ fruitTartPlugin :: Interface
 fruitTartPlugin = Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
-                    interfaceFunctionTable = functionTable,
                     interfaceModuleName = moduleName,
                     interfaceModuleVersion = moduleVersion,
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
-                    interfacePrerequisites = [("FruitTart", 1),
-                                              ("Templates", 1),
+                    interfacePrerequisites = [("Base", 1),
                                               ("Captcha", 1)],
                     interfaceInitDatabase = initDatabase,
                     interfaceInitState = initState,
-                    interfaceImportFunctionTableMVar = importFunctionTableMVar
+                    interfaceInitRequest = initRequest
                   }
 
 
@@ -44,15 +40,6 @@ dispatchTable
       [("issues", Controller.Issues.actionTable),
        ("users", Controller.Users.actionTable),
        ("synchronization", Controller.Synchronization.actionTable)]
-
-
-functionTable :: CombinedFunctionTable
-functionTable
-    = combineFunctionTables
-      [("Buglist.Controller.Issues", Controller.Issues.functionTable),
-       ("Buglist.Controller.Users", Controller.Users.functionTable),
-       ("Buglist.Controller.Synchronization", Controller.Synchronization.functionTable),
-       ("Buglist.View.Navigation", View.Navigation.functionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -372,3 +359,7 @@ initState :: IO Dynamic
 initState = do
   mVar <- newEmptyMVar :: IO (MVar String)
   return $ toDyn mVar
+
+
+initRequest :: FruitTart ()
+initRequest = return ()
