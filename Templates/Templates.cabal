@@ -17,12 +17,12 @@ description:
 
 Library
   exposed-modules: Main,
-                   Network.FruitTart.Templates.Types
+                   Network.FruitTart.Templates.Types,
+                   Network.FruitTart.Templates.View.Templates
   other-modules: Network.FruitTart.Templates.Controller.Templates,
                  Network.FruitTart.Templates.Imports,
                  Network.FruitTart.Templates.Semantics,
-                 Network.FruitTart.Templates.Syntax,
-                 Network.FruitTart.Templates.View.Templates
+                 Network.FruitTart.Templates.Syntax
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,
