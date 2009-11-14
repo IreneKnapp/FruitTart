@@ -55,6 +55,10 @@ td, th {
   vertical-align: top;
 }
 
+td.text, th.text {
+  vertical-align: baseline;
+}
+
 
 th {
   background: #ffc;
