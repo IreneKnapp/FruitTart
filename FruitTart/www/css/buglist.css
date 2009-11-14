@@ -199,3 +199,24 @@ img.captcha {
   border: solid gray 2px;
   vertical-align: middle;
 }
+
+
+div.foot {
+  border-top: dashed gray 1px;
+  margin-top: 2em;
+  padding-top: 0.5em;
+  font-style: italic;
+  color: #666;
+}
+
+
+div.foot > table.layout > tbody > tr > td,
+div.foot > table.layout > tbody > tr > th {
+  vertical-align: middle;
+}
+
+
+div.foot * {
+  font-style: inherit;
+  color: inherit;
+}
