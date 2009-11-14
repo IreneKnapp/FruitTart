@@ -17,6 +17,14 @@ description:
   
   Its features include:
   
+  A template system with a built-in mini-language.  The template system includes a
+  web-based editor which makes it possible to build many plugins without writing a
+  single line of Haskell.
+  
+  A user system; the ability to log in and out, and change account information and
+  passwords.  The system is extensible so that other modules can piggyback on top of it,
+  adding whatever semantics and privileges they wish.
+  
   A navigation bar that displays at the top of the page.  This is useful for a large
   site with many FruitTart modules installed.
   
