@@ -4,23 +4,27 @@ textarea.autosizing {
 }
 
 
-table.template-editor td {
+table.template-editor td,
+table.query-editor td {
   vertical-align: middle;
   padding: 0;
 }
 
 
-table.template-editor td:first-child {
+table.template-editor td:first-child,
+table.query-editor td:first-child {
   width: 1.5em;
 }
 
 
-table.template-editor td:first-child + td {
+table.template-editor td:first-child + td,
+table.query-editor td:first-child + td {
   width: 3.0em;
 }
 
 
-div.template-button {
+div.template-button,
+div.query-button {
   display: inline-block;
   background: #ccf;
   text-align: center;
@@ -34,7 +38,8 @@ div.template-button {
 }
 
 
-div.template-button > div {
+div.template-button > div,
+div.query-button > div {
   line-height: 100%;
   margin-top: 20%;
 }
