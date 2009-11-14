@@ -69,11 +69,11 @@ editNodeGET nodeID = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Adventure Editor" ("/adventure/edit-node/" ++ (show nodeID) ++ "/")
+      bind "Adventure.Controller.Adventure" "id" nodeID
       bindQuery "Adventure.Controller.Adventure"
-                [("id", TInt),
-                 ("name", TString),
+                [("name", TString),
                  ("body", TString)]
-                "SELECT id, name, body FROM adventure_nodes WHERE id = ?"
+                "SELECT name, body FROM adventure_nodes WHERE id = ?"
                 [SQLInteger nodeID]
       bindQueryMultipleRows "Adventure.Controller.Adventure"
                             "options"
@@ -113,6 +113,9 @@ createNodeGET = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Adventure Editor" "/adventure/create-node/"
+      bind "Adventure.Controller.Adventure" "name" "New Node"
+      bind "Adventure.Controller.Adventure" "body" ""
+      bind "Adventure.Controller.Adventure" "options" []
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
