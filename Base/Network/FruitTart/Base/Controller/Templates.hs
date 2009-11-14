@@ -43,13 +43,7 @@ index = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQueryMultipleRows "Base.Controller.Templates"
-                        "rows"
-                        [("templateID", TInt),
-                         ("moduleName", TString),
-                         ("templateName", TString)]
-                        "SELECT id, module, name FROM templates ORDER BY module, name"
-                        []
+  bindNamedQueryMultipleRows "Base.Controller.Templates" "indexRows" []
   pageContent <- getTemplate "Base.Controller.Templates" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
@@ -61,13 +55,10 @@ view templateID = do
   let currentPage = "/templates/view/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
   maybeNames
-      <- query "SELECT module, name FROM templates WHERE id = ?"
-               [SQLInteger templateID]
+      <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
   case maybeNames of
     [[SQLText moduleName, SQLText templateName]] -> do
-      sqlItems <- query ("SELECT kind, body FROM template_items "
-                         ++ "WHERE template = ? ORDER BY item")
-                        [SQLInteger templateID]
+      sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
       let items = map (\[SQLText itemType, SQLText body] ->
                         (itemType, body))
                       sqlItems
@@ -81,13 +72,10 @@ copy templateID = do
   let currentPage = "/templates/copy/" ++ (show templateID) ++ "/"
       targetPage = "/templates/create/"
   maybeNames
-      <- query "SELECT module, name FROM templates WHERE id = ?"
-               [SQLInteger templateID]
+      <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
   case maybeNames of
     [[SQLText moduleName, SQLText templateName]] -> do
-      sqlItems <- query ("SELECT kind, body FROM template_items "
-                         ++ "WHERE template = ? ORDER BY item")
-                        [SQLInteger templateID]
+      sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
       let items = map (\[SQLText itemType, SQLText body] ->
                         (itemType, body))
                       sqlItems
@@ -156,28 +144,28 @@ createPOST = do
                   Nothing -> "template"
                   Just templateName -> templateName
   items <- getInputItems
-  query "BEGIN EXCLUSIVE TRANSACTION" []
+  namedQuery "Queries" "beginExclusiveTransaction" []
   [[SQLInteger count]]
-      <- query "SELECT count(*) FROM templates WHERE module = ? AND name = ?"
-               [SQLText moduleName, SQLText templateName]
+      <- namedQuery "Base.Controller.Templates" "templateExists"
+                    [SQLText moduleName, SQLText templateName]
   case count of
     0 -> do
-      query "INSERT INTO templates (module, name) VALUES (?, ?)"
-            [SQLText moduleName, SQLText templateName]
-      [[SQLInteger templateID]] <- query "SELECT max(id) FROM templates" []
+      namedQuery "Base.Controller.Templates" "insertTemplate"
+                 [SQLText moduleName, SQLText templateName]
+      [[SQLInteger templateID]]
+          <- namedQuery "Base.Controller.Templates" "templateJustInserted" []
       mapM (\((itemType, body), index) -> do
-              query ("INSERT INTO template_items (template, item, kind, body) "
-                     ++ "VALUES (?, ?, ?, ?)")
-                    [SQLInteger templateID,
-                     SQLInteger index,
-                     SQLText itemType,
-                     SQLText body])
+              namedQuery "Base.Controller.Templates" "insertTemplateItem"
+                         [SQLInteger templateID,
+                          SQLInteger index,
+                          SQLText itemType,
+                          SQLText body])
            $ zip items [0..]
-      query "COMMIT" []
+      namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template created."
       seeOtherRedirect $ "/templates/index/"
     _ -> do
-      query "ROLLBACK" []
+      namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
                          (Just "A template by that name already exists.")
                          Nothing moduleName templateName items
@@ -196,28 +184,27 @@ edit templateID = do
                   Nothing -> "template"
                   Just templateName -> templateName
   items <- getInputItems
-  query "BEGIN TRANSACTION" []
+  namedQuery "Queries" "beginTransaction" []
   [[SQLInteger count]]
-      <- query "SELECT count(*) FROM templates WHERE module = ? AND name = ? AND id != ?"
-               [SQLText moduleName, SQLText templateName, SQLInteger templateID]
+      <- namedQuery "Base.Controller.Templates" "templateExistsWithDifferentID"
+                    [SQLText moduleName, SQLText templateName, SQLInteger templateID]
   case count of
     0 -> do
-      query "UPDATE templates SET module = ?, name = ? WHERE id = ?"
-            [SQLText moduleName, SQLText templateName, SQLInteger templateID]
-      query "DELETE FROM template_items WHERE template = ?" [SQLInteger templateID]
+      namedQuery "Base.Controller.Templates" "updateTemplate" []
+      namedQuery "Base.Controller.Templates" "deleteTemplateItems"
+                 [SQLInteger templateID]
       mapM (\((itemType, body), index) -> do
-              query ("INSERT INTO template_items (template, item, kind, body) "
-                     ++ "VALUES (?, ?, ?, ?)")
-                    [SQLInteger templateID,
-                     SQLInteger index,
-                     SQLText itemType,
-                     SQLText body])
+              namedQuery "Base.Controller.Templates" "insertTemplateItem"
+                         [SQLInteger templateID,
+                          SQLInteger index,
+                          SQLText itemType,
+                          SQLText body])
            $ zip items [0..]
-      query "COMMIT" []
+      namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template changed."
       seeOtherRedirect $ "/templates/index/"
     _ -> do
-      query "ROLLBACK" []
+      namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
                          (Just "A template by that name already exists.")
                          (Just templateID)
@@ -237,11 +224,7 @@ deleteGET templateID = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQuery "Base.Controller.Templates"
-            [("moduleName", TString),
-             ("templateName", TString)]
-            "SELECT module, name FROM templates WHERE id = ?"
-            [SQLInteger templateID]
+  bindNamedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
   bind "Base.Controller.Templates" "targetPage" targetPage
   pageContent <- getTemplate "Base.Controller.Templates" "delete"
   bind "Templates" "pageContent" pageContent
@@ -251,10 +234,10 @@ deleteGET templateID = do
 
 deletePOST :: Int64 -> FruitTart CGIResult
 deletePOST templateID = do
-  query "BEGIN TRANSACTION" []
-  query "DELETE FROM templates WHERE id = ?" [SQLInteger templateID]
-  query "DELETE FROM template_items WHERE template = ?" [SQLInteger templateID]
-  query "COMMIT" []
+  namedQuery "Queries" "beginTransaction" []
+  namedQuery "Base.Controller.Templates" "deleteTemplate" [SQLInteger templateID]
+  namedQuery "Base.Controller.Templates" "deleteTemplateItems" [SQLInteger templateID]
+  namedQuery "Queries" "commit" []
   setPopupMessage $ Just "Template deleted."
   seeOtherRedirect "/templates/index/"
 
