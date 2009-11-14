@@ -650,7 +650,7 @@ createPOST = do
                                         (Just
                                          "Please enter the letters in the image below.")
                   else do
-                      reporterID <- getOrCreateUserID fullName email
+                      reporterID <- getOrCreateUserID fullName email ""
                       canActAsReporter <- getCanActAsUser reporterID
                       case canActAsReporter of
                         False -> doNotCreateIssue moduleID summary comment fullName email
@@ -689,7 +689,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
 
 actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart CGIResult
 actuallyCreateIssue moduleID summary comment reporterID = do
-  assigneeID <- getOrCreateUserID "Nobody" "nobody"
+  assigneeID <- getOrCreateUserID "Nobody" "nobody" ""
   timestamp <- getTimestamp
   [[SQLInteger defaultStatusID, SQLInteger defaultResolutionID,
     SQLInteger defaultSeverityID, SQLInteger defaultPriorityID]]
@@ -740,7 +740,7 @@ comment issueID = do
               then doNotCreateComment issueID comment fullName email
                                       "Please enter the letters in the image below."
               else do
-                commenterID <- getOrCreateUserID fullName email
+                commenterID <- getOrCreateUserID fullName email ""
                 canActAsCommenter <- getCanActAsUser commenterID
                 case canActAsCommenter of
                   False -> doNotCreateComment issueID comment fullName email
@@ -804,7 +804,7 @@ edit issueID = do
                                Just newSummary -> newSummary
                                Nothing -> ""
       query "BEGIN TRANSACTION" []
-      newAssigneeID <- getOrCreateUserID "" newAssigneeEmail
+      newAssigneeID <- getOrCreateUserID "" newAssigneeEmail ""
       [[SQLInteger oldStatusID,
         SQLInteger oldResolutionID,
         SQLInteger oldModuleID,
