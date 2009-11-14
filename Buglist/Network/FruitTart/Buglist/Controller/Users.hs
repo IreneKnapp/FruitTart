@@ -47,7 +47,20 @@ index = do
                         [("id", TInt),
                          ("fullName", TString),
                          ("email", TString)]
-                        "SELECT id, full_name, email FROM users" []
+                        ("SELECT id, full_name, email FROM users\n"
+                         ++ "WHERE\n"
+                         ++ "(SELECT count(*) FROM buglist_issues AS issues\n"
+                         ++ " WHERE issues.reporter = users.id) > 0\n"
+                         ++ "OR\n"
+                         ++ "(SELECT count(*) FROM buglist_user_issue_changes AS changes \n"
+                         ++ " WHERE changes.user = users.id) > 0\n"
+                         ++ "OR\n"
+                         ++ "(SELECT count(*) FROM buglist_user_issue_comments AS comments\n"
+                         ++ " WHERE comments.user = users.id) > 0\n"
+                         ++ "OR\n"
+                         ++ "(SELECT count(*) FROM buglist_user_issue_attachments AS attachments\n"
+                         ++ " WHERE attachments.user = users.id) > 0")
+                        []
   pageContent <- getTemplate "Buglist.Controller.Users" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
