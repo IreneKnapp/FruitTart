@@ -89,6 +89,8 @@ data TemplateToken = TokenValue TemplateValue
 class Bindable a where
     toTemplate :: a -> TemplateValue
 data AnyBindable = forall a . Bindable a => AnyBindable a deriving (Typeable)
+instance Bindable TemplateValue where
+    toTemplate value = value
 instance Bindable Bool where
     toTemplate bool = TemplateBool bool
 instance Bindable Int64 where

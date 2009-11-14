@@ -69,6 +69,8 @@ view queryID = do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
+      bind "Base.Controller.Queries" "rowCount"
+           $ TemplateInteger $ fromIntegral $ findRowCount body
       bindQueryMultipleRows "Base.Controller.Queries"
                             "results"
                             [("name", TString),
@@ -93,6 +95,8 @@ copy queryID = do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
+      bind "Base.Controller.Queries" "rowCount"
+           $ TemplateInteger $ fromIntegral $ findRowCount body
       bindQueryMultipleRows "Base.Controller.Queries"
                             "results"
                             [("name", TString),
@@ -112,6 +116,8 @@ createGET = do
   bind "Base.Controller.Queries" "moduleName" "Module"
   bind "Base.Controller.Queries" "queryName" "query"
   bind "Base.Controller.Queries" "body" ""
+  bind "Base.Controller.Queries" "rowCount"
+       $ TemplateInteger $ fromIntegral $ findRowCount ""
   bind "Base.Controller.Queries" "results" ([] :: [String])
   outputQueryPage currentPage targetPage Nothing Nothing
 
@@ -185,6 +191,8 @@ createPOST = do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
+      bind "Base.Controller.Queries" "rowCount"
+           $ TemplateInteger $ fromIntegral $ findRowCount body
       outputQueryPage currentPage targetPage
                       (Just "A query by that name already exists.")
                       Nothing
@@ -232,6 +240,8 @@ edit queryID = do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
+      bind "Base.Controller.Queries" "rowCount"
+           $ TemplateInteger $ fromIntegral $ findRowCount body
       outputQueryPage currentPage targetPage
                       (Just "A query by that name already exists.")
                       (Just queryID)

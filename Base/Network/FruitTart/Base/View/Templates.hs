@@ -9,6 +9,9 @@ module Network.FruitTart.Base.View.Templates (
                                               bind,
                                               bindQuery,
                                               bindQueryMultipleRows,
+                                              bindNamedQuery,
+                                              bindNamedQueryMultipleRows,
+                                              namedQuery,
                                               convertRowToBindings,
                                               getBinding,
                                               unbind,
@@ -84,6 +87,53 @@ bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
                                  rows)]
       bindings' = Map.union newBindings oldBindings
   liftIO $ putMVar bindingsMVar bindings'
+
+
+bindNamedQuery :: String -> String -> [SQLData] -> FruitTart ()
+bindNamedQuery moduleName queryName queryValues = do
+  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
+                 [SQLText moduleName, SQLText queryName]
+  case rows of
+    [[SQLInteger queryID, SQLText queryText]] -> do
+      valueNamesAndTypes <- getValueNamesAndTypes queryID
+      bindQuery moduleName valueNamesAndTypes queryText queryValues
+    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
+
+
+bindNamedQueryMultipleRows :: String -> String -> [SQLData] -> FruitTart ()
+bindNamedQueryMultipleRows moduleName queryName queryValues = do
+  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
+                 [SQLText moduleName, SQLText queryName]
+  case rows of
+    [[SQLInteger queryID, SQLText queryText]] -> do
+      valueNamesAndTypes <- getValueNamesAndTypes queryID
+      bindQueryMultipleRows moduleName queryName valueNamesAndTypes queryText queryValues
+    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
+
+
+getValueNamesAndTypes :: Int64 -> FruitTart [(String, TemplateValueType)]
+getValueNamesAndTypes queryID = do
+  rows <- query "SELECT name, type FROM query_results WHERE query = ? ORDER BY item"
+                [SQLInteger queryID]
+  return $ map (\[SQLText name, SQLText typeName] ->
+                 (name,
+                  case typeName of
+                    "integer" -> TInt
+                    "string" -> TString
+                    "maybeInteger" -> TMaybeInt
+                    "maybeString" -> TMaybeString
+                    _ -> TInt))
+               rows
+
+
+namedQuery :: String -> String -> [SQLData] -> FruitTart [[SQLData]]
+namedQuery moduleName queryName queryValues = do
+  rows <- query "SELECT body FROM queries WHERE module = ? AND name = ?"
+                 [SQLText moduleName, SQLText queryName]
+  case rows of
+    [[SQLText queryText]] -> do
+      query queryText queryValues
+    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
 convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]

@@ -37,9 +37,8 @@ loginGET = do
     Nothing -> do
              sessionID <- getSessionID
              [[maybeRecentUserEmail]]
-                 <- query (  "SELECT users.email FROM sessions LEFT JOIN users "
-                          ++ "ON sessions.recent_user = users.id WHERE sessions.id = ?")
-                          [SQLInteger sessionID]
+                 <- namedQuery "Base.Controller.Login" "recentUser"
+                               [SQLInteger sessionID]
              maybeRecentUserEmail <- return $ case maybeRecentUserEmail of
                                                 SQLNull -> Nothing
                                                 SQLText email -> Just email
@@ -59,7 +58,7 @@ loginPOST = do
   password <- return $ case maybePassword of
                          Just password -> password
                          Nothing -> ""
-  maybeUserIDRows <- query "SELECT id FROM users WHERE email = ?" [SQLText email]
+  maybeUserIDRows <- namedQuery "Base.Controller.Login" "userByEmail" [SQLText email]
   case maybeUserIDRows of
     [] -> doNotLogIn (Just "Incorrect information.")
                      maybeEmail
@@ -68,8 +67,8 @@ loginPOST = do
       case valid of
         True -> do
           sessionID <- getSessionID
-          query "UPDATE sessions SET recent_user = ?, logged_in_user = ? WHERE id = ?"
-                [SQLInteger userID, SQLInteger userID, SQLInteger sessionID]
+          namedQuery "Base.Controller.Login" "logIn"
+                     [SQLInteger userID, SQLInteger userID, SQLInteger sessionID]
           referrer <- getReferrer
           seeOtherRedirect referrer
         False -> doNotLogIn (Just "Incorrect information.")
@@ -99,8 +98,7 @@ doNotLogIn maybeWarning maybeEmail = do
 logout :: FruitTart CGIResult
 logout = do
   sessionID <- getSessionID
-  query "UPDATE sessions SET logged_in_user = NULL WHERE id = ?"
-        [SQLInteger sessionID]
+  namedQuery "Base.Controller.Login" "logOut" [SQLInteger sessionID]
   referrer <- getReferrer
   seeOtherRedirect referrer
 
@@ -132,8 +130,8 @@ accountPOST = do
       url <- return $ case maybeURL of
                         Just url -> fromCRLF url
                         Nothing -> ""
-      query "UPDATE users SET full_name = ?, email = ?, url = ? WHERE id = ?"
-            [SQLText fullName, SQLText email, SQLText url, SQLInteger userID]
+      namedQuery "Base.Controller.Login" "accountUpdate"
+                 [SQLText fullName, SQLText email, SQLText url, SQLInteger userID]
       setPopupMessage $ Just "Edited details."
       outputAccountPage
 
@@ -147,15 +145,7 @@ outputAccountPage = do
       seeOtherRedirect defaultPage
     Just userID -> do
       sessionID <- getSessionID
-      bindQuery "Base.Controller.Login"
-                [("fullName", TString),
-                 ("email", TString),
-                 ("url", TString)]
-                (  "SELECT users.full_name, users.email, users.url "
-                ++ "FROM sessions LEFT JOIN users "
-                ++ "ON sessions.logged_in_user = users.id "
-                ++ "WHERE sessions.id = ?")
-                [SQLInteger sessionID]
+      bindNamedQuery "Base.Controller.Login" "account" [SQLInteger sessionID]
       bind "Templates" "pageTitle" "Buglist Account"
       pageHeadItems <- getPageHeadItems
       bind "Templates" "pageHeadItems" pageHeadItems
@@ -202,9 +192,9 @@ passwordPOST = do
                                 && (newPassword1 /= "")
       if performChange
          then do
-           query "UPDATE users SET password_hash = ? WHERE id = ?"
-                 [SQLBlob $ hashPassword newPassword1,
-                  SQLInteger userID]
+           namedQuery "Base.Controller.Login" "accountUpdatePassword"
+                      [SQLBlob $ hashPassword newPassword1,
+                       SQLInteger userID]
            setPopupMessage $ Just "Password changed."
            seeOtherRedirect "/login/account/"
          else do
