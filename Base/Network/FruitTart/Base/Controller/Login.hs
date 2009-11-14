@@ -154,7 +154,7 @@ outputAccountPage = do
                 (  "SELECT users.full_name, users.email, users.url "
                 ++ "FROM sessions LEFT JOIN users "
                 ++ "ON sessions.logged_in_user = users.id "
-                ++ "WHERE sessions. id = ?")
+                ++ "WHERE sessions.id = ?")
                 [SQLInteger sessionID]
       bind "Templates" "pageTitle" "Buglist Account"
       pageHeadItems <- getPageHeadItems

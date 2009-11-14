@@ -14,6 +14,7 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 import qualified Network.FruitTart.Base.Controller.Login as Controller.Login
 import qualified Network.FruitTart.Base.Controller.Templates as Controller.Templates
+import qualified Network.FruitTart.Base.Controller.Queries as Controller.Queries
 import qualified Network.FruitTart.Base.View.Templates as View.Templates
 
 
@@ -35,7 +36,8 @@ dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
       [("login", Controller.Login.actionTable),
-       ("templates", Controller.Templates.actionTable)]
+       ("templates", Controller.Templates.actionTable),
+       ("queries", Controller.Queries.actionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -74,6 +76,24 @@ initDatabase database = do
              ++ "kind TEXT,\n"
              ++ "body TEXT,\n"
              ++ "CONSTRAINT key PRIMARY KEY (template, item)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE queries (\n"
+             ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+             ++ "module TEXT,\n"
+             ++ "name TEXT,\n"
+             ++ "body TEXT,\n"
+             ++ "CONSTRAINT key UNIQUE (module, name)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE query_results (\n"
+             ++ "query INTEGER,\n"
+             ++ "item INTEGER,\n"
+             ++ "type TEXT,\n"
+             ++ "name TEXT,\n"
+             ++ "CONSTRAINT key PRIMARY KEY (query, item)\n"
              ++ ")")
              []
   return ()

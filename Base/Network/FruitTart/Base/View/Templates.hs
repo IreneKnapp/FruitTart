@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, IncoherentInstances #-}
 module Network.FruitTart.Base.View.Templates (
                                               -- Templates.Types
                                               TemplateValueType(..),
@@ -9,6 +10,7 @@ module Network.FruitTart.Base.View.Templates (
                                               bindQuery,
                                               bindQueryMultipleRows,
                                               convertRowToBindings,
+                                              getBinding,
                                               unbind,
                                               clearBindings,
                                               getTemplate
@@ -27,6 +29,12 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 
+instance Bindable String where
+    toTemplate string = TemplateString string
+instance Bindable [Map (String, String) TemplateValue] where
+    toTemplate rows = TemplateList $ map TemplateMap rows
+
+
 getPageHeadItems :: FruitTart String
 getPageHeadItems
     = return 
@@ -37,11 +45,7 @@ getPageHeadItems
 
 
 bind :: Bindable a => String -> String -> a -> FruitTart ()
-bind moduleName valueName bindable = bind' moduleName valueName $ AnyBindable bindable
-
-
-bind' :: String -> String -> AnyBindable -> FruitTart ()
-bind' moduleName valueName (AnyBindable bindable) = do
+bind moduleName valueName bindable = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ takeMVar bindingsMVar
@@ -118,6 +122,14 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                         _ -> error
                                              "Value from query not a string or null."))
                  $ zip valueNamesAndTypes row
+
+
+getBinding :: String -> String -> FruitTart (Maybe TemplateValue)
+getBinding moduleName valueName = do
+  bindingsMVar <- getInterfaceStateMVar "Base"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  bindings <- liftIO $ readMVar bindingsMVar
+  return $ Map.lookup (moduleName, valueName) bindings
 
 
 unbind :: String -> String -> FruitTart ()

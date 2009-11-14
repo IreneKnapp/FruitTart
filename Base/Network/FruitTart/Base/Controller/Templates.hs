@@ -121,7 +121,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
   pageHeadItems <- getPageHeadItems
   bind "Templates" "pageHeadItems" $ pageHeadItems
-         ++ "<link href=\"/css/templates.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+         ++ "<link href=\"/css/base.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
          ++ "<script src=\"/js/templates.js\" type=\"text/ecmascript\"></script>\n"
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
@@ -290,7 +290,7 @@ getInputItems
                 maybeBody <- getInput $ "body" ++ (show index)
                 body <- case maybeBody of
                           Nothing -> return ""
-                          Just body -> return body
+                          Just body -> return $ fromCRLF body
                 return $ Just (itemType, body)
           getInputItemsFrom index = do
             maybeItem <- getInputItem index
