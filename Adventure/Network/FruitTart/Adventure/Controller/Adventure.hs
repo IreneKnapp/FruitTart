@@ -115,7 +115,7 @@ createNodeGET = do
       bindDefaults "Adventure Editor" "/adventure/create-node/"
       bind "Adventure.Controller.Adventure" "name" "New Node"
       bind "Adventure.Controller.Adventure" "body" ""
-      bind "Adventure.Controller.Adventure" "options" []
+      bind "Adventure.Controller.Adventure" "options" ([] :: [String])
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
