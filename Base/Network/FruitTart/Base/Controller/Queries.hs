@@ -44,13 +44,9 @@ index = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQueryMultipleRows "Base.Controller.Queries"
-                        "rows"
-                        [("queryID", TInt),
-                         ("moduleName", TString),
-                         ("queryName", TString)]
-                        "SELECT id, module, name FROM queries ORDER BY module, name"
-                        []
+  bindNamedQueryMultipleRows "Base.Controller.Queries"
+                             "indexRows"
+                             []
   pageContent <- getTemplate "Base.Controller.Queries" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
@@ -62,8 +58,7 @@ view queryID = do
   let currentPage = "/queries/view/" ++ (show queryID) ++ "/"
       targetPage = "/queries/edit/" ++ (show queryID) ++ "/"
   maybeNames
-      <- query "SELECT module, name, body FROM queries WHERE id = ?"
-               [SQLInteger queryID]
+      <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
     [[SQLText moduleName, SQLText queryName, SQLText body]] -> do
       bind "Base.Controller.Queries" "moduleName" moduleName
@@ -71,14 +66,9 @@ view queryID = do
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
-      bindQueryMultipleRows "Base.Controller.Queries"
-                            "results"
-                            [("name", TString),
-                             ("type", TString),
-                             ("index", TInt)]
-                            ("SELECT name, type, item FROM query_results "
-                             ++ "WHERE query = ? ORDER BY item")
-                            [SQLInteger queryID]
+      bindNamedQueryMultipleRows "Base.Controller.Queries"
+                                 "results"
+                                 [SQLInteger queryID]
       outputQueryPage currentPage targetPage Nothing (Just queryID)
     [] -> errorInvalidID "query"
 
@@ -88,8 +78,7 @@ copy queryID = do
   let currentPage = "/queries/copy/" ++ (show queryID) ++ "/"
       targetPage = "/queries/create/"
   maybeNames
-      <- query "SELECT module, name, body FROM queries WHERE id = ?"
-               [SQLInteger queryID]
+      <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
     [[SQLText moduleName, SQLText queryName, SQLText body]] -> do
       bind "Base.Controller.Queries" "moduleName" moduleName
@@ -97,14 +86,9 @@ copy queryID = do
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
-      bindQueryMultipleRows "Base.Controller.Queries"
-                            "results"
-                            [("name", TString),
-                             ("type", TString),
-                             ("index", TInt)]
-                            ("SELECT name, type, item FROM query_results "
-                             ++ "WHERE query = ? ORDER BY item")
-                            [SQLInteger queryID]
+      bindNamedQueryMultipleRows "Base.Controller.Queries"
+                                 "results"
+                                 [SQLInteger queryID]
       outputQueryPage currentPage targetPage Nothing Nothing
     [] -> errorInvalidID "query"
 
@@ -166,28 +150,28 @@ createPOST = do
                      Nothing -> ""
                      Just body -> body
   items <- getInputItems
-  query "BEGIN EXCLUSIVE TRANSACTION" []
+  namedQuery "Queries" "beginExclusiveTransaction" []
   [[SQLInteger count]]
-      <- query "SELECT count(*) FROM queries WHERE module = ? AND name = ?"
-               [SQLText moduleName, SQLText queryName]
+      <- namedQuery "Base.Controller.Queries" "queryExists"
+                    [SQLText moduleName, SQLText queryName]
   case count of
     0 -> do
-      query "INSERT INTO queries (module, name, body) VALUES (?, ?, ?)"
-            [SQLText moduleName, SQLText queryName, SQLText body]
-      [[SQLInteger queryID]] <- query "SELECT max(id) FROM queries" []
+      namedQuery "Base.Controller.Queries" "insertQuery"
+                 [SQLText moduleName, SQLText queryName, SQLText body]
+      [[SQLInteger queryID]]
+          <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
       mapM (\((itemType, itemName), index) -> do
-              query ("INSERT INTO query_results (query, item, type, name) "
-                     ++ "VALUES (?, ?, ?, ?)")
-                    [SQLInteger queryID,
-                     SQLInteger index,
-                     SQLText itemType,
-                     SQLText itemName])
+              namedQuery "Base.Controller.Queries" "insertQueryResult"
+                         [SQLInteger queryID,
+                          SQLInteger index,
+                          SQLText itemType,
+                          SQLText itemName])
            $ zip items [0..]
-      query "COMMIT" []
+      namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query created."
       seeOtherRedirect $ "/queries/index/"
     _ -> do
-      query "ROLLBACK" []
+      namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
@@ -215,28 +199,30 @@ edit queryID = do
                      Nothing -> ""
                      Just body -> body
   items <- getInputItems
-  query "BEGIN TRANSACTION" []
+  namedQuery "Queries" "beginTransaction" []
   [[SQLInteger count]]
-      <- query "SELECT count(*) FROM queries WHERE module = ? AND name = ? AND id != ?"
-               [SQLText moduleName, SQLText queryName, SQLInteger queryID]
+      <- namedQuery "Base.Controller.Queries" "queryExistsWithDifferentID"
+                    [SQLText moduleName, SQLText queryName, SQLInteger queryID]
   case count of
     0 -> do
-      query "UPDATE queries SET module = ?, name = ?, body = ? WHERE id = ?"
-            [SQLText moduleName, SQLText queryName, SQLText body, SQLInteger queryID]
-      query "DELETE FROM query_results WHERE query = ?" [SQLInteger queryID]
+      namedQuery "Base.Controller.Queries" "updateQuery"
+                 [SQLText moduleName,
+                  SQLText queryName,
+                  SQLText body,
+                  SQLInteger queryID]
+      namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
       mapM (\((itemType, itemName), index) -> do
-              query ("INSERT INTO query_results (query, item, type, name) "
-                     ++ "VALUES (?, ?, ?, ?)")
-                    [SQLInteger queryID,
-                     SQLInteger index,
-                     SQLText itemType,
-                     SQLText itemName])
+              namedQuery "Base.Controller.Queries" "insertQueryResult"
+                         [SQLInteger queryID,
+                          SQLInteger index,
+                          SQLText itemType,
+                          SQLText itemName])
            $ zip items [0..]
-      query "COMMIT" []
+      namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query changed."
       seeOtherRedirect $ "/queries/index/"
     _ -> do
-      query "ROLLBACK" []
+      namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "body" body
@@ -260,11 +246,7 @@ deleteGET queryID = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQuery "Base.Controller.Queries"
-            [("moduleName", TString),
-             ("queryName", TString)]
-            "SELECT module, name FROM queries WHERE id = ?"
-            [SQLInteger queryID]
+  bindNamedQuery "Base.Controller.Queries" "queryName" [SQLInteger queryID]
   bind "Base.Controller.Queries" "targetPage" targetPage
   pageContent <- getTemplate "Base.Controller.Queries" "delete"
   bind "Templates" "pageContent" pageContent
@@ -274,10 +256,10 @@ deleteGET queryID = do
 
 deletePOST :: Int64 -> FruitTart CGIResult
 deletePOST queryID = do
-  query "BEGIN TRANSACTION" []
-  query "DELETE FROM queries WHERE id = ?" [SQLInteger queryID]
-  query "DELETE FROM query_results WHERE query = ?" [SQLInteger queryID]
-  query "COMMIT" []
+  namedQuery "Queries" "beginTransaction" []
+  namedQuery "Base.Controller.Queries" "deleteQuery" [SQLInteger queryID]
+  namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
+  namedQuery "Queries" "commit" []
   setPopupMessage $ Just "Query deleted."
   seeOtherRedirect "/queries/index/"
 
