@@ -43,14 +43,14 @@ index = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQueryMultipleRows "Templates.Controller.Templates"
+  bindQueryMultipleRows "Base.Controller.Templates"
                         "rows"
                         [("templateID", TInt),
                          ("moduleName", TString),
                          ("templateName", TString)]
                         "SELECT id, module, name FROM templates ORDER BY module, name"
                         []
-  pageContent <- getTemplate "Templates.Controller.Templates" "index"
+  pageContent <- getTemplate "Base.Controller.Templates" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
   output page
@@ -129,26 +129,26 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bind "Templates.Controller.Templates" "bodies"
+  bind "Base.Controller.Templates" "bodies"
        $ map (\((itemType, body), index)
-                  -> Map.fromList [(("Templates.Controller.Templates",
+                  -> Map.fromList [(("Base.Controller.Templates",
                                      "itemType"),
                                     TemplateString $ case itemType of
                                                        Content -> "content"
                                                        Expression -> "expression"),
-                                   (("Templates.Controller.Templates", "body"),
+                                   (("Base.Controller.Templates", "body"),
                                     TemplateString body),
-                                   (("Templates.Controller.Templates", "rowCount"),
+                                   (("Base.Controller.Templates", "rowCount"),
                                     TemplateInteger $ fromIntegral $ findRowCount body),
-                                   (("Templates.Controller.Templates", "index"),
+                                   (("Base.Controller.Templates", "index"),
                                     TemplateInteger index)])
              $ zip bodies [1..]
-  bind "Templates.Controller.Templates" "targetPage" targetPage
-  bind "Templates.Controller.Templates" "maybeWarning" maybeWarning
-  bind "Templates.Controller.Templates" "maybeTemplateID" maybeTemplateID
-  bind "Templates.Controller.Templates" "moduleName" moduleName
-  bind "Templates.Controller.Templates" "templateName" templateName
-  pageContent <- getTemplate "Templates.Controller.Templates" "template"
+  bind "Base.Controller.Templates" "targetPage" targetPage
+  bind "Base.Controller.Templates" "maybeWarning" maybeWarning
+  bind "Base.Controller.Templates" "maybeTemplateID" maybeTemplateID
+  bind "Base.Controller.Templates" "moduleName" moduleName
+  bind "Base.Controller.Templates" "templateName" templateName
+  pageContent <- getTemplate "Base.Controller.Templates" "template"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript"
   output page
@@ -254,13 +254,13 @@ deleteGET templateID = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQuery "Templates.Controller.Templates"
+  bindQuery "Base.Controller.Templates"
             [("moduleName", TString),
              ("templateName", TString)]
             "SELECT module, name FROM templates WHERE id = ?"
             [SQLInteger templateID]
-  bind "Templates.Controller.Templates" "targetPage" targetPage
-  pageContent <- getTemplate "Templates.Controller.Templates" "delete"
+  bind "Base.Controller.Templates" "targetPage" targetPage
+  pageContent <- getTemplate "Base.Controller.Templates" "delete"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
   output page
