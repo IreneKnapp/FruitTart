@@ -78,39 +78,22 @@ loginPOST = do
 
 doNotLogIn :: Maybe String -> Maybe String -> FruitTart CGIResult
 doNotLogIn maybeWarning maybeEmail = do
-  referrer <- getReferrer
+  bind "Templates" "pageTitle" "Log In"
   pageHeadItems <- getPageHeadItems
+  bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar "/login/login/"
-  output $ "<html><head>\n"
-         ++ "<title>Buglist Users</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ "<div class=\"form mini\">\n"
-         ++ "<h2>Log In</h2>\n"
-         ++ "<form method=\"POST\" action=\"/login/login/\">\n"
-         ++ case maybeWarning of
-              Just warning -> "<div class=\"warning note\">" ++ (escapeHTML warning)
-                              ++ "</div>\n"
-              Nothing -> ""
-         ++ "<div><b>Email:</b> "
-         ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
-         ++ (case maybeEmail of
-               Just email -> (escapeAttribute email)
-               Nothing -> "")
-         ++ "\"/></div>\n"
-         ++ "<div><b>Password:</b> "
-         ++ "<input type=\"password\" size=\"10\" name=\"password\" value=\""
-         ++ "\"/></div>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Log In\">Log In</button>"
-         ++ "</div>\n"
-         ++ "<input type=\"hidden\" name=\"referrer\" value=\""
-         ++ (escapeAttribute referrer)
-         ++ "\"/>"
-         ++ "</form>\n"
-         ++ "</body></html>"
+  bind "Templates" "navigationBar" navigationBar
+  popupMessage <- getPopupMessage
+  bind "Templates" "popupMessage" popupMessage
+  unbind "Templates" "loginButton"
+  referrer <- getReferrer
+  bind "Base.Controller.Login" "referrer" referrer
+  bind "Base.Controller.Login" "maybeWarning" maybeWarning
+  bind "Base.Controller.Login" "maybeEmail" maybeEmail
+  pageContent <- getTemplate "Base.Controller.Login" "login"
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "page"
+  output page
 
 
 logout :: FruitTart CGIResult
@@ -145,8 +128,12 @@ accountPOST = do
                           Just "" -> defaultEmail
                           Just email -> fromCRLF email
                           Nothing -> defaultEmail
-      query "UPDATE users SET full_name = ?, email = ? WHERE id = ?"
-            [SQLText fullName, SQLText email, SQLInteger userID]
+      maybeURL <- getInput "url"
+      url <- return $ case maybeURL of
+                        Just url -> fromCRLF url
+                        Nothing -> ""
+      query "UPDATE users SET full_name = ?, email = ?, url = ? WHERE id = ?"
+            [SQLText fullName, SQLText email, SQLText url, SQLInteger userID]
       setPopupMessage $ Just "Edited details."
       outputAccountPage
 
@@ -160,69 +147,30 @@ outputAccountPage = do
       seeOtherRedirect defaultPage
     Just userID -> do
       sessionID <- getSessionID
-      [[SQLText fullName, SQLText email]]
-          <- query (  "SELECT users.full_name, users.email "
-                   ++ "FROM sessions LEFT JOIN users "
-                   ++ "ON sessions.logged_in_user = users.id "
-                   ++ "WHERE sessions. id = ?")
-                   [SQLInteger sessionID]
+      bindQuery "Base.Controller.Login"
+                [("fullName", TString),
+                 ("email", TString),
+                 ("url", TString)]
+                (  "SELECT users.full_name, users.email, users.url "
+                ++ "FROM sessions LEFT JOIN users "
+                ++ "ON sessions.logged_in_user = users.id "
+                ++ "WHERE sessions. id = ?")
+                [SQLInteger sessionID]
+      bind "Templates" "pageTitle" "Buglist Account"
       pageHeadItems <- getPageHeadItems
+      bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return "/login/account/"
       navigationBar <- getNavigationBar currentPage
+      bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
+      bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      output $ "<html><head>\n"
-         ++ "<title>Buglist Account</title>\n"
-         ++ pageHeadItems
-         ++ "</head>\n"
-         ++ "<body>\n"
-         ++ navigationBar
-         ++ loginButton
-         ++ popupMessage
-         ++ "<h1>Account</h1>"
-         ++ "<div class=\"form\">\n"
-         ++ "<h2>Edit Account Details</h2>\n"
-         ++ "<form method=\"POST\" action=\"/login/account/\">\n"
-         ++ "<div><b>Full Name:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"full-name\" value=\""
-         ++ (escapeAttribute fullName)
-         ++ "\"/></div>\n"
-         ++ "<div><b>Email:</b> "
-         ++ "<input type=\"text\" size=\"30\" name=\"email\" value=\""
-         ++ (escapeAttribute email)
-         ++ "\"/>"
-         ++ "<br />" ++ (escapeHTML privacyNote)
-         ++ "</div>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Save\">Save</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
-         ++ "<div class=\"form\">\n"
-         ++ "<h2>Change Password</h2>\n"
-         ++ "<form method=\"POST\" action=\"/login/password/\">\n"
-         ++ "<table class=\"layout\">\n"
-         ++ "<tr>\n"
-         ++ "<td><b>Old Password:</b></td>\n"
-         ++ "<td><input type=\"password\" size=\"10\" name=\"old-password\" value=\""
-         ++ "\"/></td>\n"
-         ++ "</tr>\n"
-         ++ "<tr>\n"
-         ++ "<td><b>New Password:</b></td>\n"
-         ++ "<td><input type=\"password\" size=\"10\" name=\"new-password-1\" value=\""
-         ++ "\"/></td>\n"
-         ++ "</tr>\n"
-         ++ "<tr>\n"
-         ++ "<td><b>New Password Again:</b></td>\n"
-         ++ "<td><input type=\"password\" size=\"10\" name=\"new-password-2\" value=\""
-         ++ "\"/></td>\n"
-         ++ "</tr>\n"
-         ++ "</table>\n"
-         ++ "<div class=\"submit\">"
-         ++ "<button type=\"submit\" value=\"Change\">Change</button>"
-         ++ "</div>\n"
-         ++ "</form>\n"
-         ++ "</div>\n"
+      bind "Templates" "popupMessage" popupMessage
+      bind "Base.Controller.Login" "privacyNote" privacyNote
+      pageContent <- getTemplate "Base.Controller.Login" "account"
+      bind "Templates" "pageContent" pageContent
+      page <- getTemplate "Templates" "page"
+      output page
 
 
 passwordGET :: FruitTart CGIResult

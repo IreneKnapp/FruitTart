@@ -91,8 +91,8 @@ getEffectiveUserID = do
       return anonymousID
 
 
-getOrCreateUserID :: String -> String -> FruitTart Int64
-getOrCreateUserID fullName email = do
+getOrCreateUserID :: String -> String -> String -> FruitTart Int64
+getOrCreateUserID fullName email url = do
   if (email == "") || (email == "anonymous")
      then do
        rows <- query "SELECT id FROM users WHERE full_name == ? AND email == 'anonymous'"
@@ -100,9 +100,9 @@ getOrCreateUserID fullName email = do
        case rows of
          [[SQLInteger id]] -> return id
          _ -> do
-            query ("INSERT INTO users (full_name, email, password_hash) "
-                   ++ "VALUES (?, 'anonymous', NULL)")
-                  [SQLText fullName]
+            query ("INSERT INTO users (full_name, email, url, password_hash) "
+                   ++ "VALUES (?, 'anonymous', ?, NULL)")
+                  [SQLText fullName, SQLText url]
             [[SQLInteger id]]
                 <- query ("SELECT id FROM users WHERE full_name == ? "
                           ++ "AND email == 'anonymous'")
@@ -113,9 +113,9 @@ getOrCreateUserID fullName email = do
        case rows of
          [[SQLInteger id]] -> return id
          _ -> do
-            query ("INSERT INTO users (full_name, email, password_hash) "
-                   ++ "VALUES (?, ?, NULL)")
-                  [SQLText fullName, SQLText email]
+            query ("INSERT INTO users (full_name, email, url, password_hash) "
+                   ++ "VALUES (?, ?, ?, NULL)")
+                  [SQLText fullName, SQLText email, SQLText url]
             [[SQLInteger id]]
                 <- query "SELECT id FROM users WHERE email == ?" [SQLText email]
             return id
