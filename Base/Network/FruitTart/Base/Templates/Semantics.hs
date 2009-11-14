@@ -148,6 +148,22 @@ evalExpression moduleName templateName bindings parameters expression =
                                   EQ -> False
                                   GT -> False
                                   LT -> True
+      TemplateOperationAdd aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateArithmetic aValue bValue (+)
+      TemplateOperationSubtract aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateArithmetic aValue bValue (-)
+      TemplateOperationMultiply aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateArithmetic aValue bValue (*)
+      TemplateOperationDivide aExpression bExpression -> do
+        aValue <- evalExpression moduleName templateName bindings parameters aExpression
+        bValue <- evalExpression moduleName templateName bindings parameters bExpression
+        templateArithmetic aValue bValue div
       TemplateFunctionCall (_, functionName) subexpressions
           -> handleFunctionCall moduleName templateName bindings parameters
                                 functionName subexpressions
@@ -185,6 +201,13 @@ templateOr _ _ = error "Template values in logical operation are not both Boolea
 templateCompare :: TemplateValue -> TemplateValue -> FruitTart Ordering
 templateCompare (TemplateInteger a) (TemplateInteger b) = return $ compare a b
 templateCompare _ _ = error "Template values in comparison are not both Integers."
+
+
+templateArithmetic :: TemplateValue -> TemplateValue -> (Int64 -> Int64 -> Int64)
+                   -> FruitTart TemplateValue
+templateArithmetic (TemplateInteger a) (TemplateInteger b) operation
+    = return $ TemplateInteger $ operation a b
+templateArithmetic _ _ _ = error "Template values in arithmetic are not both Integers."
 
 
 handleFunctionCall

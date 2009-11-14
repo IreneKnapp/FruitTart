@@ -35,6 +35,10 @@ import Network.FruitTart.Base.Templates.Types
 	'>'	    { TokenGreater }
 	'<='	    { TokenLessEquals }
 	'<'	    { TokenLess }
+        '+'         { TokenPlus }
+        '-'         { TokenMinus }
+        '*'         { TokenStar }
+        '/'         { TokenSlash }
 
 %%
 
@@ -62,6 +66,14 @@ Expression1     : Expression1 '==' Expression2
 
 Expression2     : Expression2 '++' Expression3
                 { TemplateOperationConcatenate $1 $3 }
+                | Expression2 '+' Expression3
+		{ TemplateOperationAdd $1 $3 }
+		| Expression2 '-' Expression3
+		{ TemplateOperationSubtract $1 $3 }
+		| Expression2 '*' Expression3
+		{ TemplateOperationMultiply $1 $3 }
+		| Expression2 '/' Expression3
+		{ TemplateOperationDivide $1 $3 }
                 | Expression3
                 { $1 }
 
@@ -117,6 +129,10 @@ lexer defaultPackage ('>':('=':rest)) = TokenGreaterEquals : lexer defaultPackag
 lexer defaultPackage ('>':rest) = TokenGreater : lexer defaultPackage rest
 lexer defaultPackage ('<':('=':rest)) = TokenLessEquals : lexer defaultPackage rest
 lexer defaultPackage ('<':rest) = TokenLess : lexer defaultPackage rest
+lexer defaultPackage ('+':rest) = TokenPlus : lexer defaultPackage rest
+lexer defaultPackage ('-':rest) = TokenMinus : lexer defaultPackage rest
+lexer defaultPackage ('*':rest) = TokenStar : lexer defaultPackage rest
+lexer defaultPackage ('/':rest) = TokenSlash : lexer defaultPackage rest
 lexer defaultPackage all@('"':_) = let (string, rest) = readString all
                                    in (TokenValue $ TemplateString string)
                                       : lexer defaultPackage rest

@@ -54,6 +54,10 @@ data TemplateExpression = TemplateLiteral TemplateValue
                                                 TemplateExpression
                         | TemplateOperationLessEquals TemplateExpression
                                                       TemplateExpression
+                        | TemplateOperationAdd TemplateExpression TemplateExpression
+                        | TemplateOperationSubtract TemplateExpression TemplateExpression
+                        | TemplateOperationMultiply TemplateExpression TemplateExpression
+                        | TemplateOperationDivide TemplateExpression TemplateExpression
                         | TemplateFunctionCall (String, String)
                                                [TemplateExpression]
                         | TemplateVariable (String, String)
@@ -76,6 +80,10 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenGreater
                    | TokenLessEquals
                    | TokenLess
+                   | TokenPlus
+                   | TokenMinus
+                   | TokenStar
+                   | TokenSlash
                      deriving (Eq, Show)
 
 class Bindable a where
@@ -85,12 +93,8 @@ instance Bindable Bool where
     toTemplate bool = TemplateBool bool
 instance Bindable Int64 where
     toTemplate int = TemplateInteger int
-instance Bindable String where
-    toTemplate string = TemplateString string
 instance (Bindable a) => Bindable (Maybe a) where
     toTemplate Nothing = TemplateMaybe Nothing
     toTemplate (Just value) = TemplateMaybe $ Just $ toTemplate value
 instance (Bindable a) => Bindable [a] where
     toTemplate values = TemplateList $ map toTemplate values
-instance Bindable [Map (String, String) TemplateValue] where
-    toTemplate rows = TemplateList $ map TemplateMap rows
