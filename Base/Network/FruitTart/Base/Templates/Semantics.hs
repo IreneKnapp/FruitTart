@@ -32,21 +32,18 @@ fillTemplate moduleName templateName bindings parameters = do
   if items == []
     then error $ "Template " ++ moduleName ++ "." ++ templateName ++ " not found."
     else return ()
-  mapM (\[SQLText kindName, SQLText body] -> do
-         let kind = case kindName of
-                      "content" -> Content
-                      "expression" -> Expression
-                      _ -> Content
+  mapM (\[SQLText kind, SQLText body] -> do
          case kind of
-           Content -> return body
-           Expression ->
+           "content" -> return body
+           "expression" ->
                catchFruitTart ((evalExpression moduleName templateName
                                                bindings parameters
                                                $ readExpression moduleName body)
                                >>= return . valueToString)
                               (\e -> error $ "While parsing template "
                                            ++ moduleName ++ "."
-                                           ++ templateName ++ ": " ++ (show e)))
+                                           ++ templateName ++ ": " ++ (show e))
+           _ -> error $ "Unknown template item type " ++ kind ++ ".")
        items
        >>= return . concat
 

@@ -68,12 +68,8 @@ view templateID = do
       sqlItems <- query ("SELECT kind, body FROM template_items "
                          ++ "WHERE template = ? ORDER BY item")
                         [SQLInteger templateID]
-      let items = map (\[SQLText itemTypeName, SQLText body] ->
-                        let itemType = case itemTypeName of
-                                         "content" -> Content
-                                         "expression" -> Expression
-                                         _ -> Content
-                        in (itemType, body))
+      let items = map (\[SQLText itemType, SQLText body] ->
+                        (itemType, body))
                       sqlItems
       outputTemplatePage currentPage targetPage Nothing (Just templateID)
                          moduleName templateName items
@@ -92,12 +88,8 @@ copy templateID = do
       sqlItems <- query ("SELECT kind, body FROM template_items "
                          ++ "WHERE template = ? ORDER BY item")
                         [SQLInteger templateID]
-      let items = map (\[SQLText itemTypeName, SQLText body] ->
-                        let itemType = case itemTypeName of
-                                         "content" -> Content
-                                         "expression" -> Expression
-                                         _ -> Content
-                        in (itemType, body))
+      let items = map (\[SQLText itemType, SQLText body] ->
+                        (itemType, body))
                       sqlItems
       outputTemplatePage currentPage targetPage Nothing Nothing
                          moduleName templateName items
@@ -109,12 +101,12 @@ createGET = do
   let currentPage = "/templates/create/"
       targetPage = "/templates/create/"
   outputTemplatePage currentPage targetPage Nothing Nothing
-                     "Module" "template" [(Content, "")]
+                     "Module" "template" [("content", "")]
 
 
 outputTemplatePage
     :: String -> String -> (Maybe String) -> (Maybe Int64) -> String -> String
-    -> [(TemplateItemType, String)]
+    -> [(String, String)]
     -> FruitTart CGIResult
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
@@ -131,11 +123,8 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Templates" "popupMessage" popupMessage
   bind "Base.Controller.Templates" "bodies"
        $ map (\((itemType, body), index)
-                  -> Map.fromList [(("Base.Controller.Templates",
-                                     "itemType"),
-                                    TemplateString $ case itemType of
-                                                       Content -> "content"
-                                                       Expression -> "expression"),
+                  -> Map.fromList [(("Base.Controller.Templates", "itemType"),
+                                    TemplateString itemType),
                                    (("Base.Controller.Templates", "body"),
                                     TemplateString body),
                                    (("Base.Controller.Templates", "rowCount"),
@@ -177,14 +166,11 @@ createPOST = do
             [SQLText moduleName, SQLText templateName]
       [[SQLInteger templateID]] <- query "SELECT max(id) FROM templates" []
       mapM (\((itemType, body), index) -> do
-              itemTypeName <- return $ case itemType of
-                                Content -> "content"
-                                Expression -> "expression"
               query ("INSERT INTO template_items (template, item, kind, body) "
                      ++ "VALUES (?, ?, ?, ?)")
                     [SQLInteger templateID,
                      SQLInteger index,
-                     SQLText itemTypeName,
+                     SQLText itemType,
                      SQLText body])
            $ zip items [0..]
       query "COMMIT" []
@@ -220,14 +206,11 @@ edit templateID = do
             [SQLText moduleName, SQLText templateName, SQLInteger templateID]
       query "DELETE FROM template_items WHERE template = ?" [SQLInteger templateID]
       mapM (\((itemType, body), index) -> do
-              itemTypeName <- return $ case itemType of
-                                Content -> "content"
-                                Expression -> "expression"
               query ("INSERT INTO template_items (template, item, kind, body) "
                      ++ "VALUES (?, ?, ?, ?)")
                     [SQLInteger templateID,
                      SQLInteger index,
-                     SQLText itemTypeName,
+                     SQLText itemType,
                      SQLText body])
            $ zip items [0..]
       query "COMMIT" []
@@ -276,17 +259,13 @@ deletePOST templateID = do
   seeOtherRedirect "/templates/index/"
 
 
-getInputItems :: FruitTart [(TemplateItemType, String)]
+getInputItems :: FruitTart [(String, String)]
 getInputItems
     = let getInputItem index = do
-            maybeItemTypeName <- getInput $ "type" ++ (show index)
-            case maybeItemTypeName of
+            maybeItemType <- getInput $ "type" ++ (show index)
+            case maybeItemType of
               Nothing -> return Nothing
-              Just itemTypeName -> do
-                let itemType = case itemTypeName of
-                                 "content" -> Content
-                                 "expression" -> Expression
-                                 _ -> Content
+              Just itemType -> do
                 maybeBody <- getInput $ "body" ++ (show index)
                 body <- case maybeBody of
                           Nothing -> return ""

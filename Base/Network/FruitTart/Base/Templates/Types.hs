@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, TypeSynonymInstances,
              FlexibleInstances, OverlappingInstances #-}
 module Network.FruitTart.Base.Templates.Types (
-                                               TemplateItemType(..),
                                                TemplateValueType(..),
                                                TemplateValue(..),
                                                TemplateExpression(..),
@@ -15,10 +14,6 @@ import Data.Int
 import Data.Map (Map)
 import Data.Typeable
 
-
-data TemplateItemType = Content
-                      | Expression
-                        deriving (Eq, Show);
 
 data TemplateValueType = TBool
                        | TInt
