@@ -309,6 +309,7 @@ initDatabase database = do
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "full_name TEXT,\n"
                  ++ "email TEXT,\n"
+                 ++ "url TEXT,\n"
                  ++ "password_hash BLOB\n"
                  ++ ")")
                  []
