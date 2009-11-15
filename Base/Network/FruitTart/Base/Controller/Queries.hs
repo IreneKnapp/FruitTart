@@ -228,7 +228,7 @@ createPOST = do
         else return []
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query created."
-      seeOtherRedirect $ "/queries/index/"
+      seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
     True -> do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
@@ -291,7 +291,7 @@ edit queryID = do
         else return []
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query changed."
-      seeOtherRedirect $ "/queries/index/"
+      seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
     True -> do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName

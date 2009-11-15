@@ -217,7 +217,7 @@ createPOST = do
            $ zip items [0..]
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template created."
-      seeOtherRedirect $ "/templates/index/"
+      seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
     True -> do
       namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
@@ -260,7 +260,7 @@ edit templateID = do
            $ zip items [0..]
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template changed."
-      seeOtherRedirect $ "/templates/index/"
+      seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
     True -> do
       namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
