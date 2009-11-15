@@ -1,6 +1,8 @@
 function init() {
     $('textarea.autosizing').bind("keyup", resizeTextareaOnBackspace);
     $('textarea.autosizing').bind("keypress", resizeTextareaOnKeypress);
+    $('input[type=checkbox][name=is-template-expression]')
+      .bind("click", toggleIsTemplateExpression);
     $('div.query-button').wrapInner("<div></div>");
     $('div.query-button.add').bind("click", addRow);
     $('div.query-button.remove').bind("click", removeRow);
@@ -191,6 +193,17 @@ function fixNames(tbody) {
 	$(this).find('input').attr('name', inputName);
 	i++;
     });
+}
+
+
+function toggleIsTemplateExpression() {
+    if($('input[type=checkbox][name=is-template-expression]').val()) {
+	$('div#results').hide();
+	$('#body-label').text('Template Expression:');
+    } else {
+	$('div#results').show();
+	$('#body-label').text('SQL:');
+    }
 }
 
 
