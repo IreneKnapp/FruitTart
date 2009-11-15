@@ -178,13 +178,15 @@ createPOST = do
                   SQLText body]
       [[SQLInteger queryID]]
           <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
-      mapM (\((itemType, itemName), index) -> do
-              namedQuery "Base.Controller.Queries" "insertQueryResult"
-                         [SQLInteger queryID,
-                          SQLInteger index,
-                          SQLText itemType,
-                          SQLText itemName])
-           $ zip items [0..]
+      if not isTemplateExpression
+        then mapM (\((itemType, itemName), index) -> do
+                     namedQuery "Base.Controller.Queries" "insertQueryResult"
+                                [SQLInteger queryID,
+                                 SQLInteger index,
+                                 SQLText itemType,
+                                 SQLText itemName])
+             $ zip items [0..]
+        else return []
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query created."
       seeOtherRedirect $ "/queries/index/"
@@ -235,13 +237,15 @@ edit queryID = do
                   SQLText body,
                   SQLInteger queryID]
       namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
-      mapM (\((itemType, itemName), index) -> do
-              namedQuery "Base.Controller.Queries" "insertQueryResult"
-                         [SQLInteger queryID,
-                          SQLInteger index,
-                          SQLText itemType,
-                          SQLText itemName])
-           $ zip items [0..]
+      if not isTemplateExpression
+        then mapM (\((itemType, itemName), index) -> do
+                     namedQuery "Base.Controller.Queries" "insertQueryResult"
+                                [SQLInteger queryID,
+                                 SQLInteger index,
+                                 SQLText itemType,
+                                 SQLText itemName])
+                  $ zip items [0..]
+        else return []
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query changed."
       seeOtherRedirect $ "/queries/index/"
