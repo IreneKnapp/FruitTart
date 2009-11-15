@@ -48,17 +48,8 @@ editIndex = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Adventure Editor" "/adventure/edit-index/"
-      bindQueryMultipleRows "Adventure.Controller.Adventure"
-                            "nodes"
-                            [("id", TInt),
-                             ("name", TString)]
-                            "SELECT id, name FROM adventure_nodes ORDER BY name"
-                            []
-      bindQueryMultipleRows "Adventure.Controller.Adventure"
-                            "variables"
-                            [("name", TString)]
-                            "SELECT name FROM adventure_variables ORDER BY name"
-                            []
+      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "nodes" []
+      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "variables" []
       outputPage "Adventure.Controller.Adventure" "editIndex"
 
 
@@ -70,25 +61,9 @@ editNodeGET nodeID = do
     True -> do
       bindDefaults "Adventure Editor" ("/adventure/edit-node/" ++ (show nodeID) ++ "/")
       bind "Adventure.Controller.Adventure" "id" nodeID
-      bindQuery "Adventure.Controller.Adventure"
-                [("name", TString),
-                 ("body", TString)]
-                "SELECT name, body FROM adventure_nodes WHERE id = ?"
-                [SQLInteger nodeID]
-      bindQueryMultipleRows "Adventure.Controller.Adventure"
-                            "options"
-                            [("id", TInt),
-                             ("name", TString),
-                             ("child", TInt),
-                             ("variable", TMaybeString),
-                             ("effect", TMaybeInt)]
-                            ("SELECT options.id, options.name, options.child, "
-                            ++ "effects.variable, effects.effect "
-                            ++ "FROM adventure_options AS options "
-                            ++ "LEFT JOIN adventure_option_variable_effects AS effects "
-                            ++ "ON effects.option = options.id "
-                            ++ "WHERE options.parent = ?")
-                            [SQLInteger nodeID]
+      bindNamedQuery "Adventure.Controller.Adventure" "nodeDetails" [SQLInteger nodeID]
+      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "options"
+                                 [SQLInteger nodeID]
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
@@ -99,10 +74,8 @@ editVariableGET variableName = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Adventure Editor" ("/adventure/edit-variable/" ++ variableName ++ "/")
-      bindQuery "Adventure.Controller.Adventure"
-                [("name", TString)]
-                "SELECT name FROM adventure_variables WHERE name = ?"
-                [SQLText variableName]
+      bindNamedQuery "Adventure.Controller.Adventure" "variableDetails"
+                     [SQLText variableName]
       outputPage "Adventure.Controller.Adventure" "editVariable"
 
 
@@ -189,9 +162,10 @@ outputPage moduleName templateName = do
 getRightEdit :: FruitTart Bool
 getRightEdit = do
   userID <- getEffectiveUserID
-  [[SQLInteger right]]
-      <- query "SELECT right_edit FROM adventure_users WHERE id = ?"
-               [SQLInteger userID]
-  return $ case right of
-             0 -> False
-             _ -> True
+  [values] <- namedQuery "Adventure.Controller.Adventure" "getRights"
+                         [SQLInteger userID]
+  right <- return $ fromJust $ Map.lookup ("Adventure.Controller.Adventure", "rightEdit")
+                                          values
+  right <- return $ case right of
+                      TemplateBool bool -> bool
+  return right
