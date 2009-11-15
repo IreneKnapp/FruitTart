@@ -3,11 +3,12 @@ module Network.FruitTart.Base.Controller.Login (actionTable)
 
 import Control.Concurrent
 import Control.Monad.State
-import Data.ByteString hiding (map)
+import Data.ByteString hiding (map, head)
 import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import Data.Int
 import Data.List
 
@@ -36,12 +37,17 @@ loginGET = do
   case maybeUserID of
     Nothing -> do
              sessionID <- getSessionID
-             [[maybeRecentUserEmail]]
+             queryResult
                  <- namedQuery "Base.Controller.Login" "recentUser"
                                [SQLInteger sessionID]
-             maybeRecentUserEmail <- return $ case maybeRecentUserEmail of
-                                                SQLNull -> Nothing
-                                                SQLText email -> Just email
+             maybeRecentUserEmail
+                 <- return $ fromJust
+                           $ Map.lookup ("Base.Controller.Login", "maybeEmail")
+                                        $ head queryResult
+             maybeRecentUserEmail
+                 <- return $ case maybeRecentUserEmail of
+                               TemplateMaybe Nothing -> Nothing
+                               TemplateMaybe (Just (TemplateString string)) -> Just string
              doNotLogIn Nothing maybeRecentUserEmail
     Just _ -> do
              targetPage <- getReferrer
@@ -62,7 +68,11 @@ loginPOST = do
   case maybeUserIDRows of
     [] -> doNotLogIn (Just "Incorrect information.")
                      maybeEmail
-    [[SQLInteger userID]] -> do
+    [values] -> do
+      userID <- return $ fromJust $ Map.lookup ("Base.Controller.Login", "userID")
+                                               values
+      userID <- return $ case userID of
+                           TemplateInteger integer -> integer
       valid <- validatePassword userID password
       case valid of
         True -> do

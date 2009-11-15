@@ -7,6 +7,7 @@ import Control.Concurrent.MVar
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import Data.Typeable
 
 import Network.FruitTart.Base
@@ -57,10 +58,32 @@ view templateID = do
   maybeNames
       <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
   case maybeNames of
-    [[SQLText moduleName, SQLText templateName]] -> do
+    [values] -> do
+      moduleName <- return $ fromJust
+                           $ Map.lookup ("Base.Controller.Templates", "moduleName")
+                                        values
+      moduleName <- return $ case moduleName of
+                               TemplateString string -> string
+      templateName <- return $ fromJust
+                             $ Map.lookup ("Base.Controller.Templates", "templateName")
+                                          values
+      templateName <- return $ case templateName of
+                                 TemplateString string -> string
       sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
-      let items = map (\[SQLText itemType, SQLText body] ->
-                        (itemType, body))
+      let items = map (\values ->
+                        let itemType'
+                                = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                         "kind")
+                                                        values
+                            itemType = case itemType' of
+                                         TemplateString string -> string
+                            body'
+                                = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                         "body")
+                                                        values
+                            body = case body' of
+                                     TemplateString string -> string
+                        in (itemType, body))
                       sqlItems
       outputTemplatePage currentPage targetPage Nothing (Just templateID)
                          moduleName templateName items
@@ -74,10 +97,32 @@ copy templateID = do
   maybeNames
       <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
   case maybeNames of
-    [[SQLText moduleName, SQLText templateName]] -> do
+    [values] -> do
+      moduleName <- return $ fromJust
+                           $ Map.lookup ("Base.Controller.Templates", "moduleName")
+                                        values
+      moduleName <- return $ case moduleName of
+                               TemplateString string -> string
+      templateName <- return $ fromJust
+                             $ Map.lookup ("Base.Controller.Templates", "templateName")
+                                          values
+      templateName <- return $ case templateName of
+                                 TemplateString string -> string
       sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
-      let items = map (\[SQLText itemType, SQLText body] ->
-                        (itemType, body))
+      let items = map (\values ->
+                        let itemType'
+                                = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                         "kind")
+                                                        values
+                            itemType = case itemType' of
+                                         TemplateString string -> string
+                            body'
+                                = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                         "body")
+                                                        values
+                            body = case body' of
+                                     TemplateString string -> string
+                        in (itemType, body))
                       sqlItems
       outputTemplatePage currentPage targetPage Nothing Nothing
                          moduleName templateName items
@@ -145,15 +190,24 @@ createPOST = do
                   Just templateName -> templateName
   items <- getInputItems
   namedQuery "Queries" "beginExclusiveTransaction" []
-  [[SQLInteger count]]
+  [values]
       <- namedQuery "Base.Controller.Templates" "templateExists"
                     [SQLText moduleName, SQLText templateName]
-  case count of
-    0 -> do
+  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
+                                           values
+  exists <- return $ case exists of
+                       TemplateBool bool -> bool
+  case exists of
+    False -> do
       namedQuery "Base.Controller.Templates" "insertTemplate"
                  [SQLText moduleName, SQLText templateName]
-      [[SQLInteger templateID]]
+      [values]
           <- namedQuery "Base.Controller.Templates" "templateJustInserted" []
+      templateID <- return $ fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                    "templateID")
+                                                   values
+      templateID <- return $ case templateID of
+                               TemplateInteger integer -> integer
       mapM (\((itemType, body), index) -> do
               namedQuery "Base.Controller.Templates" "insertTemplateItem"
                          [SQLInteger templateID,
@@ -164,7 +218,7 @@ createPOST = do
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template created."
       seeOtherRedirect $ "/templates/index/"
-    _ -> do
+    True -> do
       namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
                          (Just "A template by that name already exists.")
@@ -185,11 +239,15 @@ edit templateID = do
                   Just templateName -> templateName
   items <- getInputItems
   namedQuery "Queries" "beginTransaction" []
-  [[SQLInteger count]]
+  [values]
       <- namedQuery "Base.Controller.Templates" "templateExistsWithDifferentID"
                     [SQLText moduleName, SQLText templateName, SQLInteger templateID]
-  case count of
-    0 -> do
+  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
+                                           values
+  exists <- return $ case exists of
+                       TemplateBool bool -> bool
+  case exists of
+    False -> do
       namedQuery "Base.Controller.Templates" "updateTemplate" []
       namedQuery "Base.Controller.Templates" "deleteTemplateItems"
                  [SQLInteger templateID]
@@ -203,7 +261,7 @@ edit templateID = do
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Template changed."
       seeOtherRedirect $ "/templates/index/"
-    _ -> do
+    True -> do
       namedQuery "Queries" "rollback" []
       outputTemplatePage currentPage targetPage
                          (Just "A template by that name already exists.")

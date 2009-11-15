@@ -60,14 +60,30 @@ view queryID = do
   maybeNames
       <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
-    [[SQLText moduleName,
-      SQLText queryName,
-      SQLInteger isTemplateExpression,
-      SQLText body]] -> do
+    [values] -> do
+      moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                    "moduleName")
+                                                   values
+      moduleName <- return $ case moduleName of
+                               TemplateString string -> string
+      queryName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                   "queryName")
+                                                   values
+      queryName <- return $ case queryName of
+                              TemplateString string -> string
+      isTemplateExpression <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                              "isTemplateExpression")
+                                                             values
+      isTemplateExpression <- return $ case isTemplateExpression of
+                                         TemplateBool bool -> bool
+      body <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                              "body")
+                                             values
+      body <- return $ case body of
+                         TemplateString body -> body
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
-      bind "Base.Controller.Queries" "isTemplateExpression"
-           $ if isTemplateExpression == 0 then False else True
+      bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
@@ -85,14 +101,30 @@ copy queryID = do
   maybeNames
       <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
-    [[SQLText moduleName,
-      SQLText queryName,
-      SQLInteger isTemplateExpression,
-      SQLText body]] -> do
+    [values] -> do
+      moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                    "moduleName")
+                                                   values
+      moduleName <- return $ case moduleName of
+                               TemplateString string -> string
+      queryName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                   "queryName")
+                                                   values
+      queryName <- return $ case queryName of
+                              TemplateString string -> string
+      isTemplateExpression <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                                              "isTemplateExpression")
+                                                             values
+      isTemplateExpression <- return $ case isTemplateExpression of
+                                         TemplateBool bool -> bool
+      body <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+                                              "body")
+                                             values
+      body <- return $ case body of
+                         TemplateString body -> body
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
-      bind "Base.Controller.Queries" "isTemplateExpression"
-           $ if isTemplateExpression == 0 then False else True
+      bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
@@ -166,18 +198,25 @@ createPOST = do
                      Just body -> body
   items <- getInputItems
   namedQuery "Queries" "beginExclusiveTransaction" []
-  [[SQLInteger count]]
+  [values]
       <- namedQuery "Base.Controller.Queries" "queryExists"
                     [SQLText moduleName, SQLText queryName]
-  case count of
-    0 -> do
+  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "exists")
+                                           values
+  exists <- return $ case exists of
+                       TemplateBool bool -> bool
+  case exists of
+    False -> do
       namedQuery "Base.Controller.Queries" "insertQuery"
                  [SQLText moduleName,
                   SQLText queryName,
                   SQLInteger $ if isTemplateExpression then 1 else 0,
                   SQLText body]
-      [[SQLInteger queryID]]
-          <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
+      [values] <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
+      queryID <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "queryID")
+                                                values
+      queryID <- return $ case queryID of
+                            TemplateInteger integer -> integer
       if not isTemplateExpression
         then mapM (\((itemType, itemName), index) -> do
                      namedQuery "Base.Controller.Queries" "insertQueryResult"
@@ -190,7 +229,7 @@ createPOST = do
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query created."
       seeOtherRedirect $ "/queries/index/"
-    _ -> do
+    True -> do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
@@ -225,11 +264,15 @@ edit queryID = do
                      Just body -> body
   items <- getInputItems
   namedQuery "Queries" "beginTransaction" []
-  [[SQLInteger count]]
+  [values]
       <- namedQuery "Base.Controller.Queries" "queryExistsWithDifferentID"
                     [SQLText moduleName, SQLText queryName, SQLInteger queryID]
-  case count of
-    0 -> do
+  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "exists")
+                                           values
+  exists <- return $ case exists of
+                       TemplateBool bool -> bool
+  case exists of
+    False -> do
       namedQuery "Base.Controller.Queries" "updateQuery"
                  [SQLText moduleName,
                   SQLText queryName,
@@ -249,7 +292,7 @@ edit queryID = do
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query changed."
       seeOtherRedirect $ "/queries/index/"
-    _ -> do
+    True -> do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName

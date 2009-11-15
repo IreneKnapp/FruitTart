@@ -127,13 +127,19 @@ getValueNamesAndTypes queryID = do
                rows
 
 
-namedQuery :: String -> String -> [SQLData] -> FruitTart [[SQLData]]
+namedQuery :: String -> String -> [SQLData]
+           -> FruitTart [Map (String, String) TemplateValue]
 namedQuery moduleName queryName queryValues = do
-  rows <- query "SELECT body FROM queries WHERE module = ? AND name = ?"
+  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
                  [SQLText moduleName, SQLText queryName]
   case rows of
-    [[SQLText queryText]] -> do
-      query queryText queryValues
+    [[SQLInteger queryID, SQLText queryText]] -> do
+      valueNamesAndTypes <- getValueNamesAndTypes queryID
+      rows <- query queryText queryValues
+      return $ map (\row -> convertRowToBindings moduleName
+                                                 valueNamesAndTypes
+                                                 row)
+                   rows
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
