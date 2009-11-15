@@ -118,6 +118,7 @@ getValueNamesAndTypes queryID = do
   return $ map (\[SQLText name, SQLText typeName] ->
                  (name,
                   case typeName of
+                    "boolean" -> TBool
                     "integer" -> TInt
                     "string" -> TString
                     "maybeInteger" -> TMaybeInt
