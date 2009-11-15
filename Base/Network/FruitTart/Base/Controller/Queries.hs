@@ -60,9 +60,14 @@ view queryID = do
   maybeNames
       <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
-    [[SQLText moduleName, SQLText queryName, SQLText body]] -> do
+    [[SQLText moduleName,
+      SQLText queryName,
+      SQLInteger isTemplateExpression,
+      SQLText body]] -> do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
+      bind "Base.Controller.Queries" "isTemplateExpression"
+           $ if isTemplateExpression == 0 then False else True
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
@@ -80,9 +85,14 @@ copy queryID = do
   maybeNames
       <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
   case maybeNames of
-    [[SQLText moduleName, SQLText queryName, SQLText body]] -> do
+    [[SQLText moduleName,
+      SQLText queryName,
+      SQLInteger isTemplateExpression,
+      SQLText body]] -> do
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
+      bind "Base.Controller.Queries" "isTemplateExpression"
+           $ if isTemplateExpression == 0 then False else True
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
@@ -99,6 +109,7 @@ createGET = do
       targetPage = "/queries/create/"
   bind "Base.Controller.Queries" "moduleName" "Module"
   bind "Base.Controller.Queries" "queryName" "query"
+  bind "Base.Controller.Queries" "isTemplateExpression" False
   bind "Base.Controller.Queries" "body" ""
   bind "Base.Controller.Queries" "rowCount"
        $ TemplateInteger $ fromIntegral $ findRowCount ""
@@ -145,6 +156,10 @@ createPOST = do
   queryName <- return $ case maybeQueryName of
                   Nothing -> "query"
                   Just queryName -> queryName
+  maybeIsTemplateExpression <- getInput "is-template-expression"
+  isTemplateExpression <- return $ case maybeIsTemplateExpression of
+                                     Nothing -> False
+                                     Just _ -> True
   maybeBody <- getInput "body"
   body <- return $ case maybeBody of
                      Nothing -> ""
@@ -157,7 +172,10 @@ createPOST = do
   case count of
     0 -> do
       namedQuery "Base.Controller.Queries" "insertQuery"
-                 [SQLText moduleName, SQLText queryName, SQLText body]
+                 [SQLText moduleName,
+                  SQLText queryName,
+                  SQLInteger $ if isTemplateExpression then 1 else 0,
+                  SQLText body]
       [[SQLInteger queryID]]
           <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
       mapM (\((itemType, itemName), index) -> do
@@ -174,6 +192,7 @@ createPOST = do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
+      bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body
@@ -194,6 +213,10 @@ edit queryID = do
   queryName <- return $ case maybeQueryName of
                   Nothing -> "query"
                   Just queryName -> queryName
+  maybeIsTemplateExpression <- getInput "is-template-expression"
+  isTemplateExpression <- return $ case maybeIsTemplateExpression of
+                                     Nothing -> False
+                                     Just _ -> True
   maybeBody <- getInput "body"
   body <- return $ case maybeBody of
                      Nothing -> ""
@@ -208,6 +231,7 @@ edit queryID = do
       namedQuery "Base.Controller.Queries" "updateQuery"
                  [SQLText moduleName,
                   SQLText queryName,
+                  SQLInteger $ if isTemplateExpression then 1 else 0,
                   SQLText body,
                   SQLInteger queryID]
       namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
@@ -225,6 +249,7 @@ edit queryID = do
       namedQuery "Queries" "rollback" []
       bind "Base.Controller.Queries" "moduleName" moduleName
       bind "Base.Controller.Queries" "queryName" queryName
+      bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
       bind "Base.Controller.Queries" "rowCount"
            $ TemplateInteger $ fromIntegral $ findRowCount body

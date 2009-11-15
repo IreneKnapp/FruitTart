@@ -83,6 +83,7 @@ initDatabase database = do
              ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
              ++ "module TEXT,\n"
              ++ "name TEXT,\n"
+             ++ "is_template_expression INTEGER,\n"
              ++ "body TEXT,\n"
              ++ "CONSTRAINT key UNIQUE (module, name)\n"
              ++ ")")
