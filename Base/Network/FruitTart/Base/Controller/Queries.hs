@@ -85,8 +85,6 @@ view queryID = do
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
-      bind "Base.Controller.Queries" "rowCount"
-           $ TemplateInteger $ fromIntegral $ findRowCount body
       bindNamedQueryMultipleRows "Base.Controller.Queries"
                                  "results"
                                  [SQLInteger queryID]
@@ -126,8 +124,6 @@ copy queryID = do
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
-      bind "Base.Controller.Queries" "rowCount"
-           $ TemplateInteger $ fromIntegral $ findRowCount body
       bindNamedQueryMultipleRows "Base.Controller.Queries"
                                  "results"
                                  [SQLInteger queryID]
@@ -143,8 +139,6 @@ createGET = do
   bind "Base.Controller.Queries" "queryName" "query"
   bind "Base.Controller.Queries" "isTemplateExpression" False
   bind "Base.Controller.Queries" "body" ""
-  bind "Base.Controller.Queries" "rowCount"
-       $ TemplateInteger $ fromIntegral $ findRowCount ""
   bind "Base.Controller.Queries" "results" ([] :: [String])
   outputQueryPage currentPage targetPage Nothing Nothing
 
@@ -235,8 +229,6 @@ createPOST = do
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
-      bind "Base.Controller.Queries" "rowCount"
-           $ TemplateInteger $ fromIntegral $ findRowCount body
       outputQueryPage currentPage targetPage
                       (Just "A query by that name already exists.")
                       Nothing
@@ -298,8 +290,6 @@ edit queryID = do
       bind "Base.Controller.Queries" "queryName" queryName
       bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
       bind "Base.Controller.Queries" "body" body
-      bind "Base.Controller.Queries" "rowCount"
-           $ TemplateInteger $ fromIntegral $ findRowCount body
       outputQueryPage currentPage targetPage
                       (Just "A query by that name already exists.")
                       (Just queryID)
@@ -356,7 +346,3 @@ getInputItems
                 rest <- getInputItemsFrom $ index + 1
                 return $ item : rest
       in getInputItemsFrom 1
-
-
-findRowCount :: String -> Int
-findRowCount body = length $ split '\n' $ wordWrap body 60

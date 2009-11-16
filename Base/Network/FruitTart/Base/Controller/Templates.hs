@@ -160,8 +160,6 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                                     TemplateString itemType),
                                    (("Base.Controller.Templates", "body"),
                                     TemplateString body),
-                                   (("Base.Controller.Templates", "rowCount"),
-                                    TemplateInteger $ fromIntegral $ findRowCount body),
                                    (("Base.Controller.Templates", "index"),
                                     TemplateInteger index)])
              $ zip bodies [1..]
@@ -320,7 +318,3 @@ getInputItems
                 rest <- getInputItemsFrom $ index + 1
                 return $ item : rest
       in getInputItemsFrom 1
-
-
-findRowCount :: String -> Int
-findRowCount body = length $ split '\n' $ wordWrap body 60
