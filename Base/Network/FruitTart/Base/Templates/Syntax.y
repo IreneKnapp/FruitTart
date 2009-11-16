@@ -1,29 +1,39 @@
 {
 module Network.FruitTart.Base.Templates.Syntax (
-						readExpression,
-						parser,
-						lexer
-						)
+                                                readExpression,
+                                                parser,
+                                                lexer
+                                                )
     where
 
 import Data.Char
+import Data.Maybe
 import Numeric
 
 import Network.FruitTart.Base.Templates.Types
 
 }
 
-%name parser
+%name parser Expression
 %tokentype { TemplateToken }
 %error { parseError }
 
 %token
         value       { TokenValue $$ }
         symbol      { TokenSymbol _ _ }
+        if          { TokenIf }
+        case        { TokenCase }
+        call        { TokenCall }
+        iterate     { TokenIterate }
+        bound       { TokenBound }
         '('         { TokenLeftParen }
         ')'         { TokenRightParen }
         '['         { TokenLeftSquareBracket }
         ']'         { TokenRightSquareBracket }
+        '{'         { TokenLeftCurlyBracket }
+        '}'         { TokenRightCurlyBracket }
+	'->'        { TokenMinusGreater }
+        ';'         { TokenSemicolon }
         ','         { TokenComma }
         '++'        { TokenPlusPlus }
         '=='        { TokenEqualsEquals }
@@ -31,10 +41,10 @@ import Network.FruitTart.Base.Templates.Types
         '!'         { TokenExclamation }
         '&&'        { TokenAmpersandAmpersand }
         '||'        { TokenBarBar }
-	'>='	    { TokenGreaterEquals }
-	'>'	    { TokenGreater }
-	'<='	    { TokenLessEquals }
-	'<'	    { TokenLess }
+        '>='        { TokenGreaterEquals }
+        '>'         { TokenGreater }
+        '<='        { TokenLessEquals }
+        '<'         { TokenLess }
         '+'         { TokenPlus }
         '-'         { TokenMinus }
         '*'         { TokenStar }
@@ -42,64 +52,105 @@ import Network.FruitTart.Base.Templates.Types
 
 %%
 
-Expression      : Expression '&&' Expression1
-                { TemplateOperationAnd $1 $3 }
-                | Expression '||' Expression1
-                { TemplateOperationOr $1 $3 }
-                | Expression1
-                { $1 }
+PrimaryExpression     : value
+                      { TemplateLiteral $1 }
+                      | symbol
+                      { TemplateVariable (symbolTokenPackage $1, symbolTokenName $1) }
+                      | '[' ExpressionList ']'
+                      { TemplateExpressionList $2 }
+		      | '{' LambdaList '->' Expression '}'
+		      { TemplateLambdaExpression $2 $4 }
+                      | '(' Expression ')'
+                      { $2 }
 
-Expression1     : Expression1 '==' Expression2
-                { TemplateOperationEquals $1 $3 }
-                | Expression1 '!=' Expression2
-                { TemplateOperationNotEquals $1 $3 }
-                | Expression1 '>=' Expression2
-                { TemplateOperationGreaterEquals $1 $3 }
-                | Expression1 '>' Expression2
-                { TemplateOperationGreater $1 $3 }
-                | Expression1 '<=' Expression2
-                { TemplateOperationLessEquals $1 $3 }
-                | Expression1 '<' Expression2
-                { TemplateOperationLess $1 $3 }
-                | Expression2
-                { $1 }
+FunctionCallExpression
+                      : FunctionCallExpression '(' ExpressionList ')'
+                      { TemplateFunctionCall $1 $3 }
+                      | if '(' ExpressionList ')'
+                      { TemplateIfExpression $3 }
+                      | case '(' ExpressionList ')'
+                      { TemplateCaseExpression $3 }
+                      | call '(' ExpressionList ')'
+                      { TemplateCallExpression $3 }
+                      | iterate '(' ExpressionList ')'
+                      { TemplateIterateExpression $3 }
+                      | bound '(' ExpressionList ')'
+                      { TemplateBoundExpression $3 }
+		      | PrimaryExpression
+		      { $1 }
 
-Expression2     : Expression2 '++' Expression3
-                { TemplateOperationConcatenate $1 $3 }
-                | Expression2 '+' Expression3
-		{ TemplateOperationAdd $1 $3 }
-		| Expression2 '-' Expression3
-		{ TemplateOperationSubtract $1 $3 }
-		| Expression2 '*' Expression3
-		{ TemplateOperationMultiply $1 $3 }
-		| Expression2 '/' Expression3
-		{ TemplateOperationDivide $1 $3 }
-                | Expression3
-                { $1 }
+UnaryExpression       : '!' UnaryExpression
+                      { TemplateOperationNot $2 }
+		      | FunctionCallExpression
+		      { $1 }
 
-Expression3     : symbol '(' ExpressionList ')'
-                { TemplateFunctionCall (symbolTokenPackage $1, symbolTokenName $1)
-                                       $3 }
-                | '[' ExpressionList ']'
-                { TemplateExpressionList $2 }
-                | value
-                { TemplateLiteral $1 }
-                | symbol
-                { TemplateVariable (symbolTokenPackage $1, symbolTokenName $1) }
-                | '!' Expression
-                { TemplateOperationNot $2 }
-                | '(' Expression ')'
-                { $2 }
+MultiplicativeExpression
+                      : MultiplicativeExpression '*' UnaryExpression
+                      { TemplateOperationMultiply $1 $3 }
+                      | MultiplicativeExpression '/' UnaryExpression
+                      { TemplateOperationDivide $1 $3 }
+                      | UnaryExpression
+                      { $1 }
 
-ExpressionList  : ExpressionList1
-                { $1 }
-                |
-                { [] }
+AdditiveExpression    : AdditiveExpression '++' MultiplicativeExpression
+                      { TemplateOperationConcatenate $1 $3 }
+                      | AdditiveExpression '+' MultiplicativeExpression
+                      { TemplateOperationAdd $1 $3 }
+                      | AdditiveExpression '-' MultiplicativeExpression
+                      { TemplateOperationSubtract $1 $3 }
+		      | MultiplicativeExpression
+		      { $1 }
 
-ExpressionList1 : ExpressionList1 ',' Expression
-                { $1 ++ [$3] }
-                | Expression
-                { [$1] }
+EqualityExpression    : EqualityExpression '==' AdditiveExpression
+                      { TemplateOperationEquals $1 $3 }
+                      | EqualityExpression '!=' AdditiveExpression
+                      { TemplateOperationNotEquals $1 $3 }
+                      | EqualityExpression '>=' AdditiveExpression
+                      { TemplateOperationGreaterEquals $1 $3 }
+                      | EqualityExpression '>' AdditiveExpression
+                      { TemplateOperationGreater $1 $3 }
+                      | EqualityExpression '<=' AdditiveExpression
+                      { TemplateOperationLessEquals $1 $3 }
+                      | EqualityExpression '<' AdditiveExpression
+                      { TemplateOperationLess $1 $3 }
+                      | AdditiveExpression
+                      { $1 }
+
+LogicalExpression     : LogicalExpression '&&' EqualityExpression
+                      { TemplateOperationAnd $1 $3 }
+                      | LogicalExpression '||' EqualityExpression
+                      { TemplateOperationOr $1 $3 }
+                      | EqualityExpression
+                      { $1 }
+
+Expression	      : Expression ';' LogicalExpression
+		      { TemplateSequence $1 $3 }
+		      | Expression ';'
+		      { $1 }
+		      | LogicalExpression
+		      { $1 }
+
+ExpressionList        : ExpressionList1
+                      { $1 }
+                      |
+                      { [] }
+
+ExpressionList1       : ExpressionList1 ',' Expression
+                      { $1 ++ [$3] }
+                      | Expression
+                      { [$1] }
+
+LambdaList	      : LambdaList1
+		      { $1 }
+		      |
+		      { [] }
+
+LambdaList1	      : LambdaList1 ',' symbol
+		      { $1
+		        ++ [TemplateParameter (symbolTokenPackage $3,
+			                       symbolTokenName $3)] }
+		      | symbol
+		      { [TemplateParameter (symbolTokenPackage $1, symbolTokenName $1)] }
 
 {
 
@@ -117,6 +168,10 @@ lexer defaultPackage ('(':rest) = TokenLeftParen : lexer defaultPackage rest
 lexer defaultPackage (')':rest) = TokenRightParen : lexer defaultPackage rest
 lexer defaultPackage ('[':rest) = TokenLeftSquareBracket : lexer defaultPackage rest
 lexer defaultPackage (']':rest) = TokenRightSquareBracket : lexer defaultPackage rest
+lexer defaultPackage ('{':rest) = TokenLeftCurlyBracket : lexer defaultPackage rest
+lexer defaultPackage ('}':rest) = TokenRightCurlyBracket : lexer defaultPackage rest
+lexer defaultPackage ('-':('>':rest)) = TokenMinusGreater : lexer defaultPackage rest
+lexer defaultPackage (';':rest) = TokenSemicolon : lexer defaultPackage rest
 lexer defaultPackage (',':rest) = TokenComma : lexer defaultPackage rest
 lexer defaultPackage ('+':('+':rest)) = TokenPlusPlus : lexer defaultPackage rest
 lexer defaultPackage ('=':('=':rest)) = TokenEqualsEquals : lexer defaultPackage rest
@@ -139,10 +194,23 @@ lexer defaultPackage all@('"':_) = let (string, rest) = readString all
 lexer defaultPackage all@(c:_)
   | isDigit c = let [(result, rest)] = readDec all
                 in (TokenValue $ TemplateInteger result) : lexer defaultPackage rest
-  | isUpper c = let (package, symbol, rest) = readSymbolWithPackage all
-                in (TokenSymbol package symbol) : lexer defaultPackage rest
-  | isLower c = let (symbol, rest) = readSymbolComponent all
-                in (TokenSymbol defaultPackage symbol) : lexer defaultPackage rest
+  | isAlpha c = let (maybePackage, symbol, rest) = readSymbol all
+                in case maybePackage of
+                     Nothing -> case symbol of
+                       _ | symbol == "if" -> TokenIf
+                                             : lexer defaultPackage rest
+                         | symbol == "case" -> TokenCase
+                                               : lexer defaultPackage rest
+                         | symbol == "call" -> TokenCall
+                                               : lexer defaultPackage rest
+                         | symbol == "iterate" -> TokenIterate
+                                                  : lexer defaultPackage rest
+                         | symbol == "bound" -> TokenBound
+                                                : lexer defaultPackage rest
+                         | otherwise -> (TokenSymbol defaultPackage symbol)
+                                        : lexer defaultPackage rest
+                     Just package -> (TokenSymbol package symbol)
+                                     : lexer defaultPackage rest
   | isSpace c = lexer defaultPackage $ drop 1 all
   | otherwise = error $ "Expression-lexing error: Unexpected character '" ++ [c] ++ "'."
 
@@ -164,30 +232,17 @@ readString input
                                    in ([c] ++ a, b)
 
 
-readSymbolComponent :: String -> (String, String)
-readSymbolComponent input = span isAlpha input
-
-
-readSymbolWithPackage :: String -> (String, String, String)
-readSymbolWithPackage input
-    = readSymbolWithPackage' input
-      where readSymbolWithPackage' input
-              = let (a, b, c) = readSymbolWithPackage'' input
-                in (take (length a - 1) a, b, c)
-            readSymbolWithPackage'' all@(c:_)
-              | isUpper c
-                = let (a, b:rest) = readSymbolComponent all
-                  in if b /= '.'
-                     then error $ "Expression-lexing error: "
-                                ++ "Symbol name missing proper name part."
-                     else let (c, d, e) = readSymbolWithPackage'' rest
-                          in (a ++ "." ++ c, d, e)
-              | isLower c
-                = let (a, rest) = readSymbolComponent all
-                  in ("", a, rest)
-              | otherwise
-                = error $ "Expression-lexing error: "
-                        ++ "Symbol name has unexpected character '" ++ [c] ++ "'."
+readSymbol :: String -> (Maybe String, String, String)
+readSymbol input
+    = let (fullName, rest) = span (\c -> (isAlpha c) || (c == '.')) input
+          (lastComponentReversed, _) = span isAlpha (reverse fullName)
+          lastComponent = reverse lastComponentReversed
+          maybeOtherComponents = if (length fullName > (length lastComponent + 1))
+                                   then Just $ take (length fullName
+                                                     - length lastComponent
+                                                     - 1) fullName
+                                   else Nothing
+      in (maybeOtherComponents, lastComponent, rest)
 
 
 symbolTokenPackage :: TemplateToken -> String

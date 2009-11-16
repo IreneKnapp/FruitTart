@@ -3,6 +3,7 @@
 module Network.FruitTart.Base.Templates.Types (
                                                TemplateValueType(..),
                                                TemplateValue(..),
+                                               TemplateParameter(..),
                                                TemplateExpression(..),
                                                TemplateToken(..),
                                                Bindable(..),
@@ -14,21 +15,38 @@ import Data.Int
 import Data.Map (Map)
 import Data.Typeable
 
+import Network.FruitTart.Util
+
 
 data TemplateValueType = TBool
                        | TInt
                        | TString
                        | TMaybeInt
                        | TMaybeString
-                         deriving (Eq, Show, Typeable);
+                         deriving (Typeable);
+
+data TemplateParameter = TemplateParameter (String, String)
 
 data TemplateValue = TemplateBool Bool
                    | TemplateInteger Int64
                    | TemplateString String
                    | TemplateList [TemplateValue]
                    | TemplateMaybe (Maybe TemplateValue)
+                   | TemplateOrdering Ordering
                    | TemplateMap (Map (String, String) TemplateValue)
-                     deriving (Eq, Show, Typeable)
+                   | TemplateLambda [TemplateParameter] TemplateExpression
+                   | TemplateNativeLambda (Map (String, String) TemplateValue
+                                           -> [TemplateValue]
+                                           -> FruitTart TemplateValue)
+                     deriving (Typeable)
+instance Eq TemplateValue where
+    (==) (TemplateBool a) (TemplateBool b) = (==) a b
+    (==) (TemplateInteger a) (TemplateInteger b) = (==) a b
+    (==) (TemplateString a) (TemplateString b) = (==) a b
+    (==) (TemplateList a) (TemplateList b) = (==) a b
+    (==) (TemplateMaybe a) (TemplateMaybe b) = (==) a b
+    (==) (TemplateOrdering a) (TemplateOrdering b) = (==) a b
+    (==) _ _ = False
 
 data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateExpressionList [TemplateExpression]
@@ -53,17 +71,32 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateOperationSubtract TemplateExpression TemplateExpression
                         | TemplateOperationMultiply TemplateExpression TemplateExpression
                         | TemplateOperationDivide TemplateExpression TemplateExpression
-                        | TemplateFunctionCall (String, String)
+                        | TemplateIfExpression [TemplateExpression]
+                        | TemplateCaseExpression [TemplateExpression]
+                        | TemplateCallExpression [TemplateExpression]
+                        | TemplateIterateExpression [TemplateExpression]
+                        | TemplateBoundExpression [TemplateExpression]
+                        | TemplateFunctionCall TemplateExpression
                                                [TemplateExpression]
                         | TemplateVariable (String, String)
-                          deriving (Eq, Show)
+                        | TemplateLambdaExpression [TemplateParameter] TemplateExpression
+                        | TemplateSequence TemplateExpression TemplateExpression
 
 data TemplateToken = TokenValue TemplateValue
                    | TokenSymbol String String
+                   | TokenIf
+                   | TokenCase
+                   | TokenCall
+                   | TokenIterate
+                   | TokenBound
                    | TokenLeftParen
                    | TokenRightParen
                    | TokenLeftSquareBracket
                    | TokenRightSquareBracket
+                   | TokenLeftCurlyBracket
+                   | TokenRightCurlyBracket
+                   | TokenMinusGreater
+                   | TokenSemicolon
                    | TokenComma
                    | TokenPlusPlus
                    | TokenEqualsEquals
@@ -79,7 +112,6 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenMinus
                    | TokenStar
                    | TokenSlash
-                     deriving (Eq, Show)
 
 class Bindable a where
     toTemplate :: a -> TemplateValue

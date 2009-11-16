@@ -203,7 +203,7 @@ clearBindings = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   liftIO $ takeMVar bindingsMVar
-  liftIO $ putMVar bindingsMVar Map.empty
+  liftIO $ putMVar bindingsMVar baseBindings
 
 
 getTemplate :: String -> String -> FruitTart String
@@ -211,4 +211,4 @@ getTemplate moduleName templateName = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   bindings <- liftIO $ readMVar bindingsMVar
-  fillTemplate moduleName templateName bindings []
+  fillTemplate moduleName templateName bindings
