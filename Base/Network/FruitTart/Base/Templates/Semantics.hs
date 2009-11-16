@@ -40,7 +40,7 @@ fillTemplate moduleName templateName bindings = do
                catchFruitTart ((evalExpression moduleName templateName
                                                bindings
                                                $ readExpression moduleName body)
-                               >>= return . valueToString)
+                               >>= valueToString)
                               (\e -> error $ "While processing template "
                                            ++ moduleName ++ "."
                                            ++ templateName ++ ": " ++ (show e))
@@ -49,28 +49,28 @@ fillTemplate moduleName templateName bindings = do
        >>= return . concat
 
 
-valueToBoolean :: TemplateValue -> Bool
-valueToBoolean (TemplateBool boolean) = boolean
+valueToBoolean :: TemplateValue -> FruitTart Bool
+valueToBoolean (TemplateBool boolean) = return boolean
 valueToBoolean _ = error "Template value is not a Boolean."
 
 
-valueToString :: TemplateValue -> String
-valueToString (TemplateString string) = string
+valueToString :: TemplateValue -> FruitTart String
+valueToString (TemplateString string) = return string
 valueToString _ = error "Template value is not a String."
 
 
-valueToInteger :: TemplateValue -> Int64
-valueToInteger (TemplateInteger integer) = integer
+valueToInteger :: TemplateValue -> FruitTart Int64
+valueToInteger (TemplateInteger integer) = return integer
 valueToInteger _ = error "Template value is not an Integer."
 
 
-valueToList :: TemplateValue -> [TemplateValue]
-valueToList (TemplateList list) = list
+valueToList :: TemplateValue -> FruitTart [TemplateValue]
+valueToList (TemplateList list) = return list
 valueToList _ = error "Template value is not a List."
 
 
-valueToMap :: TemplateValue -> Map (String, String) TemplateValue
-valueToMap (TemplateMap map) = map
+valueToMap :: TemplateValue -> FruitTart (Map (String, String) TemplateValue)
+valueToMap (TemplateMap map) = return map
 valueToMap _ = error "Template value is not a Map."
 
 
@@ -170,7 +170,8 @@ evalExpression moduleName templateName bindings expression = do
             ifTrue = head $ drop 1 subexpressions
             ifFalse = head $ drop 2 subexpressions
         result <- evalExpression moduleName templateName bindings condition
-        if valueToBoolean result
+                  >>= valueToBoolean
+        if result
           then evalExpression moduleName templateName bindings ifTrue
           else evalExpression moduleName templateName bindings ifFalse
       TemplateCaseExpression subexpressions -> do
@@ -232,10 +233,10 @@ evalExpression moduleName templateName bindings expression = do
                             ++ "."
         rows <- (evalExpression moduleName templateName bindings
                                 $ head $ drop 1 subexpressions)
-                >>= return . valueToList
+                >>= valueToList
         results <- mapM (\row -> do
-                           let localSubbindings = Map.union (valueToMap row)
-                                                  globalSubbindings
+                           row' <- valueToMap row
+                           let localSubbindings = Map.union row' globalSubbindings
                            fillTemplate moduleName templateName
                                         localSubbindings)
                         rows
@@ -358,9 +359,9 @@ tfParameter :: Map (String, String) TemplateValue
              -> FruitTart TemplateValue
 tfParameter bindings parameters = do
   requireNParameters parameters 1 "parameters"
-  n <- return $ valueToInteger $ head parameters
+  n <- valueToInteger $ head parameters
   parameters <- (return $ Map.lookup ("Templates", "parameters") bindings)
-                >>= return . valueToList . fromJust
+                >>= valueToList . fromJust
   if n < (fromIntegral $ length parameters)
     then return $ head $ drop (fromIntegral n) parameters
     else error $ "Too few template parameters "
@@ -409,7 +410,7 @@ tfLength :: Map (String, String) TemplateValue
          -> FruitTart TemplateValue
 tfLength bindings parameters = do
   requireNParameters parameters 1 "length"
-  list <- return $ valueToList $ head parameters
+  list <- valueToList $ head parameters
   return $ TemplateInteger $ fromIntegral $ length list
 
 
@@ -418,8 +419,9 @@ tfConcat :: Map (String, String) TemplateValue
          -> FruitTart TemplateValue
 tfConcat bindings parameters = do
   requireNParameters parameters 1 "concat"
-  list <- return $ valueToList $ head parameters
-  return $ TemplateList $ concat $ map valueToList list
+  list <- valueToList $ head parameters
+  sublists <- mapM valueToList list
+  return $ TemplateList $ concat sublists
 
 
 tfIntercalate :: Map (String, String) TemplateValue
@@ -427,9 +429,10 @@ tfIntercalate :: Map (String, String) TemplateValue
               -> FruitTart TemplateValue
 tfIntercalate bindings parameters = do
   requireNParameters parameters 2 "intercalate"
-  string <- return $ valueToString $ head parameters
-  list <- return $ valueToList $ head $ drop 1 parameters
-  return $ TemplateString $ intercalate string $ map valueToString list
+  string <- valueToString $ head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  strings <- mapM valueToString list
+  return $ TemplateString $ intercalate string strings
 
 
 tfShowInteger :: Map (String, String) TemplateValue
@@ -437,7 +440,7 @@ tfShowInteger :: Map (String, String) TemplateValue
               -> FruitTart TemplateValue
 tfShowInteger bindings parameters = do
   requireNParameters parameters 1 "showInteger"
-  integer <- return $ valueToInteger $ head parameters
+  integer <- valueToInteger $ head parameters
   return $ TemplateString $ show integer
 
 
@@ -446,7 +449,7 @@ tfByteSizeToString :: Map (String, String) TemplateValue
                    -> FruitTart TemplateValue
 tfByteSizeToString bindings parameters = do
   requireNParameters parameters 1 "byteSizeToString"
-  integer <- return $ valueToInteger $ head parameters
+  integer <- valueToInteger $ head parameters
   return $ TemplateString $ byteSizeToString integer
 
 
@@ -455,7 +458,7 @@ tfTimestampToString :: Map (String, String) TemplateValue
                     -> FruitTart TemplateValue
 tfTimestampToString bindings parameters = do
   requireNParameters parameters 1 "timestampToString"
-  integer <- return $ valueToInteger $ head parameters
+  integer <- valueToInteger $ head parameters
   return $ TemplateString $ timestampToString integer
 
 
@@ -464,7 +467,7 @@ tfEscapeAttribute :: Map (String, String) TemplateValue
                    -> FruitTart TemplateValue
 tfEscapeAttribute bindings parameters = do
   requireNParameters parameters 1 "escapeAttribute"
-  string <- return $ valueToString $ head parameters
+  string <- valueToString $ head parameters
   return $ TemplateString $ escapeAttribute string
 
 
@@ -473,7 +476,7 @@ tfEscapeHTML :: Map (String, String) TemplateValue
              -> FruitTart TemplateValue
 tfEscapeHTML bindings parameters = do
   requireNParameters parameters 1 "escapeHTML"
-  string <- return $ valueToString $ head parameters
+  string <- valueToString $ head parameters
   return $ TemplateString $ escapeHTML string
 
 
@@ -482,7 +485,7 @@ tfNewlinesToParagraphs :: Map (String, String) TemplateValue
                        -> FruitTart TemplateValue
 tfNewlinesToParagraphs bindings parameters = do
   requireNParameters parameters 1 "newlinesToParagraphs"
-  string <- return $ valueToString $ head parameters
+  string <- valueToString $ head parameters
   return $ TemplateString $ newlinesToParagraphs string
 
 
