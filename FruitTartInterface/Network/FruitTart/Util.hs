@@ -36,6 +36,7 @@ module Network.FruitTart.Util (
                                -- Lists
                                merge,
                                mergeBy,
+                               mergeByM,
                                split,
                                
                                -- Log
