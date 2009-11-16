@@ -37,8 +37,7 @@ fillTemplate moduleName templateName bindings = do
          case kind of
            "content" -> return body
            "expression" ->
-               catchFruitTart ((evalExpression moduleName templateName
-                                               bindings
+               catchFruitTart ((evalExpression bindings
                                                $ readExpression moduleName body)
                                >>= valueToString)
                               (\e -> error $ "While processing template "
@@ -74,136 +73,128 @@ valueToMap (TemplateMap map) = return map
 valueToMap _ = error "Template value is not a Map."
 
 
-evalExpression :: String
-               -> String
-               -> (Map (String, String) TemplateValue)
+evalExpression :: (Map (String, String) TemplateValue)
                -> TemplateExpression
                -> FruitTart TemplateValue
-evalExpression moduleName templateName bindings expression = do
+evalExpression bindings expression = do
     case expression of
       TemplateLiteral value -> return value
       TemplateExpressionList subexpressions -> do
-        values <- mapM (evalExpression moduleName templateName bindings)
+        values <- mapM (evalExpression bindings)
                        subexpressions
         return $ TemplateList values
       TemplateOperationConcatenate aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         case (aValue, bValue) of
           (TemplateString aString, TemplateString bString)
               -> return $ TemplateString $ aString ++ bString
-          _ -> error "Cannot concatenate non-Strings in template."
+          _ -> error "Cannot concatenate non-Strings."
       TemplateOperationEquals aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateEqual aValue bValue
       TemplateOperationNotEquals aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         result <- templateEqual aValue bValue
         templateNegate result
       TemplateOperationNot expression -> do
-        value <- evalExpression moduleName templateName bindings expression
+        value <- evalExpression bindings expression
         templateNegate value
       TemplateOperationAnd aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateAnd aValue bValue
       TemplateOperationOr aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateOr aValue bValue
       TemplateOperationGreaterEquals aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         result <- templateCompare aValue bValue
         return $ TemplateBool $ case result of
                                   EQ -> True
                                   GT -> True
                                   LT -> False
       TemplateOperationGreater aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         result <- templateCompare aValue bValue
         return $ TemplateBool $ case result of
                                   EQ -> False
                                   GT -> True
                                   LT -> False
       TemplateOperationLessEquals aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         result <- templateCompare aValue bValue
         return $ TemplateBool $ case result of
                                   EQ -> True
                                   GT -> False
                                   LT -> True
       TemplateOperationLess aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         result <- templateCompare aValue bValue
         return $ TemplateBool $ case result of
                                   EQ -> False
                                   GT -> False
                                   LT -> True
       TemplateOperationAdd aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateArithmetic aValue bValue (+)
       TemplateOperationSubtract aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateArithmetic aValue bValue (-)
       TemplateOperationMultiply aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateArithmetic aValue bValue (*)
       TemplateOperationDivide aExpression bExpression -> do
-        aValue <- evalExpression moduleName templateName bindings aExpression
-        bValue <- evalExpression moduleName templateName bindings bExpression
+        aValue <- evalExpression bindings aExpression
+        bValue <- evalExpression bindings bExpression
         templateArithmetic aValue bValue div
       TemplateIfExpression subexpressions -> do
         if length subexpressions /= 3
-          then error $ "Invalid number of parameters to if() in template "
-                     ++ moduleName ++ "." ++ templateName ++ "."
+          then error $ "Invalid number of parameters to if()."
           else return ()
         let condition = head subexpressions
             ifTrue = head $ drop 1 subexpressions
             ifFalse = head $ drop 2 subexpressions
-        result <- evalExpression moduleName templateName bindings condition
+        result <- evalExpression bindings condition
                   >>= valueToBoolean
         if result
-          then evalExpression moduleName templateName bindings ifTrue
-          else evalExpression moduleName templateName bindings ifFalse
+          then evalExpression bindings ifTrue
+          else evalExpression bindings ifFalse
       TemplateCaseExpression subexpressions -> do
         let n = length subexpressions
         if not ((n > 1) && (odd n))
-          then error $ "Invalid number of parameters to case() in template "
-                     ++ moduleName ++ "." ++ templateName ++ "."
+          then error $ "Invalid number of parameters to case()."
           else return ()
-        mainKey <- evalExpression moduleName templateName bindings
+        mainKey <- evalExpression bindings
                                   $ head subexpressions
         let case' items = do
               case items of
-                [] -> error $ "No match in case() in template "
-                            ++ moduleName ++ "." ++ templateName ++ "."
+                [] -> error $ "No match in case()."
                 (key:(value:rest)) -> do
                   case key of
                     TemplateVariable (_, "otherwise") ->
-                      evalExpression moduleName templateName bindings value
+                      evalExpression bindings value
                     _ -> do
-                      key <- evalExpression moduleName templateName bindings
-                                            key
+                      key <- evalExpression bindings key
                       if mainKey == key
-                        then evalExpression moduleName templateName bindings
-                                            value
+                        then evalExpression bindings value
                         else case' rest
         case' $ tail subexpressions
       TemplateCallExpression subexpressions -> do
         if length subexpressions < 1
-           then error $ "Invalid number of parameters to call() in template "
-                      ++ moduleName ++ "." ++ templateName ++ "."
+           then error $ "Invalid number of parameters to call()."
            else return ()
-        subparameters <- mapM (evalExpression moduleName templateName bindings)
+        subparameters <- mapM (evalExpression bindings)
                               $ tail subexpressions
         let newBindings = Map.fromList [(("Templates", "parameters"),
                                          TemplateList subparameters)]
@@ -211,16 +202,14 @@ evalExpression moduleName templateName bindings expression = do
         (moduleName, templateName)
             <- case head subexpressions of
                  TemplateVariable result -> return result
-                 _ -> error $ "First parameter is not a variable to call() in template "
-                            ++ moduleName ++ "." ++ templateName ++ "."
+                 _ -> error $ "First parameter is not a variable to call()."
         result <- fillTemplate moduleName templateName subbindings
         return $ TemplateString result
       TemplateIterateExpression subexpressions -> do
         if length subexpressions < 2
-           then error $ "Invalid number of parameters to iterate() in template "
-                      ++ moduleName ++ "." ++ templateName ++ "."
+           then error $ "Invalid number of parameters to iterate()."
            else return ()
-        subparameters <- mapM (evalExpression moduleName templateName bindings)
+        subparameters <- mapM (evalExpression bindings)
                               $ drop 2 subexpressions
         let newBindings = Map.fromList [(("Templates", "parameters"),
                                          TemplateList subparameters)]
@@ -228,23 +217,18 @@ evalExpression moduleName templateName bindings expression = do
         (moduleName, templateName)
             <- case head subexpressions of
                  TemplateVariable result -> return result
-                 _ -> error $ "First parameter is not a variable to iterate() "
-                            ++ "in template " ++ moduleName ++ "." ++ templateName
-                            ++ "."
-        rows <- (evalExpression moduleName templateName bindings
-                                $ head $ drop 1 subexpressions)
+                 _ -> error $ "First parameter to iterate() is not a variable."
+        rows <- (evalExpression bindings $ head $ drop 1 subexpressions)
                 >>= valueToList
         results <- mapM (\row -> do
                            row' <- valueToMap row
                            let localSubbindings = Map.union row' globalSubbindings
-                           fillTemplate moduleName templateName
-                                        localSubbindings)
+                           fillTemplate moduleName templateName localSubbindings)
                         rows
         return $ TemplateString $ concat results
       TemplateBoundExpression subexpressions -> do
         if length subexpressions /= 1
-          then error $ "Invalid number of parameters to bound() in template "
-                     ++ moduleName ++ "." ++ templateName ++ "."
+          then error $ "Invalid number of parameters to bound()."
           else return ()
         (moduleName, variableName)
             <- case head subexpressions of
@@ -254,10 +238,9 @@ evalExpression moduleName templateName bindings expression = do
              Nothing -> TemplateBool False
              Just _ -> TemplateBool True
       TemplateFunctionCall functionExpression actualParameterExpressions -> do
-        function <- evalExpression moduleName templateName bindings functionExpression
+        function <- evalExpression bindings functionExpression
         actualParameters <- mapM (\actualParameter ->
-                                    evalExpression moduleName templateName
-                                                   bindings actualParameter)
+                                    evalExpression bindings actualParameter)
                                  actualParameterExpressions
         case function of
           TemplateLambda formalParameters capturedBindings body -> do
@@ -270,12 +253,11 @@ evalExpression moduleName templateName bindings expression = do
                                                       formalParameters)
                                                  actualParameters
                 subbindings = Map.union newBindings capturedBindings
-            evalExpression moduleName templateName subbindings body
+            evalExpression subbindings body
           TemplateNativeLambda body -> do
             body bindings actualParameters
           _ -> do
-            error $ "Call to something not a function in template "
-                  ++ moduleName ++ "." ++ templateName ++ "."
+            error $ "Call to something not a function."
       TemplateLambdaExpression formalParameters body -> do
         return $ TemplateLambda formalParameters bindings body
       TemplateVariable variableName@(packageName, properName) -> do
@@ -340,6 +322,7 @@ baseBindings = Map.fromList
                 (("Templates", "length"), TemplateNativeLambda tfLength),
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
+                (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
                 (("Templates", "showInteger"), TemplateNativeLambda tfShowInteger),
                 (("Templates", "byteSizeToString"),
                  TemplateNativeLambda tfByteSizeToString),
@@ -448,6 +431,17 @@ tfIntercalate bindings parameters = do
   list <- valueToList $ head $ drop 1 parameters
   strings <- mapM valueToString list
   return $ TemplateString $ intercalate string strings
+
+
+tfMergeBy :: Map (String, String) TemplateValue
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfMergeBy bindings parameters = do
+  requireNParameters parameters 2 "mergeBy"
+  function <- return $ head parameters
+  lists <- (valueToList $ head $ drop 1 parameters)
+           >>= mapM valueToList
+  return $ TemplateList []
 
 
 tfShowInteger :: Map (String, String) TemplateValue
