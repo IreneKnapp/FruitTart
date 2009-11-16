@@ -22,9 +22,8 @@ import Network.FruitTart.Util
 
 fillTemplate :: String
              -> String
-             -> (Map (String, String) TemplateValue)
              -> FruitTart String
-fillTemplate moduleName templateName bindings = do
+fillTemplate moduleName templateName = do
   items <- query ("SELECT template_items.kind, template_items.body "
                   ++ "FROM templates LEFT JOIN template_items "
                   ++ "ON templates.id = template_items.template "
@@ -38,11 +37,8 @@ fillTemplate moduleName templateName bindings = do
          case kind of
            "content" -> return body
            "expression" ->
-               catchFruitTart ((letBindings bindings
-                                            $ (evalExpression
-                                                $ readExpression moduleName body)
-                                              >>= return . fst)
-                               >>= valueToString)
+               catchFruitTart ((evalExpression $ readExpression moduleName body)
+                               >>= valueToString . fst)
                               (\e -> error $ "While processing template "
                                            ++ moduleName ++ "."
                                            ++ templateName ++ ": " ++ (show e))
@@ -229,7 +225,8 @@ evalExpression expression = do
             <- case head subexpressions of
                  TemplateVariable result -> return result
                  _ -> error $ "First parameter is not a variable to call()."
-        result <- fillTemplate moduleName templateName subbindings
+        result <- letBindings subbindings
+                              $ fillTemplate moduleName templateName
         returnWithUnchangedBindings $ TemplateString result
       TemplateIterateExpression subexpressions -> do
         if length subexpressions < 2
@@ -250,7 +247,8 @@ evalExpression expression = do
         results <- mapM (\row -> do
                            row' <- valueToMap row
                            let localSubbindings = Map.union row' globalSubbindings
-                           fillTemplate moduleName templateName localSubbindings)
+                           letBindings localSubbindings
+                                       $ fillTemplate moduleName templateName)
                         rows
         returnWithUnchangedBindings $ TemplateString $ concat results
       TemplateBoundExpression subexpressions -> do
@@ -284,6 +282,21 @@ evalExpression expression = do
                                         ++ "." ++ properName ++ "."
                        Just value -> returnWithUnchangedBindings value
           Just value -> returnWithUnchangedBindings value
+      TemplateBindExpression subexpressions -> do
+        if length subexpressions /= 2
+          then error $ "Invalid number of parameters to bind()."
+          else return ()
+        (moduleName, variableName)
+            <- case head subexpressions of
+                 TemplateVariable result -> return result
+                 _ -> error $ "Parameter to bind() is not a variable."
+        value <- (evalExpression $ head $ drop 1 subexpressions)
+                 >>= return . fst
+        oldBindings <- getBindings
+        let newBindings = Map.union (Map.fromList [((moduleName, variableName),
+                                                    value)])
+                                    oldBindings
+        return $ (TemplateNull, newBindings)
       TemplateSequence expressionA expressionB -> do
         (_, temporaryBindings) <- evalExpression expressionA
         letBindings temporaryBindings $ evalExpression expressionB

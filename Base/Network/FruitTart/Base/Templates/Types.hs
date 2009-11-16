@@ -30,7 +30,8 @@ data TemplateValueType = TBool
 data TemplateParameter = TemplateParameter (String, String)
                          deriving (Show)
 
-data TemplateValue = TemplateBool Bool
+data TemplateValue = TemplateNull
+                   | TemplateBool Bool
                    | TemplateInteger Int64
                    | TemplateString String
                    | TemplateList [TemplateValue]
@@ -43,6 +44,7 @@ data TemplateValue = TemplateBool Bool
                    | TemplateNativeLambda ([TemplateValue] -> FruitTart TemplateValue)
                      deriving (Typeable)
 instance Eq TemplateValue where
+    (==) TemplateNull TemplateNull = True
     (==) (TemplateBool a) (TemplateBool b) = (==) a b
     (==) (TemplateInteger a) (TemplateInteger b) = (==) a b
     (==) (TemplateString a) (TemplateString b) = (==) a b
@@ -51,6 +53,7 @@ instance Eq TemplateValue where
     (==) (TemplateOrdering a) (TemplateOrdering b) = (==) a b
     (==) _ _ = False
 instance Show TemplateValue where
+    show TemplateNull = "TemplateNull"
     show (TemplateBool a) = "TemplateBool " ++ (show a)
     show (TemplateInteger a) = "TemplateInteger " ++ (show a)
     show (TemplateString a) = "TemplateString " ++ (show a)
@@ -97,6 +100,7 @@ data TemplateExpression = TemplateLiteral TemplateValue
                                                [TemplateExpression]
                         | TemplateVariable (String, String)
                         | TemplateLambdaExpression [TemplateParameter] TemplateExpression
+                        | TemplateBindExpression [TemplateExpression]
                         | TemplateSequence TemplateExpression TemplateExpression
                           deriving (Show)
 
@@ -107,6 +111,7 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenCall
                    | TokenIterate
                    | TokenBound
+                   | TokenBind
                    | TokenLeftParen
                    | TokenRightParen
                    | TokenLeftSquareBracket
