@@ -1,6 +1,7 @@
 function init() {
-    $('textarea.autosizing').bind("keyup", resizeTextareaOnBackspace);
-    $('textarea.autosizing').bind("keypress", resizeTextareaOnKeypress);
+    $('div#noscript').show();
+    $('textarea.autosizing').bind("keyup", resizeTextarea);
+    $('textarea.autosizing').each(function () { fixTextareaHeight(this); });
     $('input[type=checkbox][name=is-template-expression]')
       .bind("click", toggleIsTemplateExpression);
     $('div.query-button').wrapInner("<div></div>");
@@ -8,82 +9,25 @@ function init() {
     $('div.query-button.remove').bind("click", removeRow);
     $('div.query-button.up').bind("click", moveRowUp);
     $('div.query-button.down').bind("click", moveRowDown);
-    $('div#noscript').show();
 }
 
 
-function resizeTextareaOnBackspace(event) {
-    if(event.keyCode == 8) {
-	resizeTextarea(this, "");
-    }
+function resizeTextarea(event) {
+    fixTextareaHeight(this);
 }
 
 
-function resizeTextareaOnKeypress(event) {
-    if((event.charCode == 13) || (event.keyCode == 13)) {
-	resizeTextarea(this, "\n");
-    } else if(event.charCode != 0) {
-	resizeTextarea(this, String.fromCharCode(event.charCode));
-    }
-}
-
-
-function resizeTextarea(textarea, stringTyped) {
-    var oldContent = $(textarea).val();
-    var contentBefore = oldContent.substring(0, textarea.selectionStart);
-    var contentAfter = oldContent.substring(textarea.selectionEnd, oldContent.length);
-    var newContent;
-    if((textarea.selectionStart == textarea.selectionEnd)
-       && (stringTyped == ""))
-    {
-	// Surely this is wrong, but it seems to work.
-        newContent = contentBefore + contentAfter;
-    } else {
-	newContent = contentBefore + stringTyped + contentAfter;
-    }
-    wrappedContent = wordWrap(newContent, 60);
-    
-    var lines = wrappedContent.split('\n');
-    var newHeight = lines.length;
-    
-    $(textarea).attr("rows", newHeight);
-}
-
-
-function wordWrap(body, width) {
-    function wordWrapH(body) {
-	var result = "";
-	var remainingBody = body;
-	while(remainingBody.length > width) {
-	    var splitPoint = width;
-	    while(splitPoint >= 0) {
-		if(remainingBody.substr(splitPoint, 1) == " ") {
-		    break;
-		}
-		splitPoint--;
-	    }
-	    if(splitPoint == -1) {
-		splitPoint = width;
-	    }
-	    var beforeSplit = remainingBody.substr(0, splitPoint+1);
-	    var afterSplit = remainingBody.substr(splitPoint+1);
-	    var result = result + beforeSplit + "\n";
-	    remainingBody = afterSplit;
-	}
-	result = result + remainingBody;
-	return result;
-    }
-    
-    var result = "";
-    var splitBody = body.split('\n');
-    var i;
-    for(i = 0; i < splitBody.length; i++) {
-	if(i > 0) {
-	    result = result + "\n";
-	}
-	result = result + wordWrapH(splitBody[i]);
-    }
-    return result;
+function fixTextareaHeight(textarea) {
+    $(textarea).attr("rows", 1);
+    var minHeight = textarea.clientHeight;
+    $(textarea).attr("rows", 2);
+    $(textarea).removeAttr("rows");
+    var rowHeight = textarea.clientHeight - minHeight;
+    var extraHeight = minHeight - rowHeight;
+    $(textarea).css("height", 0);
+    var scrollHeight = textarea.scrollHeight;
+    $(textarea).css("height", "auto");
+    $(textarea).attr("rows", Math.floor((scrollHeight - extraHeight) / rowHeight));
 }
 
 
