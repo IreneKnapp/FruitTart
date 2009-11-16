@@ -59,11 +59,16 @@ editNodeGET nodeID = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      bindDefaults "Adventure Editor" ("/adventure/edit-node/" ++ (show nodeID) ++ "/")
       bind "Adventure.Controller.Adventure" "id" nodeID
       bindNamedQuery "Adventure.Controller.Adventure" "nodeDetails" [SQLInteger nodeID]
+      name <- getBinding "Adventure.Controller.Adventure" "name" >>= return . fromJust
+      name <- return $ case name of
+                         TemplateString string -> string
       bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "options"
                                  [SQLInteger nodeID]
+      currentPage <- return $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
+      bindDefaults ("Edit Node " ++ name) currentPage
+      bind "Adventure.Controller.Adventure" "targetPage" currentPage
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
@@ -73,10 +78,11 @@ editVariableGET variableName = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      bindDefaults "Adventure Editor" ("/adventure/edit-variable/" ++ variableName ++ "/")
+      bindDefaults ("Edit Variable " ++ variableName)
+                   ("/adventure/edit-variable/" ++ variableName ++ "/")
       bindNamedQuery "Adventure.Controller.Adventure" "variableDetails"
                      [SQLText variableName]
-      outputPage "Adventure.Controller.Adventure" "editVariable"
+      outputPageNoScript "Adventure.Controller.Adventure" "editVariable"
 
 
 createNodeGET :: FruitTart CGIResult
@@ -85,10 +91,11 @@ createNodeGET = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      bindDefaults "Adventure Editor" "/adventure/create-node/"
+      bindDefaults "Create Node" "/adventure/create-node/"
       bind "Adventure.Controller.Adventure" "name" "New Node"
       bind "Adventure.Controller.Adventure" "body" ""
       bind "Adventure.Controller.Adventure" "options" ([] :: [String])
+      bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
@@ -98,7 +105,7 @@ createVariableGET = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      bindDefaults "Adventure Editor" "/adventure/create-variable/"
+      bindDefaults "Create Variable" "/adventure/create-variable/"
       outputPage "Adventure.Controller.Adventure" "editVariable"
 
 
@@ -142,7 +149,10 @@ bindDefaults :: String -> String -> FruitTart ()
 bindDefaults pageTitle currentPage = do
   bind "Templates" "pageTitle" pageTitle
   pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Templates" "pageHeadItems"
+       (pageHeadItems
+        ++ "<link href=\"/css/adventure.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+        ++ "<script src=\"/js/adventure.js\" type=\"text/ecmascript\"></script>\n")
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
@@ -156,6 +166,14 @@ outputPage moduleName templateName = do
   pageContent <- getTemplate moduleName templateName
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
+  output page
+
+
+outputPageNoScript :: String -> String -> FruitTart CGIResult
+outputPageNoScript moduleName templateName = do
+  pageContent <- getTemplate moduleName templateName
+  bind "Templates" "pageContent" pageContent
+  page <- getTemplate "Templates" "pageNoScript"
   output page
 
 
