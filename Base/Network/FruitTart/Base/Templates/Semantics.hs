@@ -50,27 +50,32 @@ fillTemplate moduleName templateName bindings = do
 
 valueToBoolean :: TemplateValue -> FruitTart Bool
 valueToBoolean (TemplateBool boolean) = return boolean
-valueToBoolean _ = error "Template value is not a Boolean."
+valueToBoolean value = error $ "Template value is not a Boolean (it's " ++ (show value)
+                             ++ ")."
 
 
 valueToString :: TemplateValue -> FruitTart String
 valueToString (TemplateString string) = return string
-valueToString _ = error "Template value is not a String."
+valueToString value = error $ "Template value is not a String (it's " ++ (show value)
+                            ++ ")."
 
 
 valueToInteger :: TemplateValue -> FruitTart Int64
 valueToInteger (TemplateInteger integer) = return integer
-valueToInteger _ = error "Template value is not an Integer."
+valueToInteger value = error $ "Template value is not an Integer (it's " ++ (show value)
+                             ++ ")."
 
 
 valueToList :: TemplateValue -> FruitTart [TemplateValue]
 valueToList (TemplateList list) = return list
-valueToList _ = error "Template value is not a List."
+valueToList value = error $ "Template value is not a List (it's " ++ (show value)
+                          ++ ")."
 
 
 valueToMap :: TemplateValue -> FruitTart (Map (String, String) TemplateValue)
 valueToMap (TemplateMap map) = return map
-valueToMap _ = error "Template value is not a Map."
+valueToMap value = error $ "Template value is not a Map (it's " ++ (show value)
+                         ++ ")."
 
 
 evalExpression :: (Map (String, String) TemplateValue)
@@ -242,22 +247,7 @@ evalExpression bindings expression = do
         actualParameters <- mapM (\actualParameter ->
                                     evalExpression bindings actualParameter)
                                  actualParameterExpressions
-        case function of
-          TemplateLambda formalParameters capturedBindings body -> do
-            if length formalParameters /= length actualParameters
-              then error $ "Expected " ++ (show $ length formalParameters)
-                         ++ " parameters, but got " ++ (show $ length actualParameters)
-                         ++ "."
-              else return ()
-            let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
-                                                      formalParameters)
-                                                 actualParameters
-                subbindings = Map.union newBindings capturedBindings
-            evalExpression subbindings body
-          TemplateNativeLambda body -> do
-            body bindings actualParameters
-          _ -> do
-            error $ "Call to something not a function."
+        applyFunction bindings function actualParameters
       TemplateLambdaExpression formalParameters body -> do
         return $ TemplateLambda formalParameters bindings body
       TemplateVariable variableName@(packageName, properName) -> do
@@ -267,6 +257,9 @@ evalExpression bindings expression = do
                                         ++ "." ++ properName ++ "."
                        Just value -> return value
           Just value -> return value
+      TemplateSequence expressionA expressionB -> do
+        evalExpression bindings expressionA
+        evalExpression bindings expressionB
 
 
 templateEqual :: TemplateValue -> TemplateValue -> FruitTart TemplateValue
@@ -306,6 +299,29 @@ templateArithmetic (TemplateInteger a) (TemplateInteger b) operation
 templateArithmetic _ _ _ = error "Template values in arithmetic are not both Integers."
 
 
+applyFunction :: Map (String, String) TemplateValue
+              -> TemplateValue
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+applyFunction bindings function actualParameters = do
+  case function of
+    TemplateLambda formalParameters capturedBindings body -> do
+      if length formalParameters /= length actualParameters
+        then error $ "Expected " ++ (show $ length formalParameters)
+                   ++ " parameters, but got " ++ (show $ length actualParameters)
+                   ++ "."
+        else return ()
+      let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
+                                                formalParameters)
+                                           actualParameters
+          subbindings = Map.union newBindings capturedBindings
+      evalExpression subbindings body
+    TemplateNativeLambda body -> do
+      body bindings actualParameters
+    _ -> do
+      error $ "Call to something not a function."
+
+
 baseBindings :: Map (String, String) TemplateValue
 baseBindings = Map.fromList
                [(("Templates", "parameters"), TemplateList []),
@@ -322,7 +338,9 @@ baseBindings = Map.fromList
                 (("Templates", "length"), TemplateNativeLambda tfLength),
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
+                (("Templates", "map"), TemplateNativeLambda tfMap),
                 (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
+                (("Templates", "compare"), TemplateNativeLambda tfCompare),
                 (("Templates", "showInteger"), TemplateNativeLambda tfShowInteger),
                 (("Templates", "byteSizeToString"),
                  TemplateNativeLambda tfByteSizeToString),
@@ -433,15 +451,41 @@ tfIntercalate bindings parameters = do
   return $ TemplateString $ intercalate string strings
 
 
+tfMap :: Map (String, String) TemplateValue
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfMap bindings parameters = do
+  requireNParameters parameters 2 "map"
+  let function = head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  list' <- mapM (\a -> applyFunction bindings function [a]) list
+  return $ TemplateList list'
+
+
 tfMergeBy :: Map (String, String) TemplateValue
           -> [TemplateValue]
           -> FruitTart TemplateValue
 tfMergeBy bindings parameters = do
   requireNParameters parameters 2 "mergeBy"
-  function <- return $ head parameters
+  let function = head parameters
   lists <- (valueToList $ head $ drop 1 parameters)
            >>= mapM valueToList
-  return $ TemplateList []
+  mergedLists <- mergeByM (\a b -> do
+                             TemplateOrdering ordering
+                                 <- applyFunction bindings function [a, b]
+                             return ordering)
+                          lists
+  return $ TemplateList mergedLists
+
+
+tfCompare :: Map (String, String) TemplateValue
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfCompare bindings parameters = do
+  requireNParameters parameters 2 "compare"
+  a <- valueToInteger $ head parameters
+  b <- valueToInteger $ head $ drop 1 parameters
+  return $ TemplateOrdering $ compare a b
 
 
 tfShowInteger :: Map (String, String) TemplateValue
