@@ -154,6 +154,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                           ++ currentPathWhichPart
                                           ++ "module:" ++ (show moduleID) ++ "/")])
   let filterItem name link
+          = Map.fromList [(("Templates", "item"),
+                           TemplateString $ filterItem' name link)]
+      filterItem' name link
           = if currentPath == link
             then "<b>" ++ (escapeHTML name) ++ "</b>"
             else "<a href=\"" ++ (escapeAttribute link ) ++ "\">"
