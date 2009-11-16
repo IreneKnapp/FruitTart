@@ -340,7 +340,8 @@ baseBindings = Map.fromList
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
                 (("Templates", "map"), TemplateNativeLambda tfMap),
                 (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
-                (("Templates", "compare"), TemplateNativeLambda tfCompare),
+                (("Templates", "compareIntegers"),
+                 TemplateNativeLambda tfCompareIntegers),
                 (("Templates", "showInteger"), TemplateNativeLambda tfShowInteger),
                 (("Templates", "byteSizeToString"),
                  TemplateNativeLambda tfByteSizeToString),
@@ -478,11 +479,11 @@ tfMergeBy bindings parameters = do
   return $ TemplateList mergedLists
 
 
-tfCompare :: Map (String, String) TemplateValue
-          -> [TemplateValue]
-          -> FruitTart TemplateValue
-tfCompare bindings parameters = do
-  requireNParameters parameters 2 "compare"
+tfCompareIntegers :: Map (String, String) TemplateValue
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfCompareIntegers bindings parameters = do
+  requireNParameters parameters 2 "compareIntegers"
   a <- valueToInteger $ head parameters
   b <- valueToInteger $ head $ drop 1 parameters
   return $ TemplateOrdering $ compare a b
