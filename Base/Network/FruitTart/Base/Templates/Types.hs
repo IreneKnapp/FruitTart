@@ -12,7 +12,9 @@ module Network.FruitTart.Base.Templates.Types (
     where
 
 import Data.Int
+import Data.List
 import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Typeable
 
 import Network.FruitTart.Util
@@ -26,6 +28,7 @@ data TemplateValueType = TBool
                          deriving (Typeable);
 
 data TemplateParameter = TemplateParameter (String, String)
+                         deriving (Show)
 
 data TemplateValue = TemplateBool Bool
                    | TemplateInteger Int64
@@ -47,6 +50,20 @@ instance Eq TemplateValue where
     (==) (TemplateMaybe a) (TemplateMaybe b) = (==) a b
     (==) (TemplateOrdering a) (TemplateOrdering b) = (==) a b
     (==) _ _ = False
+instance Show TemplateValue where
+    show (TemplateBool a) = "TemplateBool " ++ (show a)
+    show (TemplateInteger a) = "TemplateInteger " ++ (show a)
+    show (TemplateString a) = "TemplateString " ++ (show a)
+    show (TemplateList a) = "TemplateList " ++ (show a)
+    show (TemplateMaybe a) = "TemplateMaybe " ++ (show a)
+    show (TemplateOrdering a) = "TemplateOrdering " ++ (show a)
+    show (TemplateMap a) = "TemplateMap <" ++ (show $ length $ Map.keys a) ++ " keys>"
+    show (TemplateLambda a _) = "TemplateLambda <"
+                              ++ (intercalate ", "
+                                              $ map (\(TemplateParameter b) -> show b)
+                                                    a)
+                              ++ ">"
+    show (TemplateNativeLambda _) = "TemplateNativeLambda <...>"
 
 data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateExpressionList [TemplateExpression]
@@ -81,6 +98,7 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateVariable (String, String)
                         | TemplateLambdaExpression [TemplateParameter] TemplateExpression
                         | TemplateSequence TemplateExpression TemplateExpression
+                          deriving (Show)
 
 data TemplateToken = TokenValue TemplateValue
                    | TokenSymbol String String

@@ -41,7 +41,7 @@ fillTemplate moduleName templateName bindings = do
                                                bindings
                                                $ readExpression moduleName body)
                                >>= return . valueToString)
-                              (\e -> error $ "While parsing template "
+                              (\e -> error $ "While processing template "
                                            ++ moduleName ++ "."
                                            ++ templateName ++ ": " ++ (show e))
            _ -> error $ "Unknown template item type " ++ kind ++ ".")
@@ -79,7 +79,7 @@ evalExpression :: String
                -> (Map (String, String) TemplateValue)
                -> TemplateExpression
                -> FruitTart TemplateValue
-evalExpression moduleName templateName bindings expression =
+evalExpression moduleName templateName bindings expression = do
     case expression of
       TemplateLiteral value -> return value
       TemplateExpressionList subexpressions -> do
@@ -263,20 +263,22 @@ evalExpression moduleName templateName bindings expression =
             let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
                                                       formalParameters)
                                                  actualParameters
-                subbindings = Map.union subbindings bindings
+                subbindings = Map.union newBindings bindings
             evalExpression moduleName templateName subbindings body
           TemplateNativeLambda body -> do
             body bindings actualParameters
           _ -> do
             error $ "Call to something not a function in template "
                   ++ moduleName ++ "." ++ templateName ++ "."
-      TemplateVariable variableName@(packageName, properName)
-          -> case Map.lookup variableName bindings of
-               Nothing -> case Map.lookup ("Templates", properName) bindings of
-                            Nothing -> error $ "Undefined variable " ++ packageName
-                                             ++ "." ++ properName ++ "."
-                            Just value -> return value
-               Just value -> return value
+      TemplateLambdaExpression formalParameters body -> do
+        return $ TemplateLambda formalParameters body
+      TemplateVariable variableName@(packageName, properName) -> do
+        case Map.lookup variableName bindings of
+          Nothing -> case Map.lookup ("Templates", properName) bindings of
+                       Nothing -> error $ "Undefined variable " ++ packageName
+                                        ++ "." ++ properName ++ "."
+                       Just value -> return value
+          Just value -> return value
 
 
 templateEqual :: TemplateValue -> TemplateValue -> FruitTart TemplateValue
