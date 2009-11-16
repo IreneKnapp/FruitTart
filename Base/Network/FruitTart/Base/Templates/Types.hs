@@ -40,9 +40,7 @@ data TemplateValue = TemplateBool Bool
                    | TemplateLambda [TemplateParameter]
                                     (Map (String, String) TemplateValue)
                                     TemplateExpression
-                   | TemplateNativeLambda (Map (String, String) TemplateValue
-                                           -> [TemplateValue]
-                                           -> FruitTart TemplateValue)
+                   | TemplateNativeLambda ([TemplateValue] -> FruitTart TemplateValue)
                      deriving (Typeable)
 instance Eq TemplateValue where
     (==) (TemplateBool a) (TemplateBool b) = (==) a b
