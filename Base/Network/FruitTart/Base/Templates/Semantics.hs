@@ -260,11 +260,11 @@ evalExpression moduleName templateName bindings expression = do
                                                    bindings actualParameter)
                                  actualParameterExpressions
         case function of
-          TemplateLambda formalParameters body -> do
+          TemplateLambda formalParameters capturedBindings body -> do
             let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
                                                       formalParameters)
                                                  actualParameters
-                subbindings = Map.union newBindings bindings
+                subbindings = Map.union newBindings capturedBindings
             evalExpression moduleName templateName subbindings body
           TemplateNativeLambda body -> do
             body bindings actualParameters
@@ -272,7 +272,7 @@ evalExpression moduleName templateName bindings expression = do
             error $ "Call to something not a function in template "
                   ++ moduleName ++ "." ++ templateName ++ "."
       TemplateLambdaExpression formalParameters body -> do
-        return $ TemplateLambda formalParameters body
+        return $ TemplateLambda formalParameters bindings body
       TemplateVariable variableName@(packageName, properName) -> do
         case Map.lookup variableName bindings of
           Nothing -> case Map.lookup ("Templates", properName) bindings of
@@ -331,6 +331,7 @@ baseBindings = Map.fromList
                 (("Templates", "isNothing"), TemplateNativeLambda tfIsNothing),
                 (("Templates", "isJust"), TemplateNativeLambda tfIsJust),
                 (("Templates", "fromJust"), TemplateNativeLambda tfFromJust),
+                (("Templates", "stringLength"), TemplateNativeLambda tfStringLength),
                 (("Templates", "length"), TemplateNativeLambda tfLength),
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
@@ -403,6 +404,15 @@ tfFromJust bindings parameters = do
                  -> error $ "Parameter is nothing in fromJust()."
              TemplateMaybe (Just result) -> result
              _ -> error $ "Parameter is not a Maybe in fromJust()."
+
+
+tfStringLength :: Map (String, String) TemplateValue
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringLength bindings parameters = do
+  requireNParameters parameters 1 "stringLength"
+  string <- valueToString $ head parameters
+  return $ TemplateInteger $ fromIntegral $ length string
 
 
 tfLength :: Map (String, String) TemplateValue

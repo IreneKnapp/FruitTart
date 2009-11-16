@@ -37,7 +37,9 @@ data TemplateValue = TemplateBool Bool
                    | TemplateMaybe (Maybe TemplateValue)
                    | TemplateOrdering Ordering
                    | TemplateMap (Map (String, String) TemplateValue)
-                   | TemplateLambda [TemplateParameter] TemplateExpression
+                   | TemplateLambda [TemplateParameter]
+                                    (Map (String, String) TemplateValue)
+                                    TemplateExpression
                    | TemplateNativeLambda (Map (String, String) TemplateValue
                                            -> [TemplateValue]
                                            -> FruitTart TemplateValue)
@@ -58,11 +60,11 @@ instance Show TemplateValue where
     show (TemplateMaybe a) = "TemplateMaybe " ++ (show a)
     show (TemplateOrdering a) = "TemplateOrdering " ++ (show a)
     show (TemplateMap a) = "TemplateMap <" ++ (show $ length $ Map.keys a) ++ " keys>"
-    show (TemplateLambda a _) = "TemplateLambda <"
-                              ++ (intercalate ", "
-                                              $ map (\(TemplateParameter b) -> show b)
-                                                    a)
-                              ++ ">"
+    show (TemplateLambda a _ _) = "TemplateLambda <"
+                                  ++ (intercalate ", "
+                                                  $ map (\(TemplateParameter b) -> show b)
+                                                        a)
+                                  ++ ">"
     show (TemplateNativeLambda _) = "TemplateNativeLambda <...>"
 
 data TemplateExpression = TemplateLiteral TemplateValue
