@@ -261,6 +261,11 @@ evalExpression moduleName templateName bindings expression = do
                                  actualParameterExpressions
         case function of
           TemplateLambda formalParameters capturedBindings body -> do
+            if length formalParameters /= length actualParameters
+              then error $ "Expected " ++ (show $ length formalParameters)
+                         ++ " parameters, but got " ++ (show $ length actualParameters)
+                         ++ "."
+              else return ()
             let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
                                                       formalParameters)
                                                  actualParameters
