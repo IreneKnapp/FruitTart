@@ -43,24 +43,7 @@ index = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bindQueryMultipleRows "Buglist.Controller.Users" "rows"
-                        [("id", TInt),
-                         ("fullName", TString),
-                         ("email", TString)]
-                        ("SELECT id, full_name, email FROM users\n"
-                         ++ "WHERE\n"
-                         ++ "(SELECT count(*) FROM buglist_issues AS issues\n"
-                         ++ " WHERE issues.reporter = users.id) > 0\n"
-                         ++ "OR\n"
-                         ++ "(SELECT count(*) FROM buglist_user_issue_changes AS changes \n"
-                         ++ " WHERE changes.user = users.id) > 0\n"
-                         ++ "OR\n"
-                         ++ "(SELECT count(*) FROM buglist_user_issue_comments AS comments\n"
-                         ++ " WHERE comments.user = users.id) > 0\n"
-                         ++ "OR\n"
-                         ++ "(SELECT count(*) FROM buglist_user_issue_attachments AS attachments\n"
-                         ++ " WHERE attachments.user = users.id) > 0")
-                        []
+  bindNamedQueryMultipleRows "Buglist.Controller.Users" "indexRows" []
   pageContent <- getTemplate "Buglist.Controller.Users" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
@@ -74,89 +57,6 @@ view id = do
   case rows of
     [[SQLText fullName, SQLText email]]
       -> do
-       creations <- query (  "SELECT "
-                          ++ "issues.timestamp_created, "
-                          ++ "'Create', "
-                          ++ "issues.summary, "
-                          ++ "issues.id "
-                          ++ "FROM buglist_issues AS issues "
-                          ++ "WHERE issues.reporter = ? "
-                          ++ "ORDER BY issues.timestamp_created DESC")
-                          [SQLInteger id]
-                    >>= return . map
-                                 (convertRowToBindings "Buglist.Controller.Users"
-                                                       [("timestamp", TInt),
-                                                        ("action", TString),
-                                                        ("summary", TString),
-                                                        ("id", TInt)])
-       changes <- query (  "SELECT "
-                        ++ "user_issue_changes.timestamp, "
-                        ++ "'Edit', "
-                        ++ "issues.summary, "
-                        ++ "issues.id "
-                        ++ "FROM buglist_user_issue_changes AS user_issue_changes "
-                        ++ "INNER JOIN users "
-                        ++ "ON user_issue_changes.user = users.id "
-                        ++ "INNER JOIN buglist_issues AS issues "
-                        ++ "ON user_issue_changes.issue = issues.id "
-                        ++ "WHERE users.id = ? "
-                        ++ "ORDER BY user_issue_changes.timestamp DESC")
-                        [SQLInteger id]
-                  >>= return . map
-                               (convertRowToBindings "Buglist.Controller.Users"
-                                                     [("timestamp", TInt),
-                                                      ("action", TString),
-                                                      ("summary", TString),
-                                                      ("id", TInt)])
-       comments <- query (  "SELECT "
-                         ++ "user_issue_comments.timestamp, "
-                         ++ "'Comment', "
-                         ++ "issues.summary, "
-                         ++ "issues.id "
-                         ++ "FROM buglist_user_issue_comments AS user_issue_comments "
-                         ++ "INNER JOIN users "
-                         ++ "ON user_issue_comments.user = users.id "
-                         ++ "INNER JOIN buglist_issues AS issues "
-                         ++ "ON user_issue_comments.issue = issues.id "
-                         ++ "WHERE users.id = ? "
-                         ++ "ORDER BY user_issue_comments.timestamp DESC")
-                         [SQLInteger id]
-                   >>= return . map
-                                (convertRowToBindings "Buglist.Controller.Users"
-                                                      [("timestamp", TInt),
-                                                       ("action", TString),
-                                                       ("summary", TString),
-                                                       ("id", TInt)])
-       files <- query (  "SELECT "
-                      ++ "user_issue_attachments.timestamp, "
-                      ++ "'Attachment', "
-                      ++ "issues.summary, "
-                      ++ "issues.id "
-                      ++ "FROM buglist_user_issue_attachments AS user_issue_attachments "
-                      ++ "INNER JOIN users "
-                      ++ "ON user_issue_attachments.user = users.id "
-                      ++ "INNER JOIN buglist_issues AS issues ON "
-                      ++ "user_issue_attachments.issue = issues.id "
-                      ++ "WHERE users.id = ? "
-                      ++ "ORDER BY user_issue_attachments.timestamp DESC")
-                      [SQLInteger id]
-                >>= return . map
-                             (convertRowToBindings "Buglist.Controller.Users"
-                                                   [("timestamp", TInt),
-                                                    ("action", TString),
-                                                    ("summary", TString),
-                                                    ("id", TInt)])
-       rows <- return $ mergeBy (\bindingsA bindingsB ->
-                                 let key = ("Buglist.Controller.Users", "timestamp")
-                                     TemplateInteger a
-                                         = fromJust $ Map.lookup key bindingsA
-                                     TemplateInteger b
-                                         = fromJust $ Map.lookup key bindingsB
-                                 in case compare a b of
-                                      LT -> GT
-                                      GT -> LT
-                                      EQ -> EQ)
-                                [changes, files, comments, creations]
        bind "Templates" "pageTitle" $ escapeHTML fullName
        pageHeadItems <- getPageHeadItems
        bind "Templates" "pageHeadItems" pageHeadItems
@@ -169,7 +69,8 @@ view id = do
        bind "Templates" "popupMessage" popupMessage
        bind "Buglist.Controller.Users" "fullName" fullName
        bind "Buglist.Controller.Users" "email" email
-       bind "Buglist.Controller.Users" "rows" rows
+       bind "Buglist.Controller.Users" "userID" id
+       bindNamedQuery "Buglist.Controller.Users" "userIssueActions" []
        pageContent <- getTemplate "Buglist.Controller.Users" "view"
        bind "Templates" "pageContent" pageContent
        page <- getTemplate "Templates" "page"
