@@ -24,6 +24,7 @@ import Control.Concurrent.MVar
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import Data.Typeable
 
 import Network.FruitTart.Base
@@ -91,23 +92,42 @@ bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
 
 bindNamedQuery :: String -> String -> [SQLData] -> FruitTart ()
 bindNamedQuery moduleName queryName queryValues = do
-  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
-                 [SQLText moduleName, SQLText queryName]
+  rows <- query ("SELECT id, body, is_template_expression "
+                ++ "FROM queries WHERE module = ? AND name = ?")
+                [SQLText moduleName, SQLText queryName]
   case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      bindQuery moduleName valueNamesAndTypes queryText queryValues
+    [[SQLInteger queryID, SQLText queryText, SQLInteger isTemplateExpression]] -> do
+      case isTemplateExpression of
+        0 -> do
+          valueNamesAndTypes <- getValueNamesAndTypes queryID
+          bindQuery moduleName valueNamesAndTypes queryText queryValues
+        _ -> do
+          if queryValues /= []
+            then error $ "The query " ++ moduleName ++ "." ++ queryName
+                       ++ " does not expect any values."
+            else return ()
+          bindTemplateExpressionQuery moduleName queryName queryText
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
 bindNamedQueryMultipleRows :: String -> String -> [SQLData] -> FruitTart ()
 bindNamedQueryMultipleRows moduleName queryName queryValues = do
-  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
-                 [SQLText moduleName, SQLText queryName]
+  rows <- query ("SELECT id, body, is_template_expression "
+                ++ "FROM queries WHERE module = ? AND name = ?")
+                [SQLText moduleName, SQLText queryName]
   case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      bindQueryMultipleRows moduleName queryName valueNamesAndTypes queryText queryValues
+    [[SQLInteger queryID, SQLText queryText, SQLInteger isTemplateExpression]] -> do
+      case isTemplateExpression of
+        0 -> do
+          valueNamesAndTypes <- getValueNamesAndTypes queryID
+          bindQueryMultipleRows moduleName queryName valueNamesAndTypes queryText
+                                queryValues
+        _ -> do
+          if queryValues /= []
+            then error $ "The query " ++ moduleName ++ "." ++ queryName
+                       ++ " does not expect any values."
+            else return ()
+          bindTemplateExpressionQuery moduleName queryName queryText
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
@@ -130,16 +150,25 @@ getValueNamesAndTypes queryID = do
 namedQuery :: String -> String -> [SQLData]
            -> FruitTart [Map (String, String) TemplateValue]
 namedQuery moduleName queryName queryValues = do
-  rows <- query "SELECT id, body FROM queries WHERE module = ? AND name = ?"
-                 [SQLText moduleName, SQLText queryName]
+  rows <- query ("SELECT id, body, is_template_expression "
+                ++ " FROM queries WHERE module = ? AND name = ?")
+                [SQLText moduleName, SQLText queryName]
   case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      rows <- query queryText queryValues
-      return $ map (\row -> convertRowToBindings moduleName
-                                                 valueNamesAndTypes
-                                                 row)
-                   rows
+    [[SQLInteger queryID, SQLText queryText, SQLInteger isTemplateExpression]] -> do
+      case isTemplateExpression of
+        0 -> do
+          valueNamesAndTypes <- getValueNamesAndTypes queryID
+          rows <- query queryText queryValues
+          return $ map (\row -> convertRowToBindings moduleName
+                                                     valueNamesAndTypes
+                                                     row)
+                       rows
+        _ -> do
+          if queryValues /= []
+            then error $ "The query " ++ moduleName ++ "." ++ queryName
+                       ++ " does not expect any values."
+            else return ()
+          templateExpressionQueryMultipleRows moduleName queryName queryText
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
@@ -179,6 +208,29 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                         _ -> error
                                              "Value from query not a string or null."))
                  $ zip valueNamesAndTypes row
+
+
+bindTemplateExpressionQuery :: String -> String -> String -> FruitTart ()
+bindTemplateExpressionQuery moduleName queryName queryText = do
+  value <- eval moduleName queryText
+  case value of
+    TemplateList _ -> bind moduleName queryName value
+    TemplateMap theMap -> mapM_ (\(moduleName, valueName)
+                                    -> bind moduleName valueName
+                                            $ fromJust
+                                                  $ Map.lookup (moduleName, valueName)
+                                                               theMap)
+                                $ Map.keys theMap
+    _ -> error "Value from template-expression query not a Map or List of Maps."
+
+
+templateExpressionQueryMultipleRows
+    :: String -> String -> String -> FruitTart [Map (String, String) TemplateValue]
+templateExpressionQueryMultipleRows moduleName queryName queryText = do
+  value <- eval moduleName queryText
+  case value of
+    TemplateList list -> return $ map (\(TemplateMap theMap) -> theMap) list
+    _ -> error "Value from template-expression query not a List of Maps."
 
 
 getBinding :: String -> String -> FruitTart (Maybe TemplateValue)

@@ -1,5 +1,6 @@
 module Network.FruitTart.Base.Templates.Semantics (
                                                    fillTemplate,
+                                                   eval,
                                                    baseBindings
                                                   )
     where
@@ -46,6 +47,11 @@ fillTemplate moduleName templateName = do
            _ -> error $ "Unknown template item type " ++ kind ++ ".")
        items
        >>= return . concat
+
+
+eval :: String -> String -> FruitTart TemplateValue
+eval moduleName body = do
+  (evalExpression $ readExpression moduleName body) >>= return . fst
 
 
 letBindings :: Map (String, String) TemplateValue -> FruitTart a -> FruitTart a
@@ -198,16 +204,16 @@ evalExpression expression = do
         if not ((n > 1) && (odd n))
           then error $ "Invalid number of parameters to case()."
           else return ()
-        mainKey <- evalExpression $ head subexpressions
+        mainKey <- (evalExpression $ head subexpressions) >>= return . fst
         let case' items = do
               case items of
-                [] -> error $ "No match in case()."
+                [] -> error $ "No match in case() for " ++ (show mainKey) ++ "."
                 (key:(value:rest)) -> do
                   case key of
                     TemplateVariable (_, "otherwise") ->
                       evalExpression value
                     _ -> do
-                      key <- evalExpression key
+                      key <- evalExpression key >>= return . fst
                       if mainKey == key
                         then evalExpression value
                         else case' rest
