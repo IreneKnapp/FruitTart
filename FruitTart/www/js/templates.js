@@ -37,6 +37,7 @@ function addRow(event) {
     row.before(newRow);
     row.each(fixButtons);
     newRow.each(fixButtons);
+    newRow.find('textarea.autosizing').each(resizeTextarea)
     newRow.prev().each(fixButtons);
     fixNames(parent);
 }
