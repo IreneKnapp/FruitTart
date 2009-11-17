@@ -27,7 +27,7 @@ import qualified Data.Map as Map
 import Data.Typeable
 
 import Network.FruitTart.Base
-import Network.FruitTart.Base.Templates.Semantics
+import {-# SOURCE #-} Network.FruitTart.Base.Templates.Semantics
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 

@@ -95,6 +95,8 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateCaseExpression [TemplateExpression]
                         | TemplateCallExpression [TemplateExpression]
                         | TemplateIterateExpression [TemplateExpression]
+                        | TemplateQueryExpression [TemplateExpression]
+                        | TemplateLookupExpression [TemplateExpression]
                         | TemplateBoundExpression [TemplateExpression]
                         | TemplateFunctionCall TemplateExpression
                                                [TemplateExpression]
@@ -110,6 +112,8 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenCase
                    | TokenCall
                    | TokenIterate
+                   | TokenQuery
+                   | TokenLookup
                    | TokenBound
                    | TokenBind
                    | TokenLeftParen

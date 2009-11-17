@@ -15,6 +15,7 @@ import Network.CGI.Monad
 import Prelude hiding (catch)
 
 import Network.FruitTart.Base
+import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Base.Templates.Syntax
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
@@ -251,6 +252,43 @@ evalExpression expression = do
                                        $ fillTemplate moduleName templateName)
                         rows
         returnWithUnchangedBindings $ TemplateString $ concat results
+      TemplateQueryExpression subexpressions -> do
+        if length subexpressions < 1
+           then error $ "Invalid number of parameters to query()."
+           else return ()
+        parameters <- (mapM evalExpression $ drop 1 subexpressions)
+                      >>= return . map fst
+        (moduleName, queryName)
+            <- case head subexpressions of
+                 TemplateVariable result -> return result
+                 _ -> error $ "First parameter to query() is not a variable."
+        results <- mapM (\parameter -> case parameter of
+                           TemplateBool True -> return $ SQLInteger 1
+                           TemplateBool False -> return $ SQLInteger 0
+                           TemplateMaybe Nothing -> return $ SQLNull
+                           TemplateMaybe (Just (TemplateInteger integer))
+                               -> return $ SQLInteger integer
+                           TemplateMaybe (Just (TemplateString string))
+                               -> return $ SQLText string
+                           TemplateInteger integer -> return $ SQLInteger integer
+                           TemplateString string -> return $ SQLText string
+                           _ -> error "Invalid type for query parameter.")
+                        parameters
+                   >>= namedQuery moduleName queryName
+                   >>= return . map TemplateMap
+        returnWithUnchangedBindings $ TemplateList results
+      TemplateLookupExpression subexpressions -> do
+        if length subexpressions /= 2
+           then error $ "Invalid number of parameters to lookup()."
+           else return ()
+        theMap <- (evalExpression $ head $ drop 1 subexpressions)
+                  >>= valueToMap . fst
+        (moduleName, queryName)
+            <- case head subexpressions of
+                 TemplateVariable result -> return result
+                 _ -> error $ "First parameter to lookup() is not a variable."
+        returnWithUnchangedBindings
+          $ fromJust $ Map.lookup (moduleName, queryName) theMap 
       TemplateBoundExpression subexpressions -> do
         if length subexpressions /= 1
           then error $ "Invalid number of parameters to bound()."
