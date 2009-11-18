@@ -1,4 +1,11 @@
-module Network.FruitTart.Util.Lists (merge, mergeBy, mergeByM, split) where
+module Network.FruitTart.Util.Lists (
+                                     merge,
+                                     mergeBy,
+                                     mergeByM,
+                                     groupByM,
+                                     split
+                                    )
+    where
 
 import Control.Monad
 import Data.List
@@ -41,6 +48,20 @@ mergeTwoByM function a@(headA:tailA) b@(headB:tailB) = do
     EQ -> do
       mergedTail <- mergeTwoByM function tailA tailB
       return $ headA : headB : mergedTail
+
+
+groupByM :: Monad m => (a -> a -> m Bool) -> [a] -> m [[a]]
+groupByM function [] = return []
+groupByM function (a:rest) = do
+  groupByM' [a] rest
+  where groupByM' (a:restA) [] = return $ [a:restA]
+        groupByM' (a:restA) (b:restB) = do
+          equal <- function a b
+          if equal
+            then groupByM' ((a:restA)++[b]) restB
+            else do
+              otherGroups <- groupByM' [b] restB
+              return $ (a:restA):otherGroups
 
 
 split :: (Eq a) => a -> [a] -> [[a]]
