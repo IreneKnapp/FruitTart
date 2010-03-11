@@ -105,8 +105,10 @@ initDatabase database = do
                  (  "CREATE TABLE adventure_options (\n"
                  ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                  ++ "parent INTEGER,\n"
+                 ++ "item INTEGER,\n"
                  ++ "child INTEGER,\n"
-                 ++ "name TEXT\n"
+                 ++ "name TEXT,\n"
+                 ++ "CONSTRAINT key PRIMARY KEY (parent, item)\n"
                  ++ ")")
                  []
   earlyQuery database

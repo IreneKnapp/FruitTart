@@ -8,8 +8,8 @@ import Data.Dynamic
 import Data.Int
 import Data.List
 import Data.Map (Map)
-import Data.Maybe
 import qualified Data.Map as Map
+import Data.Maybe
 
 import Network.FruitTart.Base
 import Network.FruitTart.Util
@@ -94,7 +94,8 @@ createNodeGET = do
       bindDefaults "Create Node" "/adventure/create-node/"
       bind "Adventure.Controller.Adventure" "name" "New Node"
       bind "Adventure.Controller.Adventure" "body" ""
-      bind "Adventure.Controller.Adventure" "options" ([] :: [String])
+      bind "Adventure.Controller.Adventure" "options" ([] :: [Map (String, String)
+                                                                  TemplateValue])
       bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
       outputPage "Adventure.Controller.Adventure" "editNode"
 
@@ -115,7 +116,37 @@ editNodePOST nodeID = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      seeOtherRedirect "/adventure/edit-index/"
+      name <- getInput "name"
+      name <- return $ case name of
+                         Nothing -> ""
+                         Just name -> name
+      body <- getInput "body"
+      body <- return $ case body of
+                         Nothing -> ""
+                         Just body -> fromCRLF body
+      options <- getOptionInputs
+      [values] <- namedQuery "Adventure.Controller.Adventure" "nodeExistsWithDifferentID"
+                             [SQLText name, SQLInteger nodeID]
+      exists <- return $ fromJust
+                       $ Map.lookup ("Adventure.Controller.Adventure", "exists")
+                                    values
+      exists <- return $ case exists of
+                           TemplateBool bool -> bool
+      if exists
+         then do
+           bindDefaults "Create Node" "/adventure/create-node/"
+           bind "Adventure.Controller.Adventure" "name" name
+           bind "Adventure.Controller.Adventure" "body" body
+           bind "Adventure.Controller.Adventure" "options" options
+           bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
+           bind "Adventure.Controller.Adventure" "maybeWarning"
+                $ Just "There is already a node by that name."
+           outputPage "Adventure.Controller.Adventure" "editNode"
+         else do
+           namedQuery "Adventure.Controller.Adventure" "updateNode"
+                      [SQLText name, SQLText body, SQLInteger nodeID]
+           setPopupMessage $ Just "Node modified."
+           seeOtherRedirect $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
 
 
 editVariablePOST :: String -> FruitTart CGIResult
@@ -133,7 +164,43 @@ createNodePOST = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      seeOtherRedirect "/adventure/edit-index/"
+      name <- getInput "name"
+      name <- return $ case name of
+                         Nothing -> ""
+                         Just name -> name
+      body <- getInput "body"
+      body <- return $ case body of
+                         Nothing -> ""
+                         Just body -> fromCRLF body
+      options <- getOptionInputs
+      [values] <- namedQuery "Adventure.Controller.Adventure" "nodeExists"
+                             [SQLText name]
+      exists <- return $ fromJust
+                       $ Map.lookup ("Adventure.Controller.Adventure", "exists")
+                                    values
+      exists <- return $ case exists of
+                           TemplateBool bool -> bool
+      if exists
+         then do
+           bindDefaults "Create Node" "/adventure/create-node/"
+           bind "Adventure.Controller.Adventure" "name" name
+           bind "Adventure.Controller.Adventure" "body" body
+           bind "Adventure.Controller.Adventure" "options" options
+           bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
+           bind "Adventure.Controller.Adventure" "maybeWarning"
+                $ Just "There is already a node by that name."
+           outputPage "Adventure.Controller.Adventure" "editNode"
+         else do
+           namedQuery "Adventure.Controller.Adventure" "insertNode"
+                      [SQLText name, SQLText body]
+           [values] <- namedQuery "Adventure.Controller.Adventure" "nodeJustInserted" []
+           nodeID <- return $ fromJust $ Map.lookup ("Adventure.Controller.Adventure",
+                                                     "nodeID")
+                                                    values
+           nodeID <- return $ case nodeID of
+                                TemplateInteger integer -> integer
+           setPopupMessage $ Just "Node created."
+           seeOtherRedirect $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
 
 
 createVariablePOST :: FruitTart CGIResult
@@ -159,6 +226,7 @@ bindDefaults pageTitle currentPage = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
+  bind "Adventure.Controller.Adventure" "maybeWarning" (Nothing :: Maybe String)
 
 
 outputPage :: String -> String -> FruitTart CGIResult
@@ -187,3 +255,7 @@ getRightEdit = do
   right <- return $ case right of
                       TemplateBool bool -> bool
   return right
+
+
+getOptionInputs :: FruitTart [Map (String, String) TemplateValue]
+getOptionInputs = return []

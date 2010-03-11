@@ -444,6 +444,7 @@ baseBindings = Map.fromList
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
                 (("Templates", "map"), TemplateNativeLambda tfMap),
+                (("Tempaltes", "groupBy"), TemplateNativeLambda tfGroupBy),
                 (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
                 (("Templates", "compareIntegers"),
                  TemplateNativeLambda tfCompareIntegers),
@@ -557,6 +558,20 @@ tfMap parameters = do
   list <- valueToList $ head $ drop 1 parameters
   list' <- mapM (\a -> applyFunction function [a]) list
   return $ TemplateList list'
+
+
+tfGroupBy :: [TemplateValue]
+          -> FruitTart TemplateValue
+tfGroupBy parameters = do
+  requireNParameters parameters 2 "mergeBy"
+  let function = head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  groupedLists <- groupByM (\a b -> do
+                              TemplateBool bool
+                                  <- applyFunction function [a, b]
+                              return bool)
+                           list
+  return $ TemplateList list
 
 
 tfMergeBy :: [TemplateValue]
