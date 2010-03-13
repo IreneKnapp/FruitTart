@@ -5,6 +5,7 @@ module Network.FruitTart.Base.View.Login (
                                           getEffectiveUserID,
                                           getOrCreateUserID,
                                           getCanActAsUser,
+                                          getRightAdminDesign,
                                           defaultFullName,
                                           defaultEmail,
                                           privacyNote
@@ -61,7 +62,7 @@ outputMustLoginPage currentPage = do
   pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar currentPage
   output $ "<html><head>\n"
-         ++ "<title>Buglist Users</title>\n"
+         ++ "<title>Login Required</title>\n"
          ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
@@ -133,6 +134,17 @@ getCanActAsUser userID = do
        return $ case isNull of
                   0 -> False
                   _ -> True
+
+
+getRightAdminDesign :: FruitTart Bool
+getRightAdminDesign = do
+  userID <- getEffectiveUserID
+  [[SQLInteger right]]
+      <- query "SELECT right_admin_design FROM base_users WHERE id = ?"
+               [SQLInteger userID]
+  return $ case right of
+             0 -> False
+             _ -> True
 
 
 defaultFullName :: String

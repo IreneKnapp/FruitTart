@@ -34,107 +34,132 @@ actionTable
 
 index :: FruitTart CGIResult
 index = do
-  bind "Templates" "pageTitle" "All Templates"
-  pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems" pageHeadItems
-  currentPage <- return $ "/templates/index/"
-  navigationBar <- getNavigationBar currentPage
-  bind "Templates" "navigationBar" navigationBar
-  loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
-  popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
-  bindNamedQueryMultipleRows "Base.Controller.Templates" "indexRows" []
-  pageContent <- getTemplate "Base.Controller.Templates" "index"
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
-  output page
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage "/templates/index/"
+    True -> do
+          bind "Templates" "pageTitle" "All Templates"
+          pageHeadItems <- getPageHeadItems
+          bind "Templates" "pageHeadItems" pageHeadItems
+          currentPage <- return $ "/templates/index/"
+          navigationBar <- getNavigationBar currentPage
+          bind "Templates" "navigationBar" navigationBar
+          loginButton <- getLoginButton currentPage
+          bind "Templates" "loginButton" loginButton
+          popupMessage <- getPopupMessage
+          bind "Templates" "popupMessage" popupMessage
+          bindNamedQueryMultipleRows "Base.Controller.Templates" "indexRows" []
+          pageContent <- getTemplate "Base.Controller.Templates" "index"
+          bind "Templates" "pageContent" pageContent
+          page <- getTemplate "Templates" "page"
+          output page
 
 
 view :: Int64 -> FruitTart CGIResult
 view templateID = do
   let currentPage = "/templates/view/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
-  maybeNames
-      <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
-  case maybeNames of
-    [values] -> do
-      moduleName <- return $ fromJust
-                           $ Map.lookup ("Base.Controller.Templates", "moduleName")
-                                        values
-      moduleName <- return $ case moduleName of
-                               TemplateString string -> string
-      templateName <- return $ fromJust
-                             $ Map.lookup ("Base.Controller.Templates", "templateName")
-                                          values
-      templateName <- return $ case templateName of
-                                 TemplateString string -> string
-      sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
-      let items = map (\values ->
-                        let itemType'
-                                = fromJust $ Map.lookup ("Base.Controller.Templates",
-                                                         "kind")
-                                                        values
-                            itemType = case itemType' of
-                                         TemplateString string -> string
-                            body'
-                                = fromJust $ Map.lookup ("Base.Controller.Templates",
-                                                         "body")
-                                                        values
-                            body = case body' of
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
+    True -> do
+      maybeNames
+          <- namedQuery "Base.Controller.Templates" "templateName"
+                        [SQLInteger templateID]
+      case maybeNames of
+        [values] -> do
+          moduleName <- return $ fromJust
+                               $ Map.lookup ("Base.Controller.Templates", "moduleName")
+                                            values
+          moduleName <- return $ case moduleName of
+                                   TemplateString string -> string
+          templateName <- return $ fromJust
+                                 $ Map.lookup ("Base.Controller.Templates",
+                                               "templateName")
+                                              values
+          templateName <- return $ case templateName of
                                      TemplateString string -> string
-                        in (itemType, body))
-                      sqlItems
-      outputTemplatePage currentPage targetPage Nothing (Just templateID)
-                         moduleName templateName items
-    [] -> errorInvalidID "template"
+          sqlItems <- namedQuery "Base.Controller.Templates"
+                                 "items"
+                                 [SQLInteger templateID]
+          let items = map (\values ->
+                            let itemType'
+                                    = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                             "kind")
+                                                            values
+                                itemType = case itemType' of
+                                             TemplateString string -> string
+                                body'
+                                    = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                             "body")
+                                                            values
+                                body = case body' of
+                                         TemplateString string -> string
+                            in (itemType, body))
+                          sqlItems
+          outputTemplatePage currentPage targetPage Nothing (Just templateID)
+                             moduleName templateName items
+        [] -> errorInvalidID "template"
 
 
 copy :: Int64 -> FruitTart CGIResult
 copy templateID = do
   let currentPage = "/templates/copy/" ++ (show templateID) ++ "/"
       targetPage = "/templates/create/"
-  maybeNames
-      <- namedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
-  case maybeNames of
-    [values] -> do
-      moduleName <- return $ fromJust
-                           $ Map.lookup ("Base.Controller.Templates", "moduleName")
-                                        values
-      moduleName <- return $ case moduleName of
-                               TemplateString string -> string
-      templateName <- return $ fromJust
-                             $ Map.lookup ("Base.Controller.Templates", "templateName")
-                                          values
-      templateName <- return $ case templateName of
-                                 TemplateString string -> string
-      sqlItems <- namedQuery "Base.Controller.Templates" "items" [SQLInteger templateID]
-      let items = map (\values ->
-                        let itemType'
-                                = fromJust $ Map.lookup ("Base.Controller.Templates",
-                                                         "kind")
-                                                        values
-                            itemType = case itemType' of
-                                         TemplateString string -> string
-                            body'
-                                = fromJust $ Map.lookup ("Base.Controller.Templates",
-                                                         "body")
-                                                        values
-                            body = case body' of
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
+    True -> do
+      maybeNames
+          <- namedQuery "Base.Controller.Templates"
+                        "templateName"
+                        [SQLInteger templateID]
+      case maybeNames of
+        [values] -> do
+          moduleName <- return $ fromJust
+                               $ Map.lookup ("Base.Controller.Templates", "moduleName")
+                                            values
+          moduleName <- return $ case moduleName of
+                                   TemplateString string -> string
+          templateName <- return $ fromJust
+                                 $ Map.lookup ("Base.Controller.Templates",
+                                               "templateName")
+                                              values
+          templateName <- return $ case templateName of
                                      TemplateString string -> string
-                        in (itemType, body))
-                      sqlItems
-      outputTemplatePage currentPage targetPage Nothing Nothing
-                         moduleName templateName items
-    [] -> errorInvalidID "template"
+          sqlItems <- namedQuery "Base.Controller.Templates"
+                                 "items"
+                                 [SQLInteger templateID]
+          let items = map (\values ->
+                            let itemType'
+                                    = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                             "kind")
+                                                            values
+                                itemType = case itemType' of
+                                             TemplateString string -> string
+                                body'
+                                    = fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                             "body")
+                                                            values
+                                body = case body' of
+                                         TemplateString string -> string
+                            in (itemType, body))
+                          sqlItems
+          outputTemplatePage currentPage targetPage Nothing Nothing
+                             moduleName templateName items
+        [] -> errorInvalidID "template"
 
 
 createGET :: FruitTart CGIResult
 createGET = do
   let currentPage = "/templates/create/"
       targetPage = "/templates/create/"
-  outputTemplatePage currentPage targetPage Nothing Nothing
-                     "Module" "template" [("content", "")]
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
+    True -> do
+      outputTemplatePage currentPage targetPage Nothing Nothing
+                         "Module" "template" [("content", "")]
 
 
 outputTemplatePage
@@ -178,124 +203,140 @@ createPOST :: FruitTart CGIResult
 createPOST = do
   let currentPage = "/templates/create/"
       targetPage = "/templates/create/"
-  maybeModuleName <- getInput "module"
-  moduleName <- return $ case maybeModuleName of
-                  Nothing -> "Module"
-                  Just moduleName -> moduleName
-  maybeTemplateName <- getInput "name"
-  templateName <- return $ case maybeTemplateName of
-                  Nothing -> "template"
-                  Just templateName -> templateName
-  items <- getInputItems
-  namedQuery "Queries" "beginExclusiveTransaction" []
-  [values]
-      <- namedQuery "Base.Controller.Templates" "templateExists"
-                    [SQLText moduleName, SQLText templateName]
-  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
-                                           values
-  exists <- return $ case exists of
-                       TemplateBool bool -> bool
-  case exists of
-    False -> do
-      namedQuery "Base.Controller.Templates" "insertTemplate"
-                 [SQLText moduleName, SQLText templateName]
-      [values]
-          <- namedQuery "Base.Controller.Templates" "templateJustInserted" []
-      templateID <- return $ fromJust $ Map.lookup ("Base.Controller.Templates",
-                                                    "templateID")
-                                                   values
-      templateID <- return $ case templateID of
-                               TemplateInteger integer -> integer
-      mapM (\((itemType, body), index) -> do
-              namedQuery "Base.Controller.Templates" "insertTemplateItem"
-                         [SQLInteger templateID,
-                          SQLInteger index,
-                          SQLText itemType,
-                          SQLText body])
-           $ zip items [0..]
-      namedQuery "Queries" "commit" []
-      setPopupMessage $ Just "Template created."
-      seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
     True -> do
-      namedQuery "Queries" "rollback" []
-      outputTemplatePage currentPage targetPage
-                         (Just "A template by that name already exists.")
-                         Nothing moduleName templateName items
+      maybeModuleName <- getInput "module"
+      moduleName <- return $ case maybeModuleName of
+                      Nothing -> "Module"
+                      Just moduleName -> moduleName
+      maybeTemplateName <- getInput "name"
+      templateName <- return $ case maybeTemplateName of
+                      Nothing -> "template"
+                      Just templateName -> templateName
+      items <- getInputItems
+      namedQuery "Queries" "beginExclusiveTransaction" []
+      [values]
+          <- namedQuery "Base.Controller.Templates" "templateExists"
+                        [SQLText moduleName, SQLText templateName]
+      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
+                                               values
+      exists <- return $ case exists of
+                           TemplateBool bool -> bool
+      case exists of
+        False -> do
+          namedQuery "Base.Controller.Templates" "insertTemplate"
+                     [SQLText moduleName, SQLText templateName]
+          [values]
+              <- namedQuery "Base.Controller.Templates" "templateJustInserted" []
+          templateID <- return $ fromJust $ Map.lookup ("Base.Controller.Templates",
+                                                        "templateID")
+                                                       values
+          templateID <- return $ case templateID of
+                                   TemplateInteger integer -> integer
+          mapM (\((itemType, body), index) -> do
+                  namedQuery "Base.Controller.Templates" "insertTemplateItem"
+                             [SQLInteger templateID,
+                              SQLInteger index,
+                              SQLText itemType,
+                              SQLText body])
+               $ zip items [0..]
+          namedQuery "Queries" "commit" []
+          setPopupMessage $ Just "Template created."
+          seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
+        True -> do
+          namedQuery "Queries" "rollback" []
+          outputTemplatePage currentPage targetPage
+                             (Just "A template by that name already exists.")
+                             Nothing moduleName templateName items
 
 
 edit :: Int64 -> FruitTart CGIResult
 edit templateID = do
   let currentPage = "/templates/edit/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
-  maybeModuleName <- getInput "module"
-  moduleName <- return $ case maybeModuleName of
-                  Nothing -> "Module"
-                  Just moduleName -> moduleName
-  maybeTemplateName <- getInput "name"
-  templateName <- return $ case maybeTemplateName of
-                  Nothing -> "template"
-                  Just templateName -> templateName
-  items <- getInputItems
-  namedQuery "Queries" "beginTransaction" []
-  [values]
-      <- namedQuery "Base.Controller.Templates" "templateExistsWithDifferentID"
-                    [SQLText moduleName, SQLText templateName, SQLInteger templateID]
-  exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
-                                           values
-  exists <- return $ case exists of
-                       TemplateBool bool -> bool
-  case exists of
-    False -> do
-      namedQuery "Base.Controller.Templates" "updateTemplate" []
-      namedQuery "Base.Controller.Templates" "deleteTemplateItems"
-                 [SQLInteger templateID]
-      mapM (\((itemType, body), index) -> do
-              namedQuery "Base.Controller.Templates" "insertTemplateItem"
-                         [SQLInteger templateID,
-                          SQLInteger index,
-                          SQLText itemType,
-                          SQLText body])
-           $ zip items [0..]
-      namedQuery "Queries" "commit" []
-      setPopupMessage $ Just "Template changed."
-      seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
     True -> do
-      namedQuery "Queries" "rollback" []
-      outputTemplatePage currentPage targetPage
-                         (Just "A template by that name already exists.")
-                         (Just templateID)
-                         moduleName templateName items
+      maybeModuleName <- getInput "module"
+      moduleName <- return $ case maybeModuleName of
+                      Nothing -> "Module"
+                      Just moduleName -> moduleName
+      maybeTemplateName <- getInput "name"
+      templateName <- return $ case maybeTemplateName of
+                      Nothing -> "template"
+                      Just templateName -> templateName
+      items <- getInputItems
+      namedQuery "Queries" "beginTransaction" []
+      [values]
+          <- namedQuery "Base.Controller.Templates" "templateExistsWithDifferentID"
+                        [SQLText moduleName, SQLText templateName, SQLInteger templateID]
+      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Templates", "exists")
+                                               values
+      exists <- return $ case exists of
+                           TemplateBool bool -> bool
+      case exists of
+        False -> do
+          namedQuery "Base.Controller.Templates" "updateTemplate" []
+          namedQuery "Base.Controller.Templates" "deleteTemplateItems"
+                     [SQLInteger templateID]
+          mapM (\((itemType, body), index) -> do
+                  namedQuery "Base.Controller.Templates" "insertTemplateItem"
+                             [SQLInteger templateID,
+                              SQLInteger index,
+                              SQLText itemType,
+                              SQLText body])
+               $ zip items [0..]
+          namedQuery "Queries" "commit" []
+          setPopupMessage $ Just "Template changed."
+          seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
+        True -> do
+          namedQuery "Queries" "rollback" []
+          outputTemplatePage currentPage targetPage
+                             (Just "A template by that name already exists.")
+                             (Just templateID)
+                             moduleName templateName items
 
 
 deleteGET :: Int64 -> FruitTart CGIResult
 deleteGET templateID = do
   let currentPage = "/templates/delete/" ++ (show templateID) ++ "/"
       targetPage = "/templates/delete/" ++ (show templateID) ++ "/"
-  bind "Templates" "pageTitle" "Delete Confirmation"
-  pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems" pageHeadItems
-  navigationBar <- getNavigationBar currentPage
-  bind "Templates" "navigationBar" navigationBar
-  loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
-  popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
-  bindNamedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
-  bind "Base.Controller.Templates" "targetPage" targetPage
-  pageContent <- getTemplate "Base.Controller.Templates" "delete"
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
-  output page
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage currentPage
+    True -> do
+      bind "Templates" "pageTitle" "Delete Confirmation"
+      pageHeadItems <- getPageHeadItems
+      bind "Templates" "pageHeadItems" pageHeadItems
+      navigationBar <- getNavigationBar currentPage
+      bind "Templates" "navigationBar" navigationBar
+      loginButton <- getLoginButton currentPage
+      bind "Templates" "loginButton" loginButton
+      popupMessage <- getPopupMessage
+      bind "Templates" "popupMessage" popupMessage
+      bindNamedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
+      bind "Base.Controller.Templates" "targetPage" targetPage
+      pageContent <- getTemplate "Base.Controller.Templates" "delete"
+      bind "Templates" "pageContent" pageContent
+      page <- getTemplate "Templates" "page"
+      output page
 
 
 deletePOST :: Int64 -> FruitTart CGIResult
 deletePOST templateID = do
-  namedQuery "Queries" "beginTransaction" []
-  namedQuery "Base.Controller.Templates" "deleteTemplate" [SQLInteger templateID]
-  namedQuery "Base.Controller.Templates" "deleteTemplateItems" [SQLInteger templateID]
-  namedQuery "Queries" "commit" []
-  setPopupMessage $ Just "Template deleted."
-  seeOtherRedirect "/templates/index/"
+  right <- getRightAdminDesign
+  case right of
+    False -> outputMustLoginPage "/templates/index/"
+    True -> do
+      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base.Controller.Templates" "deleteTemplate" [SQLInteger templateID]
+      namedQuery "Base.Controller.Templates" "deleteTemplateItems" [SQLInteger templateID]
+      namedQuery "Queries" "commit" []
+      setPopupMessage $ Just "Template deleted."
+      seeOtherRedirect "/templates/index/"
 
 
 getInputItems :: FruitTart [(String, String)]
