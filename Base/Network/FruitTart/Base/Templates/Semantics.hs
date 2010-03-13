@@ -43,7 +43,7 @@ fillTemplate moduleName templateName = do
                                >>= valueToString . fst)
                               (\e -> error $ "While processing template "
                                            ++ moduleName ++ "."
-                                           ++ templateName ++ ": " ++ (show e))
+                                           ++ templateName ++ ": " ++ (show (e :: SomeException)))
            _ -> error $ "Unknown template item type " ++ kind ++ ".")
        items
        >>= return . concat
@@ -62,7 +62,7 @@ letBindings newBindings function = do
   result <- catchFruitTart function
                            (\e -> do
                               liftIO $ swapMVar bindingsMVar oldBindings
-                              throw e)
+                              throw (e :: SomeException))
   liftIO $ swapMVar bindingsMVar oldBindings
   return result
 

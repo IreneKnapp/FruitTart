@@ -1,6 +1,7 @@
 module Network.FruitTart.Dispatcher (processRequest) where
 
 import Control.Concurrent
+import Control.Exception
 import Control.Monad.State
 import Data.Char
 import Data.Dynamic
@@ -23,7 +24,7 @@ processRequest :: ControllerTable -> FruitTart CGIResult
 processRequest dispatchTable  = do
   catchFruitTart (processRequest' dispatchTable)
                  (\e -> do
-                    logCGI $ "FruitTart: " ++ show e
+                    logCGI $ "FruitTart: " ++ show (e :: SomeException)
                     error500)
 
 
