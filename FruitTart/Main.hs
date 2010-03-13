@@ -44,11 +44,10 @@ main = do
 
 loadInstalledModules :: Database -> MVar (Map String Interface) -> IO (Map String Dynamic)
 loadInstalledModules database interfacesMapMVar = do
-  initLinker
   names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
       <- mapM (\[SQLText name] -> do
-                maybeInterface <- loadPackageFunction name "Main" "fruitTartPlugin"
+                maybeInterface <- load (name, "Main", "fruitTartPlugin")
                 case maybeInterface of
                   Nothing -> do
                     logCGI $ "Not installed or not a plugin: " ++ name
