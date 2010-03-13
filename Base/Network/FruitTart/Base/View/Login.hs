@@ -61,12 +61,14 @@ outputMustLoginPage :: String -> FruitTart CGIResult
 outputMustLoginPage currentPage = do
   pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar currentPage
+  loginButton <- getLoginButton currentPage
   output $ "<html><head>\n"
          ++ "<title>Login Required</title>\n"
          ++ pageHeadItems
          ++ "</head>\n"
          ++ "<body>\n"
          ++ navigationBar
+         ++ loginButton
          ++ "<h1>You must log in to access this page.</h1>\n"
          ++ "</body></html>"
 
