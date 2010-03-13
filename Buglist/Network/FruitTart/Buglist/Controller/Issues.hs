@@ -4,7 +4,9 @@ module Network.FruitTart.Buglist.Controller.Issues (
                                                     getResolutionPopup,
                                                     getModulePopup,
                                                     getSeverityPopup,
-                                                    getPriorityPopup
+                                                    getPriorityPopup,
+                                                    getRightViewModulesRequiringLogin,
+                                                    getRightViewIssue
                                                    )
     where
 
@@ -41,6 +43,14 @@ actionTable
 
 index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult
 index maybeWhich maybeEitherModuleNameModuleID = do
+  rightViewModulesRequiringLogin <- getRightViewModulesRequiringLogin
+  let modulesWhereClauseBody = if rightViewModulesRequiringLogin
+                                 then ""
+                                 else "modules.visible_only_when_logged_in = 0"
+      modulesWhereClause = if modulesWhereClauseBody == ""
+                             then ""
+                             else "WHERE " ++ modulesWhereClauseBody
+      modulesWhereClauseParameters = []
   sessionID <- getSessionID
   [[maybeDatabaseWhich, maybeDatabaseAllModules, maybeDatabaseModuleID]]
     <- query ("SELECT issue_index_filter_which, issue_index_filter_all_modules, "
@@ -103,12 +113,15 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   whereClauseBody <- return
                      $ intercalate " AND "
                      $ concat [case which of
-                                 _ | which == "open" -> ["statuses.name != 'CLOSED' "]
-                                   | which == "closed" -> ["statuses.name == 'CLOSED' "]
+                                 _ | which == "open" -> ["statuses.name != 'CLOSED'"]
+                                   | which == "closed" -> ["statuses.name == 'CLOSED'"]
                                    | which == "all" -> [],
                                case maybeModuleID of
                                  Nothing -> []
-                                 Just moduleID -> ["module = ? "]]
+                                 Just moduleID -> ["module = ?"],
+                               case modulesWhereClauseBody of
+                                 "" -> []
+                                 _ -> [modulesWhereClauseBody]]
   whereClause <- return $ if whereClauseBody == ""
                         then ""
                         else "WHERE " ++ whereClauseBody
@@ -168,7 +181,10 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                             "/issues/index/which:open/" ++ currentPathModulePart),
                            ("Closed Issues",
                             "/issues/index/which:closed/" ++ currentPathModulePart)]
-  modules <- query "SELECT id, name FROM buglist_modules ORDER BY id" []
+  modules <- query ("SELECT id, name FROM buglist_modules AS modules\n"
+                    ++ modulesWhereClause ++ "\n"
+                    ++ "ORDER BY sort_order")
+                   ([] ++ modulesWhereClauseParameters)
   modulesFilterList <- return $ [filterItem "All Modules"
                                       ("/issues/index/" ++ currentPathWhichPart
                                        ++ "module:all/")]
@@ -224,7 +240,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ "ON issues.priority = priorities.id "
                    ++ "INNER JOIN users AS assignee ON issues.assignee = assignee.id "
                    ++ "INNER JOIN users AS reporter ON issues.reporter = reporter.id "
-                   ++ whereClause
+                   ++ whereClause ++ " "
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                    ([] ++ whereClauseParameters)
   pageContent <- getTemplate "Buglist.Controller.Issues" "index"
@@ -234,7 +250,11 @@ index maybeWhich maybeEitherModuleNameModuleID = do
 
 
 view :: Int64 -> FruitTart CGIResult
-view id = outputView id "" defaultFullName defaultEmail Nothing
+view id = do
+  rightViewIssue <- getRightViewIssue id
+  case rightViewIssue of
+    False -> outputMustLoginPage ("/issues/view/" ++ (show id) ++ "/")
+    True -> outputView id "" defaultFullName defaultEmail Nothing
 
 
 outputView :: Int64 -> String -> String -> String -> (Maybe String) -> FruitTart CGIResult
@@ -719,6 +739,14 @@ actuallyCreateIssue moduleID summary comment reporterID = do
 
 comment :: Int64 -> FruitTart CGIResult
 comment issueID = do
+  rightViewIssue <- getRightViewIssue issueID
+  case rightViewIssue of
+    False -> outputMustLoginPage ("/issues/comment/" ++ (show issueID) ++ "/")
+    True -> comment' issueID
+
+
+comment' :: Int64 -> FruitTart CGIResult
+comment' issueID = do
   right <- getRightCommentIssues
   case right of
     False -> outputMustLoginPage $ "/issues/comment/" ++ (show issueID) ++ "/"
@@ -774,6 +802,14 @@ actuallyCreateComment issueID comment commenterID = do
 
 edit :: Int64 -> FruitTart CGIResult
 edit issueID = do
+  rightViewIssue <- getRightViewIssue issueID
+  case rightViewIssue of
+    False -> outputMustLoginPage $ "/issues/edit/" ++ (show issueID) ++ "/"
+    True -> edit' issueID
+
+
+edit' :: Int64 -> FruitTart CGIResult
+edit' issueID = do
   right <- getRightModifyIssues
   case right of
     False -> outputMustLoginPage $ "/issues/edit/" ++ (show issueID) ++ "/"
@@ -970,7 +1006,18 @@ getResolutionPopup maybeResolutionID = do
 
 getModulePopup :: Maybe Int64 -> FruitTart String
 getModulePopup maybeModuleID = do
-  modules <- query "SELECT id, name FROM buglist_modules ORDER BY id" []
+  rightViewModulesRequiringLogin <- getRightViewModulesRequiringLogin
+  let whereClauseBody = if rightViewModulesRequiringLogin
+                          then ""
+                          else "modules.visible_only_when_logged_in = 0"
+      whereClause = if whereClauseBody == ""
+                      then ""
+                      else "WHERE " ++ whereClauseBody
+      whereClauseParameters = []
+  modules <- query ("SELECT id, name FROM buglist_modules AS modules "
+                    ++ whereClause ++ " "
+                    ++ "ORDER BY sort_order")
+                   ([] ++ whereClauseParameters)
   return $ "<select name=\"module\">"
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
@@ -1017,3 +1064,24 @@ getPriorityPopup maybePriorityID = do
                                ++ "</option>")
                           priorities)
          ++ "</select>\n"
+
+
+getRightViewModulesRequiringLogin :: FruitTart Bool
+getRightViewModulesRequiringLogin = do
+  maybeUserID <- getLoggedInUserID
+  case maybeUserID of
+    Nothing -> return False
+    Just _ -> return True
+
+
+getRightViewIssue :: Int64 -> FruitTart Bool
+getRightViewIssue issueID = do
+  [[SQLInteger requiresLogin]]
+      <- query ("SELECT modules.visible_only_when_logged_in "
+                ++ "FROM buglist_issues AS issues LEFT JOIN buglist_modules AS modules "
+                ++ "ON issues.module = modules.id "
+                ++ "WHERE issues.id = ?")
+               [SQLInteger issueID]
+  case requiresLogin of
+    0 -> return True
+    _ -> getRightViewModulesRequiringLogin

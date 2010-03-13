@@ -227,7 +227,9 @@ initDatabase database = do
   earlyQuery database
                  (  "CREATE TABLE buglist_modules (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "name TEXT\n"
+                 ++ "sort_order INTEGER UNIQUE,\n"
+                 ++ "name TEXT,\n"
+                 ++ "visible_only_when_logged_in INTEGER\n"
                  ++ ")")
                  []
   earlyQuery database
