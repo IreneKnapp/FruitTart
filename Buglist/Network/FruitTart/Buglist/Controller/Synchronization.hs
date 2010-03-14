@@ -13,7 +13,7 @@ import Data.Int
 import Data.List
 
 import Network.FruitTart.Base
-import Network.FruitTart.Buglist.Controller.Users hiding (actionTable)
+import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Navigation
 

@@ -5,8 +5,6 @@ module Network.FruitTart.Buglist.Controller.Issues (
                                                     getModulePopup,
                                                     getSeverityPopup,
                                                     getPriorityPopup,
-                                                    getRightViewModulesRequiringLogin,
-                                                    getRightViewIssue
                                                    )
     where
 
@@ -18,7 +16,6 @@ import qualified Data.Map as Map
 import Data.Maybe
 
 import Network.FruitTart.Base
-import Network.FruitTart.Buglist.Controller.Users hiding (actionTable)
 import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Navigation
@@ -1064,24 +1061,3 @@ getPriorityPopup maybePriorityID = do
                                ++ "</option>")
                           priorities)
          ++ "</select>\n"
-
-
-getRightViewModulesRequiringLogin :: FruitTart Bool
-getRightViewModulesRequiringLogin = do
-  maybeUserID <- getLoggedInUserID
-  case maybeUserID of
-    Nothing -> return False
-    Just _ -> return True
-
-
-getRightViewIssue :: Int64 -> FruitTart Bool
-getRightViewIssue issueID = do
-  [[SQLInteger requiresLogin]]
-      <- query ("SELECT modules.visible_only_when_logged_in "
-                ++ "FROM buglist_issues AS issues LEFT JOIN buglist_modules AS modules "
-                ++ "ON issues.module = modules.id "
-                ++ "WHERE issues.id = ?")
-               [SQLInteger issueID]
-  case requiresLogin of
-    0 -> return True
-    _ -> getRightViewModulesRequiringLogin
