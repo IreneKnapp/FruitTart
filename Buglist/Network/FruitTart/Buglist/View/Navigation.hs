@@ -22,7 +22,7 @@ getSubnavigationBar currentPage items = do
              then "<a href=\"" ++ (escapeAttribute link) ++ "\">"
                   ++ (escapeHTML name) ++ "</a>"
              else "<b>" ++ (escapeHTML name) ++ "</b>"
-  return $ "<div class=\"navigation\">"
+  return $ "<div class=\"subnavigation\">"
          ++ (concat $ map (\maybeItem -> case maybeItem of
                                            Just (name, link) -> item name link
                                            Nothing -> "<div class=\"separator\"></div>")
