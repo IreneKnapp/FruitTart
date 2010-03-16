@@ -18,8 +18,8 @@ import qualified Network.FruitTart.Base.Controller.Queries as Controller.Queries
 import qualified Network.FruitTart.Base.View.Templates as View.Templates
 
 
-fruitTartPlugin :: Interface
-fruitTartPlugin = Interface {
+fruitTartPlugin :: Dynamic
+fruitTartPlugin = toDyn $ Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
                     interfaceModuleName = moduleName,

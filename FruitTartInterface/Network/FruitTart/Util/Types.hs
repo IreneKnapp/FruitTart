@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, DeriveDataTypeable #-}
 module Network.FruitTart.Util.Types where
 
 import Control.Concurrent
@@ -76,7 +76,7 @@ data Interface = Interface {
       interfaceInitDatabase :: Database -> IO (),
       interfaceInitState :: IO Dynamic,
       interfaceInitRequest :: FruitTart ()
-    }
+    } deriving (Typeable)
 
 
 makeActionTable

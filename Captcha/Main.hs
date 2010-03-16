@@ -16,8 +16,8 @@ import qualified Network.FruitTart.Captcha.Controller.Captcha
 import Network.FruitTart.Util
 
 
-fruitTartPlugin :: Interface
-fruitTartPlugin = Interface {
+fruitTartPlugin :: Dynamic
+fruitTartPlugin = toDyn $ Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
                     interfaceModuleName = moduleName,

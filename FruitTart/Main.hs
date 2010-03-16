@@ -47,12 +47,17 @@ loadInstalledModules database interfacesMapMVar = do
   names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
       <- mapM (\[SQLText name] -> do
-                maybeInterface <- load (name, "Main", "fruitTartPlugin")
+                maybeInterface <- loadDynamic (name, "Main", "fruitTartPlugin")
                 case maybeInterface of
                   Nothing -> do
                     logCGI $ "Not installed or not a plugin: " ++ name
                     return []
-                  Just interface -> return [interface])
+                  Just dynamicInterface -> do
+                    case fromDynamic dynamicInterface of
+                      Nothing -> do
+                        logCGI $ "Plugin not compatible: " ++ name
+                        return []
+                      Just interface -> return [interface])
               names
          >>= return . (\interfaces -> concat [[baseInterface], interfaces]) . concat
   let availableModules = map (\interface -> (interfaceModuleName interface,
