@@ -42,7 +42,7 @@ instance Bindable [Map (String, String) TemplateValue] where
 getPageHeadItems :: FruitTart String
 getPageHeadItems
     = return 
-      ("<link href=\"/css/buglist.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
+      ("<link href=\"/css/normal.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
        ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
        ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
        ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
