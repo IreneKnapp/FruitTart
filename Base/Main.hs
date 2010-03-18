@@ -62,6 +62,18 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
+             (  "CREATE TABLE navigation_items (\n"
+             ++ "id INTEGER PRIMARY KEY,\n"
+             ++ "name TEXT,\n"
+             ++ "link TEXT,\n"
+             ++ "within_managed_tree INTEGER,\n"
+             ++ "separator INTEGER,\n"
+             ++ "always_enabled INTEGER,\n"
+             ++ "name_is_html INTEGER,\n"
+             ++ "class TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
              (  "CREATE TABLE templates (\n"
              ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
              ++ "module TEXT,\n"

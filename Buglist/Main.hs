@@ -339,20 +339,20 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
-             ++ "always_enabled, class) "
-             ++ "VALUES (101, 'Report an Issue', '/issues/create/', 1, 0, 0, NULL)")
+             ++ "always_enabled, name_is_html, class) "
+             ++ "VALUES (101, 'Report an Issue', '/issues/create/', 1, 0, 0, 0, NULL)")
              []
   earlyQuery database
              (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
-             ++ "always_enabled, class) "
-             ++ "VALUES (102, 'Issue List', '/issues/index/', 1, 0, 0, NULL)")
+             ++ "always_enabled, name_is_html, class) "
+             ++ "VALUES (102, 'Issue List', '/issues/index/', 1, 0, 0, 0, NULL)")
              []
   earlyQuery database
              (  "INSERT INTO navigation_items "
              ++ "(id, name, link, within_buglist_tree, separator, "
-             ++ "always_enabled, class) "
-             ++ "VALUES (103, 'User List', '/users/index/', 1, 0, 0, NULL)")
+             ++ "always_enabled, name_is_html, class) "
+             ++ "VALUES (103, 'User List', '/users/index/', 1, 0, 0, 0 NULL)")
              []
   return ()
 
