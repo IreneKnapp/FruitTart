@@ -62,6 +62,40 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
+             (  "CREATE TABLE base_users (\n"
+             ++ "id INTEGER PRIMARY KEY,\n"
+             ++ "right_admin_design INTEGER\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TRIGGER base_insert_users\n"
+             ++ "AFTER INSERT ON users\n"
+             ++ "FOR EACH ROW BEGIN\n"
+             ++ "INSERT INTO base_users\n"
+             ++ "(id, right_admin_design)\n"
+             ++ "VALUES (NEW.id, 0);\n"
+             ++ "END;")
+             []
+  earlyQuery database
+             (  "CREATE TRIGGER base_update_users\n"
+             ++ "AFTER UPDATE OF id ON users\n"
+             ++ "FOR EACH ROW BEGIN\n"
+             ++ "UPDATE base_users SET id = NEW.id WHERE id = OLD.id;\n"
+             ++ "END;")
+             []
+  earlyQuery database
+             (  "CREATE TRIGGER base_delete_users\n"
+             ++ "AFTER DELETE ON users\n"
+             ++ "FOR EACH ROW BEGIN\n"
+             ++ "DELETE FROM base_users WHERE id = OLD.id;\n"
+             ++ "END;")
+             []
+  earlyQuery database
+             (  "INSERT INTO base_users\n"
+             ++ "(id, right_admin_design)\n"
+             ++ "SELECT id, 0 FROM users")
+             []
+  earlyQuery database
              (  "CREATE TABLE navigation_items (\n"
              ++ "id INTEGER PRIMARY KEY,\n"
              ++ "name TEXT,\n"
