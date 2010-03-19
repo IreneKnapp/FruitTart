@@ -8,13 +8,13 @@ import System.Environment
 import System.Exit
 import Database.SQLite3
 
-import qualified Network.FruitTart.Adventure.Controller.Adventure
-    as Controller.Adventure
+import qualified Network.FruitTart.Blog.Controller.Blog
+    as Controller.Blog
 import Network.FruitTart.Util
 
 
-fruitTartPlugin :: Interface
-fruitTartPlugin = Interface {
+fruitTartPlugin :: Dynamic
+fruitTartPlugin = toDyn $ Interface {
                     interfaceVersion = 1,
                     interfaceDispatchTable = dispatchTable,
                     interfaceModuleName = moduleName,
