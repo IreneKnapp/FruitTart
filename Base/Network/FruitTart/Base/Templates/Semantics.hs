@@ -439,6 +439,8 @@ baseBindings = Map.fromList
                 (("Templates", "isJust"), TemplateNativeLambda tfIsJust),
                 (("Templates", "fromJust"), TemplateNativeLambda tfFromJust),
                 (("Templates", "stringLength"), TemplateNativeLambda tfStringLength),
+                (("Templates", "stringWordCount"),
+                 TemplateNativeLambda tfStringWordCount),
                 (("Templates", "length"), TemplateNativeLambda tfLength),
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
@@ -520,6 +522,19 @@ tfStringLength parameters = do
   requireNParameters parameters 1 "stringLength"
   string <- valueToString $ head parameters
   return $ TemplateInteger $ fromIntegral $ length string
+
+
+tfStringWordCount :: [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringWordCount parameters = do
+  requireNParameters parameters 1 "stringWordCount"
+  string <- valueToString $ head parameters
+  let wordCount "" = 0
+      wordCount string = case elemIndex ' ' string of
+                           Nothing -> 1
+                           Just index -> let (_, rest) = splitAt index string
+                                         in 1 + wordCount (drop 1 rest)
+  return $ TemplateInteger $ fromIntegral $ wordCount string
 
 
 tfLength :: [TemplateValue]
