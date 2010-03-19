@@ -279,7 +279,10 @@ edit templateID = do
                            TemplateBool bool -> bool
       case exists of
         False -> do
-          namedQuery "Base.Controller.Templates" "updateTemplate" []
+          namedQuery "Base.Controller.Templates" "updateTemplate"
+                     [SQLText moduleName,
+                      SQLText templateName,
+                      SQLInteger templateID]
           namedQuery "Base.Controller.Templates" "deleteTemplateItems"
                      [SQLInteger templateID]
           mapM (\((itemType, body), index) -> do
