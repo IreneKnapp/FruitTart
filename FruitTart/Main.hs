@@ -8,8 +8,7 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.FastCGI (runFastCGIorCGI)
-import Network.CGI.Monad
+import Network.FastCGI
 import System.Environment
 import System.Exit
 import System.IO.Unsafe
@@ -24,10 +23,12 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
+  formVariableMapMVar <- newMVar $ Map.empty
   interfacesMapMVar <- newMVar $ Map.empty
   interfaceStateMVarMap <- loadInstalledModules database interfacesMapMVar
   state <- return $ FruitTartState {
              database = database,
+             formVariableMapMVar = formVariableMapMVar,
              interfacesMapMVar = interfacesMapMVar,
              interfaceStateMVarMap = interfaceStateMVarMap,
              sessionID = Nothing
@@ -38,7 +39,7 @@ main = do
          $ Map.fromList
          $ concat
          $ map (Map.toList . interfaceDispatchTable) $ Map.elems interfacesMap
-  runFastCGIorCGI $ evalStateT (Dispatcher.processRequest combinedDispatchTable) state
+  acceptLoop forkIO $ evalStateT (Dispatcher.processRequest combinedDispatchTable) state
   return ()
 
 
@@ -50,12 +51,12 @@ loadInstalledModules database interfacesMapMVar = do
                 maybeInterface <- loadDynamic (name, "Main", "fruitTartPlugin")
                 case maybeInterface of
                   Nothing -> do
-                    logCGI $ "Not installed or not a plugin: " ++ name
+                    -- fLog $ "Not installed or not a plugin: " ++ name
                     return []
                   Just dynamicInterface -> do
                     case fromDynamic dynamicInterface of
                       Nothing -> do
-                        logCGI $ "Plugin not compatible: " ++ name
+                        -- fLog $ "Plugin not compatible: " ++ name
                         return []
                       Just interface -> return [interface])
               names
@@ -263,9 +264,9 @@ maybeInitDatabase database name requiredVersion initDatabase = do
                         [SQLText name]
       if presentVersion /= requiredVersion
         then do
-          logCGI $ "Schema mismatch for module " ++ name ++ ": Program version "
-                 ++ (show requiredVersion) ++ ", database version "
-                 ++ (show presentVersion) ++ "."
+          -- fLog $ "Schema mismatch for module " ++ name ++ ": Program version "
+          --        ++ (show requiredVersion) ++ ", database version "
+          --        ++ (show presentVersion) ++ "."
           exitFailure
         else return ()
 

@@ -32,7 +32,7 @@ actionTable
                        ("delete", "POST", [IDParameter], [], toDyn deletePOST)]
 
 
-index :: FruitTart CGIResult
+index :: FruitTart ()
 index = do
   right <- getRightAdminDesign
   case right of
@@ -54,10 +54,10 @@ index = do
       pageContent <- getTemplate "Base.Controller.Queries" "index"
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page"
-      output page
+      fPutStr page
 
 
-view :: Int64 -> FruitTart CGIResult
+view :: Int64 -> FruitTart ()
 view queryID = do
   let currentPage = "/queries/view/" ++ (show queryID) ++ "/"
       targetPage = "/queries/edit/" ++ (show queryID) ++ "/"
@@ -101,7 +101,7 @@ view queryID = do
         [] -> errorInvalidID "query"
 
 
-copy :: Int64 -> FruitTart CGIResult
+copy :: Int64 -> FruitTart ()
 copy queryID = do
   let currentPage = "/queries/copy/" ++ (show queryID) ++ "/"
       targetPage = "/queries/create/"
@@ -145,7 +145,7 @@ copy queryID = do
         [] -> errorInvalidID "query"
 
 
-createGET :: FruitTart CGIResult
+createGET :: FruitTart ()
 createGET = do
   let currentPage = "/queries/create/"
       targetPage = "/queries/create/"
@@ -162,7 +162,7 @@ createGET = do
 
 
 outputQueryPage
-    :: String -> String -> (Maybe String) -> (Maybe Int64) -> FruitTart CGIResult
+    :: String -> String -> (Maybe String) -> (Maybe Int64) -> FruitTart ()
 outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   TemplateString moduleName
       <- getBinding "Base.Controller.Queries" "moduleName" >>= return . fromJust
@@ -185,10 +185,10 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   pageContent <- getTemplate "Base.Controller.Queries" "query"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript"
-  output page
+  fPutStr page
 
 
-createPOST :: FruitTart CGIResult
+createPOST :: FruitTart ()
 createPOST = do
   let currentPage = "/queries/create/"
       targetPage = "/queries/create/"
@@ -256,7 +256,7 @@ createPOST = do
                           Nothing
 
 
-edit :: Int64 -> FruitTart CGIResult
+edit :: Int64 -> FruitTart ()
 edit queryID = do
   let currentPage = "/queries/edit/" ++ (show queryID) ++ "/"
       targetPage = "/queries/edit/" ++ (show queryID) ++ "/"
@@ -321,7 +321,7 @@ edit queryID = do
                           (Just queryID)
 
 
-deleteGET :: Int64 -> FruitTart CGIResult
+deleteGET :: Int64 -> FruitTart ()
 deleteGET queryID = do
   let currentPage = "/queries/delete/" ++ (show queryID) ++ "/"
       targetPage = "/queries/delete/" ++ (show queryID) ++ "/"
@@ -343,10 +343,10 @@ deleteGET queryID = do
       pageContent <- getTemplate "Base.Controller.Queries" "delete"
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page"
-      output page
+      fPutStr page
 
 
-deletePOST :: Int64 -> FruitTart CGIResult
+deletePOST :: Int64 -> FruitTart ()
 deletePOST queryID = do
   right <- getRightAdminDesign
   case right of

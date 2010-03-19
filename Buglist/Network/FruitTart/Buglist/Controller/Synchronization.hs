@@ -44,7 +44,7 @@ actionTable
                         toDyn userIssueAttachmentPOST)]
 
 
-now :: FruitTart CGIResult
+now :: FruitTart ()
 now = do
   right <- getRightSynchronize
   case right of
@@ -54,7 +54,7 @@ now = do
     True -> now'
 
 
-index :: Int64 -> FruitTart CGIResult
+index :: Int64 -> FruitTart ()
 index startTimestamp = do
   right <- getRightSynchronize
   case right of
@@ -64,7 +64,7 @@ index startTimestamp = do
     True -> index' startTimestamp
 
 
-issueGET :: Int64 -> FruitTart CGIResult
+issueGET :: Int64 -> FruitTart ()
 issueGET issueID = do
   right <- getRightSynchronize
   case right of
@@ -74,7 +74,7 @@ issueGET issueID = do
     True -> issueGET' issueID
 
 
-userIssueChangeGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueChangeGET :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueChangeGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -84,7 +84,7 @@ userIssueChangeGET userID issueID timestamp = do
     True -> userIssueChangeGET' userID issueID timestamp
 
 
-userIssueCommentGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueCommentGET :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueCommentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -94,7 +94,7 @@ userIssueCommentGET userID issueID timestamp = do
     True -> userIssueCommentGET' userID issueID timestamp
 
 
-userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueAttachmentGET :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueAttachmentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -104,7 +104,7 @@ userIssueAttachmentGET userID issueID timestamp = do
     True -> userIssueAttachmentGET' userID issueID timestamp
 
 
-issuePOST :: Int64 -> FruitTart CGIResult
+issuePOST :: Int64 -> FruitTart ()
 issuePOST issueID = do
   right <- getRightSynchronize
   case right of
@@ -114,7 +114,7 @@ issuePOST issueID = do
     True -> issuePOST' issueID
 
 
-userIssueChangePOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueChangePOST :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueChangePOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -124,7 +124,7 @@ userIssueChangePOST userID issueID timestamp = do
     True -> userIssueChangePOST' userID issueID timestamp
 
 
-userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueCommentPOST :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueCommentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -134,7 +134,7 @@ userIssueCommentPOST userID issueID timestamp = do
     True -> userIssueCommentPOST' userID issueID timestamp
 
 
-userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueAttachmentPOST :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueAttachmentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
@@ -144,12 +144,12 @@ userIssueAttachmentPOST userID issueID timestamp = do
     True -> userIssueAttachmentPOST' userID issueID timestamp
 
 
-now' :: FruitTart CGIResult
+now' :: FruitTart ()
 now' = do
-  output "Testing."
+  fPutStr "Testing."
 
 
-index' :: Int64 -> FruitTart CGIResult
+index' :: Int64 -> FruitTart ()
 index' startTimestamp = do
   users <- query "SELECT id, full_name, email FROM users ORDER BY id"
                  []
@@ -171,8 +171,8 @@ index' startTimestamp = do
                                 ++ "WHERE timestamp >= ? "
                                 ++ "ORDER BY timestamp, issue, user")
                                 [SQLInteger startTimestamp]
-  setHeader "Content-Type" "text/xml; charset=UTF8"
-  output $ "<buglist>\n"
+  setResponseHeader HttpContentType "text/xml; charset=UTF8"
+  fPutStr $ "<buglist>\n"
          ++ "<users>\n"
          ++ (concat
              $ map (\[SQLInteger id,
@@ -228,7 +228,7 @@ index' startTimestamp = do
          ++ "</buglist>\n"
 
 
-issueGET' :: Int64 -> FruitTart CGIResult
+issueGET' :: Int64 -> FruitTart ()
 issueGET' issueID = do
   [[SQLInteger id,
     SQLInteger status,
@@ -245,8 +245,8 @@ issueGET' issueID = do
                ++ "reporter, summary, timestamp_created, timestamp_modified "
                ++ "FROM buglist_issues WHERE id = ?")
                [SQLInteger issueID]
-  setHeader "Content-Type" "text/xml; charset=UTF8"
-  output $ "<issue>"
+  setResponseHeader HttpContentType "text/xml; charset=UTF8"
+  fPutStr $ "<issue>"
          ++ (integerTag "id" id)
          ++ (integerTag "status" status)
          ++ (integerTag "resolution" resolution)
@@ -261,7 +261,7 @@ issueGET' issueID = do
          ++ "</issue>\n"
 
 
-userIssueChangeGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueChangeGET' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueChangeGET' userID issueID timestamp = do
   [[SQLInteger statusChanged,
     SQLInteger resolutionChanged,
@@ -293,8 +293,8 @@ userIssueChangeGET' userID issueID timestamp = do
                ++ "FROM buglist_user_issue_changes "
                ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
                [SQLInteger userID, SQLInteger issueID, SQLInteger timestamp]
-  setHeader "Content-Type" "text/xml; charset=UTF8"
-  output $ "<user_issue_change>"
+  setResponseHeader HttpContentType "text/xml; charset=UTF8"
+  fPutStr $ "<user_issue_change>"
          ++ (integerTag "status_changed" statusChanged)
          ++ (integerTag "resolution_changed" resolutionChanged)
          ++ (integerTag "module_changed" moduleChanged)
@@ -319,42 +319,42 @@ userIssueChangeGET' userID issueID timestamp = do
          ++ "</user_issue_change>\n"
 
 
-userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueCommentGET' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueCommentGET' userID issueID timestamp = do
   [[SQLText text]]
       <- query (  "SELECT text "
                ++ "FROM buglist_user_issue_comments "
                ++ "WHERE user = ? AND issue = ? AND timestamp = ?")
                [SQLInteger userID, SQLInteger issueID, SQLInteger timestamp]
-  setHeader "Content-Type" "text/xml; charset=UTF8"
-  output $ "<user_issue_comment>"
+  setResponseHeader HttpContentType "text/xml; charset=UTF8"
+  fPutStr $ "<user_issue_comment>"
          ++ (textTag "text" text)
          ++ "</user_issue_comment>\n"
 
 
-userIssueAttachmentGET' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueAttachmentGET' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueAttachmentGET' userID issueID timestamp = do
-  output $ ""
+  fPutStr $ ""
 
 
-issuePOST' :: Int64 -> FruitTart CGIResult
+issuePOST' :: Int64 -> FruitTart ()
 issuePOST' issueID = do
-  output $ ""
+  fPutStr $ ""
 
 
-userIssueChangePOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueChangePOST' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueChangePOST' userID issueID timestamp = do
-  output $ ""
+  fPutStr $ ""
 
 
-userIssueCommentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueCommentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueCommentPOST' userID issueID timestamp = do
-  output $ ""
+  fPutStr $ ""
 
 
-userIssueAttachmentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart CGIResult
+userIssueAttachmentPOST' :: Int64 -> Int64 -> Int64 -> FruitTart ()
 userIssueAttachmentPOST' userID issueID timestamp = do
-  output $ ""
+  fPutStr $ ""
 
 
 integerTag :: String -> Int64 -> String

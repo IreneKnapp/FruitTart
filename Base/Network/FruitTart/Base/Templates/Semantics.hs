@@ -12,7 +12,6 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.CGI.Monad
 import Prelude hiding (catch)
 
 import Network.FruitTart.Base
@@ -39,11 +38,11 @@ fillTemplate moduleName templateName = do
          case kind of
            "content" -> return body
            "expression" ->
-               catchFruitTart ((evalExpression $ readExpression moduleName body)
-                               >>= valueToString . fst)
-                              (\e -> error $ "While processing template "
-                                           ++ moduleName ++ "."
-                                           ++ templateName ++ ": " ++ (show (e :: SomeException)))
+               fCatch ((evalExpression $ readExpression moduleName body)
+                       >>= valueToString . fst)
+                      (\e -> error $ "While processing template "
+                                   ++ moduleName ++ "."
+                                   ++ templateName ++ ": " ++ (show (e :: SomeException)))
            _ -> error $ "Unknown template item type " ++ kind ++ ".")
        items
        >>= return . concat
@@ -59,10 +58,10 @@ letBindings newBindings function = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   oldBindings <- liftIO $ swapMVar bindingsMVar newBindings
-  result <- catchFruitTart function
-                           (\e -> do
-                              liftIO $ swapMVar bindingsMVar oldBindings
-                              throw (e :: SomeException))
+  result <- fCatch function
+                   (\e -> do
+                            liftIO $ swapMVar bindingsMVar oldBindings
+                            fThrow (e :: SomeException))
   liftIO $ swapMVar bindingsMVar oldBindings
   return result
 

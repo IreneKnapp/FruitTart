@@ -57,12 +57,12 @@ getLoginButton currentPage = do
               ++ "Log Out</a></div>\n")
 
 
-outputMustLoginPage :: String -> FruitTart CGIResult
+outputMustLoginPage :: String -> FruitTart ()
 outputMustLoginPage currentPage = do
   pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
-  output $ "<html><head>\n"
+  fPutStr $ "<html><head>\n"
          ++ "<title>Login Required</title>\n"
          ++ pageHeadItems
          ++ "</head>\n"

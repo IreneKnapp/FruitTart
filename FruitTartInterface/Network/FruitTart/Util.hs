@@ -6,17 +6,7 @@ module Network.FruitTart.Util (
                                Int64,
                                
                                -- Network.FastCGI
-                               CGIResult,
-                               Cookie(..),
-                               getCookie,
-                               getInputFPS,
-                               liftCGI,
-                               outputFPS,
-                               queryString,
-                               requestHeader,
-                               requestMethod,
-                               setCookie,
-                               setHeader,
+                               module Network.FastCGI,
                                
                                -- Data.SQLite3
                                SQLData(..),
@@ -40,9 +30,6 @@ module Network.FruitTart.Util (
                                groupByM,
                                split,
                                
-                               -- Log
-                               logCGI,
-                               
                                -- Passwords
                                hashPassword,
                                validatePassword,
@@ -54,7 +41,6 @@ module Network.FruitTart.Util (
                                -- Types
                                FruitTartState(..),
                                FruitTart,
-                               catchFruitTart,
                                ActionTable,
                                ControllerTable,
                                ParameterType(..),
@@ -66,13 +52,12 @@ module Network.FruitTart.Util (
 
 import Data.Dynamic
 import Data.Int
-import Network.FastCGI hiding (output, logCGI)
+import Network.FastCGI
 
 import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
 import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists
-import Network.FruitTart.Util.Log
 import Network.FruitTart.Util.Passwords
 import Network.FruitTart.Util.Text
 import Network.FruitTart.Util.Types

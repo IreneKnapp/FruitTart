@@ -25,7 +25,7 @@ actionTable
                        ("view", "GET", [IDParameter], [], toDyn view)]
 
 
-index :: FruitTart CGIResult
+index :: FruitTart ()
 index = do
   rightViewModulesRequiringLogin <- getRightViewModulesRequiringLogin
   case rightViewModulesRequiringLogin of
@@ -45,10 +45,10 @@ index = do
       pageContent <- getTemplate "Buglist.Controller.Users" "index"
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page"
-      output page
+      fPutStr page
 
 
-view :: Int64 -> FruitTart CGIResult
+view :: Int64 -> FruitTart ()
 view id = do
   rightViewModulesRequiringLogin <- getRightViewModulesRequiringLogin
   case rightViewModulesRequiringLogin of
@@ -76,5 +76,5 @@ view id = do
            pageContent <- getTemplate "Buglist.Controller.Users" "view"
            bind "Templates" "pageContent" pageContent
            page <- getTemplate "Templates" "page"
-           output page
+           fPutStr page
         _ -> errorInvalidID "user"

@@ -31,7 +31,7 @@ actionTable
                        ("password", "POST", [], [], toDyn passwordPOST)]
 
 
-loginGET :: FruitTart CGIResult
+loginGET :: FruitTart ()
 loginGET = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
@@ -54,7 +54,7 @@ loginGET = do
              seeOtherRedirect targetPage
 
 
-loginPOST :: FruitTart CGIResult
+loginPOST :: FruitTart ()
 loginPOST = do
   maybeEmail <- getInput "email"
   email <- return $ case maybeEmail of
@@ -85,7 +85,7 @@ loginPOST = do
                             maybeEmail
 
 
-doNotLogIn :: Maybe String -> Maybe String -> FruitTart CGIResult
+doNotLogIn :: Maybe String -> Maybe String -> FruitTart ()
 doNotLogIn maybeWarning maybeEmail = do
   bind "Templates" "pageTitle" "Log In"
   pageHeadItems <- getPageHeadItems
@@ -102,10 +102,10 @@ doNotLogIn maybeWarning maybeEmail = do
   pageContent <- getTemplate "Base.Controller.Login" "login"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
-  output page
+  fPutStr page
 
 
-logout :: FruitTart CGIResult
+logout :: FruitTart ()
 logout = do
   sessionID <- getSessionID
   namedQuery "Base.Controller.Login" "logOut" [SQLInteger sessionID]
@@ -113,12 +113,12 @@ logout = do
   seeOtherRedirect referrer
 
 
-accountGET :: FruitTart CGIResult
+accountGET :: FruitTart ()
 accountGET = do
   outputAccountPage
 
 
-accountPOST :: FruitTart CGIResult
+accountPOST :: FruitTart ()
 accountPOST = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
@@ -146,7 +146,7 @@ accountPOST = do
       outputAccountPage
 
 
-outputAccountPage :: FruitTart CGIResult
+outputAccountPage :: FruitTart ()
 outputAccountPage = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
@@ -170,15 +170,15 @@ outputAccountPage = do
       pageContent <- getTemplate "Base.Controller.Login" "account"
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page"
-      output page
+      fPutStr page
 
 
-passwordGET :: FruitTart CGIResult
+passwordGET :: FruitTart ()
 passwordGET = do
   seeOtherRedirect "/login/account/"
 
 
-passwordPOST :: FruitTart CGIResult
+passwordPOST :: FruitTart ()
 passwordPOST = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
@@ -218,7 +218,7 @@ getReferrer = do
   case maybeReferrer of
     Just referrer -> return referrer
     Nothing -> do
-                maybeHTTPReferrer <- requestHeader "Referer"
+                maybeHTTPReferrer <- getRequestHeader HttpReferer
                 case maybeHTTPReferrer of
                   Just referrer -> return referrer
                   Nothing -> getDefaultPage

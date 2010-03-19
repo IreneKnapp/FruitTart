@@ -12,7 +12,6 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.CGI.Monad
 import Prelude hiding (catch)
 
 import Network.FruitTart.Base

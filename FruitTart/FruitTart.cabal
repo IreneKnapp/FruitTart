@@ -7,8 +7,8 @@ license-file: LICENSE
 copyright: Copyright (c) 2009 Dan Knapp
 author: Dan Knapp
 maintainer: dankna@gmail.com
-homepage: http://www.dankna.com/software/
-bug-reports: http://www.dankna.com/issues/create/
+homepage: http://dankna.com/software/
+bug-reports: http://dankna.com/issues/create/
 category: Network
 synopsis: A framework for database-backed websites.
 description:
@@ -24,10 +24,9 @@ Executable FruitTart
                  mtl >= 1.1.0.2,
                  old-time >= 1.0.0.2,
                  
-                 cgi >= 3001.1.7.1,
-                 fastcgi >= 3001.0.2.2,
                  utf8-string >= 0.3.5,
                  
+                 direct-fastcgi >= 1.0.1,
                  direct-plugins >= 1.0,
                  direct-sqlite >= 1.0,
                  hs-captcha >= 1.0,

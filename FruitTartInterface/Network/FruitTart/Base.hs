@@ -1,7 +1,6 @@
 module Network.FruitTart.Base (
                                getInterfaceStateMVar,
                                getInput,
-                               output,
                                permanentRedirect,
                                seeOtherRedirect,
                                error404,
@@ -20,12 +19,11 @@ module Network.FruitTart.Base (
 import Control.Concurrent.MVar
 import Control.Monad.State
 import Data.Char
-import qualified Data.ByteString.Lazy.UTF8 as UTF8
 import Data.Dynamic
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.FastCGI hiding (getInput, output, logCGI)
+import Network.FastCGI
 
 import Network.FruitTart.Util
 
@@ -46,73 +44,54 @@ getInterfaceStateMVar moduleName = do
 
 getInput :: String -> FruitTart (Maybe String)
 getInput key = do
-  maybeValue <- getInputFPS $ key
-  return $ case maybeValue of
-    Nothing -> Nothing
-    Just value -> Just $ UTF8.toString value
+  state <- get
+  formVariableMap <- liftIO $ readMVar $ formVariableMapMVar state
+  return $ Map.lookup key formVariableMap
 
 
-output :: String -> FruitTart CGIResult
-output string = outputFPS $ UTF8.fromString string
-
-
-permanentRedirect :: String -> FruitTart CGIResult
-permanentRedirect url = do
-  setStatus 301 "Moved Permanently"
-  setHeader "Location" url
-  output ""
-
-
-seeOtherRedirect :: String -> FruitTart CGIResult
-seeOtherRedirect url = do
-  setStatus 303 "See Other"
-  setHeader "Location" url
-  output ""
-
-
-error404 :: String -> FruitTart CGIResult
+error404 :: String -> FruitTart ()
 error404 text = do
-  setStatus 404 "Not Found"
-  setHeader "Content-Type" "text/html; charset=UTF8"
-  output $ "<html><head><title>404 Not Found</title></head>"
-         ++ "<body><h1>404 Not Found</h1><p>FruitTart encountered an error while "
-         ++ "processing this request: " ++ text ++ "</p></body></html>"
+  setResponseStatus 404
+  setResponseHeader HttpContentType "text/html; charset=UTF8"
+  fPutStr $ "<html><head><title>404 Not Found</title></head>"
+            ++ "<body><h1>404 Not Found</h1><p>FruitTart encountered an error while "
+            ++ "processing this request: " ++ text ++ "</p></body></html>"
 
 
-error500 :: FruitTart CGIResult
+error500 :: FruitTart ()
 error500 = do
-  setStatus 500 "Internal Server Error"
-  setHeader "Content-Type" "text/html; charset=UTF8"
-  output $ "<html><head><title>500 Internal Server Error</title></head>"
-         ++ "<body><h1>500 Internal Server Error</h1><p>"
-         ++ "FruitTart encountered an error while "
-         ++ "processing this request.  The logfile has more details.</p></body></html>"
+  setResponseStatus 500
+  setResponseHeader HttpContentType "text/html; charset=UTF8"
+  fPutStr $ "<html><head><title>500 Internal Server Error</title></head>"
+            ++ "<body><h1>500 Internal Server Error</h1><p>"
+            ++ "FruitTart encountered an error while "
+            ++ "processing this request.  The logfile has more details.</p></body></html>"
 
 
-errorControllerUndefined :: String -> FruitTart CGIResult
+errorControllerUndefined :: String -> FruitTart ()
 errorControllerUndefined controllerName =
     error404 $ "No controller named " ++ controllerName ++ " is defined."
 
 
-errorActionUndefined :: String -> String -> FruitTart CGIResult
+errorActionUndefined :: String -> String -> FruitTart ()
 errorActionUndefined controllerName actionName =
     error404 $ "No action named named " ++ actionName ++ " is defined "
              ++ "for the controller " ++ controllerName ++ "."
 
 
-errorActionParameters :: String -> String -> FruitTart CGIResult
+errorActionParameters :: String -> String -> FruitTart ()
 errorActionParameters controllerName actionName =
     error404 $ "Invalid parameters to the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
 
-errorActionMethod :: String -> String -> String -> FruitTart CGIResult
+errorActionMethod :: String -> String -> String -> FruitTart ()
 errorActionMethod controllerName actionName method =
     error404 $ "Invalid HTTP method " ++ method ++ " for the action " ++ actionName
              ++ " of the controller " ++ controllerName ++ "."
 
 
-errorInvalidID :: String -> FruitTart CGIResult
+errorInvalidID :: String -> FruitTart ()
 errorInvalidID kind =
     error404 $ "No " ++ kind ++ " by that ID exists." 
 

@@ -35,13 +35,13 @@ actionTable
                        ("create-variable", "POST", [], [], toDyn createVariablePOST)]
 
 
-index :: FruitTart CGIResult
+index :: FruitTart ()
 index = do
   bindDefaults "Adventure!" "/adventure/index/"
   outputPage "Adventure.Controller.Adventure" "index"
 
 
-editIndex :: FruitTart CGIResult
+editIndex :: FruitTart ()
 editIndex = do
   right <- getRightEdit
   case right of
@@ -53,7 +53,7 @@ editIndex = do
       outputPage "Adventure.Controller.Adventure" "editIndex"
 
 
-editNodeGET :: Int64 -> FruitTart CGIResult
+editNodeGET :: Int64 -> FruitTart ()
 editNodeGET nodeID = do
   right <- getRightEdit
   case right of
@@ -72,7 +72,7 @@ editNodeGET nodeID = do
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
-editVariableGET :: String -> FruitTart CGIResult
+editVariableGET :: String -> FruitTart ()
 editVariableGET variableName = do
   right <- getRightEdit
   case right of
@@ -85,7 +85,7 @@ editVariableGET variableName = do
       outputPageNoScript "Adventure.Controller.Adventure" "editVariable"
 
 
-createNodeGET :: FruitTart CGIResult
+createNodeGET :: FruitTart ()
 createNodeGET = do
   right <- getRightEdit
   case right of
@@ -100,7 +100,7 @@ createNodeGET = do
       outputPage "Adventure.Controller.Adventure" "editNode"
 
 
-createVariableGET :: FruitTart CGIResult
+createVariableGET :: FruitTart ()
 createVariableGET = do
   right <- getRightEdit
   case right of
@@ -110,7 +110,7 @@ createVariableGET = do
       outputPage "Adventure.Controller.Adventure" "editVariable"
 
 
-editNodePOST :: Int64 -> FruitTart CGIResult
+editNodePOST :: Int64 -> FruitTart ()
 editNodePOST nodeID = do
   right <- getRightEdit
   case right of
@@ -149,7 +149,7 @@ editNodePOST nodeID = do
            seeOtherRedirect $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
 
 
-editVariablePOST :: String -> FruitTart CGIResult
+editVariablePOST :: String -> FruitTart ()
 editVariablePOST variableName = do
   right <- getRightEdit
   case right of
@@ -158,7 +158,7 @@ editVariablePOST variableName = do
       seeOtherRedirect "/adventure/edit-index/"
 
 
-createNodePOST :: FruitTart CGIResult
+createNodePOST :: FruitTart ()
 createNodePOST = do
   right <- getRightEdit
   case right of
@@ -203,7 +203,7 @@ createNodePOST = do
            seeOtherRedirect $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
 
 
-createVariablePOST :: FruitTart CGIResult
+createVariablePOST :: FruitTart ()
 createVariablePOST = do
   right <- getRightEdit
   case right of
@@ -229,20 +229,20 @@ bindDefaults pageTitle currentPage = do
   bind "Adventure.Controller.Adventure" "maybeWarning" (Nothing :: Maybe String)
 
 
-outputPage :: String -> String -> FruitTart CGIResult
+outputPage :: String -> String -> FruitTart ()
 outputPage moduleName templateName = do
   pageContent <- getTemplate moduleName templateName
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
-  output page
+  fPutStr page
 
 
-outputPageNoScript :: String -> String -> FruitTart CGIResult
+outputPageNoScript :: String -> String -> FruitTart ()
 outputPageNoScript moduleName templateName = do
   pageContent <- getTemplate moduleName templateName
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript"
-  output page
+  fPutStr page
 
 
 getRightEdit :: FruitTart Bool

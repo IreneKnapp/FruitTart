@@ -4,7 +4,6 @@ module Network.FruitTart.Captcha.Controller.Captcha
 import Control.Concurrent
 import Control.Monad.State
 import Data.ByteString hiding (map, concat, index)
-import qualified Data.ByteString.Lazy as Lazy
 import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -22,7 +21,7 @@ actionTable
     = makeActionTable [("index", "GET", [IDParameter], [], toDyn index)]
 
 
-index :: Int64 -> FruitTart CGIResult
+index :: Int64 -> FruitTart ()
 index timestamp = do
   expireOldCaptchas
   captchaCacheMVar <- getInterfaceStateMVar "Captcha"
@@ -33,9 +32,8 @@ index timestamp = do
     Nothing -> do
       error404 "Captcha has expired; try again."
     Just (_, byteString) -> do
-                      lazyByteString <- return $ Lazy.pack $ unpack byteString
-                      setHeader "Content-Type" "image/png"
-                      outputFPS lazyByteString
+                      setResponseHeader HttpContentType "image/png"
+                      fPut byteString
 
 
 generateCaptcha :: FruitTart Int64

@@ -38,7 +38,7 @@ actionTable
                        ("edit", "POST", [IDParameter], [], toDyn edit)]
 
 
-index :: Maybe String -> Maybe (Either String Int64) -> FruitTart CGIResult
+index :: Maybe String -> Maybe (Either String Int64) -> FruitTart ()
 index maybeWhich maybeEitherModuleNameModuleID = do
   rightViewModulesRequiringLogin <- getRightViewModulesRequiringLogin
   let modulesWhereClauseBody = if rightViewModulesRequiringLogin
@@ -243,10 +243,10 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   pageContent <- getTemplate "Buglist.Controller.Issues" "index"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
-  output page
+  fPutStr page
 
 
-view :: Int64 -> FruitTart CGIResult
+view :: Int64 -> FruitTart ()
 view id = do
   rightViewIssue <- getRightViewIssue id
   case rightViewIssue of
@@ -254,7 +254,7 @@ view id = do
     True -> outputView id "" defaultFullName defaultEmail Nothing
 
 
-outputView :: Int64 -> String -> String -> String -> (Maybe String) -> FruitTart CGIResult
+outputView :: Int64 -> String -> String -> String -> (Maybe String) -> FruitTart ()
 outputView id comment fullName email maybeWarning = do
   info <- query ("SELECT "
                  ++ "statuses.id,"
@@ -498,7 +498,7 @@ outputView id comment fullName email maybeWarning = do
        pageContent <- getTemplate "Buglist.Controller.Issues" "view"
        bind "Templates" "pageContent" pageContent
        page <- getTemplate "Templates" "page"
-       output page
+       fPutStr page
     _ -> errorInvalidID "issue"
 
 
@@ -622,7 +622,7 @@ viewAttachmentDetail id [SQLInteger timestamp,
       ++ "</div>\n"
 
 
-createGET :: FruitTart CGIResult
+createGET :: FruitTart ()
 createGET = do
   right <- getRightReportIssues
   case right of
@@ -631,7 +631,7 @@ createGET = do
                              Nothing
 
 
-createPOST :: FruitTart CGIResult
+createPOST :: FruitTart ()
 createPOST = do
   right <- getRightReportIssues
   case right of
@@ -680,7 +680,7 @@ createPOST = do
 
 
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
-                 -> FruitTart CGIResult
+                 -> FruitTart ()
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   pageHeadItems <- getPageHeadItems
   currentPage <- return "/issues/create/"
@@ -704,10 +704,10 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   pageContent <- getTemplate "Buglist.Controller.Issues" "create"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page"
-  output page
+  fPutStr page
 
 
-actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart CGIResult
+actuallyCreateIssue :: Int64 -> String -> String -> Int64 -> FruitTart ()
 actuallyCreateIssue moduleID summary comment reporterID = do
   assigneeID <- getOrCreateUserID "Nobody" "nobody" ""
   timestamp <- getTimestamp
@@ -734,7 +734,7 @@ actuallyCreateIssue moduleID summary comment reporterID = do
   seeOtherRedirect ("/issues/view/" ++ (show issueID) ++ "/")
 
 
-comment :: Int64 -> FruitTart CGIResult
+comment :: Int64 -> FruitTart ()
 comment issueID = do
   rightViewIssue <- getRightViewIssue issueID
   case rightViewIssue of
@@ -742,7 +742,7 @@ comment issueID = do
     True -> comment' issueID
 
 
-comment' :: Int64 -> FruitTart CGIResult
+comment' :: Int64 -> FruitTart ()
 comment' issueID = do
   right <- getRightCommentIssues
   case right of
@@ -776,12 +776,12 @@ comment' issueID = do
                   True -> actuallyCreateComment issueID comment commenterID
 
 
-doNotCreateComment :: Int64 -> String -> String -> String -> String -> FruitTart CGIResult
+doNotCreateComment :: Int64 -> String -> String -> String -> String -> FruitTart ()
 doNotCreateComment issueID comment fullName email warning = do
   outputView issueID comment fullName email (Just warning)
 
 
-actuallyCreateComment :: Int64 -> String -> Int64 -> FruitTart CGIResult
+actuallyCreateComment :: Int64 -> String -> Int64 -> FruitTart ()
 actuallyCreateComment issueID comment commenterID = do
   timestamp <- getTimestamp
   query "BEGIN TRANSACTION" []
@@ -797,7 +797,7 @@ actuallyCreateComment issueID comment commenterID = do
   seeOtherRedirect $ "/issues/view/" ++ (show issueID) ++ "/"
 
 
-edit :: Int64 -> FruitTart CGIResult
+edit :: Int64 -> FruitTart ()
 edit issueID = do
   rightViewIssue <- getRightViewIssue issueID
   case rightViewIssue of
@@ -805,7 +805,7 @@ edit issueID = do
     True -> edit' issueID
 
 
-edit' :: Int64 -> FruitTart CGIResult
+edit' :: Int64 -> FruitTart ()
 edit' issueID = do
   right <- getRightModifyIssues
   case right of

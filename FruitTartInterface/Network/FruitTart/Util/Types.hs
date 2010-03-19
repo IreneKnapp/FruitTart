@@ -11,46 +11,62 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Network.CGI
-import Network.CGI.Monad
 
 import Database.SQLite3
+import Network.FastCGI
 
 
 data FruitTartState  = FruitTartState {
       database :: Database,
+      formVariableMapMVar :: MVar (Map String String),
       interfacesMapMVar :: MVar (Map String Interface),
       interfaceStateMVarMap :: Map String Dynamic,
       sessionID :: Maybe Int64
     }
 
-type FruitTart = StateT FruitTartState (CGIT IO)
+type FruitTart = StateT FruitTartState FastCGI
 instance Typeable1 FruitTart where
     typeOf1 function = mkTyConApp (mkTyCon "FruitTart") []
 instance Typeable a => Typeable (FruitTart a) where
     typeOf = typeOfDefault
 
-liftCGI :: CGIT IO a -> FruitTart a
-liftCGI = lift
-instance MonadCGI FruitTart where
-    cgiAddHeader name value = liftCGI $ cgiAddHeader name value
-    cgiGet function = liftCGI $ cgiGet function
-
-catchFruitTart :: (Exception e) => (FruitTart a) -> (e -> FruitTart a) -> FruitTart a
-catchFruitTart action handler = do
-  state <- get
-  (result, state') <- liftCGI $ catchCGI (evalStateT (do
+instance MonadFastCGI FruitTart where
+    getFastCGIState = lift getFastCGIState
+    implementationThrowFastCGI exception = lift $ fThrow exception
+    implementationCatchFastCGI action handler = do
+      state <- get
+      (result, state')
+          <- lift $ fCatch (evalStateT (do
+                                         result <- action
+                                         state' <- get
+                                         return (result, state'))
+                                       state)
+                           (\e -> evalStateT
+                                    (do
+                                      result <- handler $ fromJust $ fromException e
+                                      state' <- get
+                                      return (result, state'))
+                                    state)
+      put state'
+      return result
+    implementationBlockFastCGI action = do
+      state <- get
+      (result, state') <- lift $ fBlock (evalStateT (do
+                                                      result <- action
+                                                      state' <- get
+                                                      return (result, state'))
+                                                    state)
+      put state'
+      return result
+    implementationUnblockFastCGI action = do
+      state <- get
+      (result, state') <- lift $ fUnblock (evalStateT (do
                                                         result <- action
                                                         state' <- get
                                                         return (result, state'))
-                                                     state)
-                                         (\e -> (evalStateT (do
-                                                               result <- handler $ fromJust $ fromException e
-                                                               state' <- get
-                                                               return (result, state'))
-                                                            state))
-  put state'
-  return result
+                                                      state)
+      put state'
+      return result
 
 
 type ActionTable = Map String

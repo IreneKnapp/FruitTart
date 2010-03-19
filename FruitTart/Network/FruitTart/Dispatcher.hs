@@ -3,14 +3,15 @@ module Network.FruitTart.Dispatcher (processRequest) where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
 import Data.Dynamic
 import Data.Int
+import Data.List
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe
-import qualified Data.ByteString.Lazy.UTF8 as UTF8
-import Network.FastCGI (catchCGI)
+import Network.FastCGI
 import Prelude hiding (catch)
 import Random
 import System.Time
@@ -20,25 +21,28 @@ import Network.FruitTart.Base
 import Network.FruitTart.Util
 
 
-processRequest :: ControllerTable -> FruitTart CGIResult
+processRequest :: ControllerTable -> FruitTart ()
 processRequest dispatchTable  = do
-  catchFruitTart (processRequest' dispatchTable)
-                 (\e -> do
-                    logCGI $ "FruitTart: " ++ show (e :: SomeException)
-                    error500)
+  fCatch (processRequest' dispatchTable)
+         (\e -> do
+                  fLog $ "FruitTart: " ++ show (e :: SomeException)
+                  error500)
 
 
-processRequest' :: ControllerTable -> FruitTart CGIResult
+processRequest' :: ControllerTable -> FruitTart ()
 processRequest' dispatchTable = do
   initializeSession
+  processFormInput
   callModuleInitRequestMethods
-  setHeader "Content-Type" "text/html; charset=UTF8"
-  url <- queryString
+  setResponseHeader HttpContentType "text/html; charset=UTF8"
+  maybeURL <- getQueryString
+  let url = fromJust maybeURL
   (controllerName, actionName, urlParameters, namedParameters)
         <- return $ parseURL url
   canonical <- return
         $ canonicalURL controllerName actionName urlParameters namedParameters
-  method <- requestMethod
+  maybeMethod <- getRequestMethod
+  let method = fromJust maybeMethod
   result <- if url /= canonical
       then permanentRedirect canonical
       else do
@@ -68,7 +72,7 @@ invokeDynamicFunction
     -> Dynamic
     -> [String] -> [ParameterType]
     -> [(String, String)] -> [(String, ParameterType)]
-    -> FruitTart CGIResult
+    -> FruitTart ()
 invokeDynamicFunction controllerName actionName
                       dynamicFunction
                       urlParameters urlParameterTypes
@@ -173,7 +177,7 @@ initializeSession = do
   timestamp <- getTimestamp
   query "DELETE FROM sessions WHERE timestamp_activity < ?"
         [SQLInteger $ timestamp - (60*60*24*30)]
-  maybeSessionCookie <- getCookie "session"
+  maybeSessionCookie <- getCookieValue "session"
   sessionID <- case maybeSessionCookie of
     Nothing -> generateSessionID
     Just sessionCookie -> do
@@ -185,27 +189,12 @@ initializeSession = do
   query "UPDATE sessions SET timestamp_activity = ? WHERE id = ?"
         [SQLInteger timestamp,
          SQLInteger sessionID]
-  setCookie $ Cookie {
-                      cookieName = "session",
-                      cookieValue = show sessionID,
-                      cookiePath = Just "/",
-                      cookieExpires = Just $ CalendarTime {
-                                        ctYear = 3000,
-                                        ctMonth = January,
-                                        ctDay = 1,
-                                        ctHour = 0,
-                                        ctMin = 0,
-                                        ctSec = 0,
-                                        ctPicosec = 0,
-                                        ctWDay = Monday,
-                                        ctYDay = 1,
-                                        ctTZName = "UTC",
-                                        ctTZ = 0,
-                                        ctIsDST = False
-                                      },
-                      cookieDomain = Nothing,
-                      cookieSecure = False
-                    }
+  setCookie $ mkCookie "session"
+                       (show sessionID)
+                       (Just "/")
+                       Nothing
+                       (Just 198743552)
+                       False
   fruitTartState <- get
   put $ fruitTartState { sessionID = Just sessionID }
 
@@ -225,6 +214,50 @@ generateSessionID = do
          ++ "VALUES (?, ?, NULL)")
         [SQLInteger sessionID, SQLInteger timestamp]
   return sessionID
+
+
+processFormInput :: FruitTart ()
+processFormInput = do
+  state <- get
+  maybeRequestMethod <- getRequestMethod
+  case maybeRequestMethod of
+    Just "POST" -> do
+      maybeContentType <- getContentType
+      case maybeContentType of
+        Just "application/x-www-form-urlencoded" -> do
+          inputData <- fGetContents
+          let formVariableMap = parseFormURLEncoded $ UTF8.toString inputData
+          liftIO $ swapMVar (formVariableMapMVar state) formVariableMap
+        _ -> do
+          liftIO $ swapMVar (formVariableMapMVar state) Map.empty
+    _ -> do
+      liftIO $ swapMVar (formVariableMapMVar state) Map.empty
+  return ()
+
+
+parseFormURLEncoded :: String -> Map String String
+parseFormURLEncoded input =
+    let split [] = []
+        split string = case elemIndex '&' string of
+                         Nothing -> [string]
+                         Just index ->
+                             let (first, rest) = splitAt index string
+                             in first : (split $ drop 1 rest)
+        splitNameValuePair string = case elemIndex '=' string of
+                                      Nothing -> (string, "")
+                                      Just index -> let (first, rest)
+                                                          = splitAt index string
+                                                    in (first, drop 1 rest)
+        evaluateEscapes "" = ""
+        evaluateEscapes ('%':a:b:rest) | isHexDigit a && isHexDigit b
+                                           = chr ((digitToInt a * 16) + (digitToInt b))
+                                             : evaluateEscapes rest
+        evaluateEscapes ('+':rest) = ' ' : evaluateEscapes rest
+        evaluateEscapes (c:rest) = c : evaluateEscapes rest
+        nameValuePairs = map (\(name, value)
+                                  -> (evaluateEscapes name, evaluateEscapes value))
+                             $ map splitNameValuePair $ split input
+    in Map.fromList nameValuePairs
 
 
 callModuleInitRequestMethods :: FruitTart ()

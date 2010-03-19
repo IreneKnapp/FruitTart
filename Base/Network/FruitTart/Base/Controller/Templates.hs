@@ -32,7 +32,7 @@ actionTable
                        ("delete", "POST", [IDParameter], [], toDyn deletePOST)]
 
 
-index :: FruitTart CGIResult
+index :: FruitTart ()
 index = do
   right <- getRightAdminDesign
   case right of
@@ -52,10 +52,10 @@ index = do
           pageContent <- getTemplate "Base.Controller.Templates" "index"
           bind "Templates" "pageContent" pageContent
           page <- getTemplate "Templates" "page"
-          output page
+          fPutStr page
 
 
-view :: Int64 -> FruitTart CGIResult
+view :: Int64 -> FruitTart ()
 view templateID = do
   let currentPage = "/templates/view/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
@@ -102,7 +102,7 @@ view templateID = do
         [] -> errorInvalidID "template"
 
 
-copy :: Int64 -> FruitTart CGIResult
+copy :: Int64 -> FruitTart ()
 copy templateID = do
   let currentPage = "/templates/copy/" ++ (show templateID) ++ "/"
       targetPage = "/templates/create/"
@@ -150,7 +150,7 @@ copy templateID = do
         [] -> errorInvalidID "template"
 
 
-createGET :: FruitTart CGIResult
+createGET :: FruitTart ()
 createGET = do
   let currentPage = "/templates/create/"
       targetPage = "/templates/create/"
@@ -165,7 +165,7 @@ createGET = do
 outputTemplatePage
     :: String -> String -> (Maybe String) -> (Maybe Int64) -> String -> String
     -> [(String, String)]
-    -> FruitTart CGIResult
+    -> FruitTart ()
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
@@ -196,10 +196,10 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   pageContent <- getTemplate "Base.Controller.Templates" "template"
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript"
-  output page
+  fPutStr page
 
 
-createPOST :: FruitTart CGIResult
+createPOST :: FruitTart ()
 createPOST = do
   let currentPage = "/templates/create/"
       targetPage = "/templates/create/"
@@ -252,7 +252,7 @@ createPOST = do
                              Nothing moduleName templateName items
 
 
-edit :: Int64 -> FruitTart CGIResult
+edit :: Int64 -> FruitTart ()
 edit templateID = do
   let currentPage = "/templates/edit/" ++ (show templateID) ++ "/"
       targetPage = "/templates/edit/" ++ (show templateID) ++ "/"
@@ -300,7 +300,7 @@ edit templateID = do
                              moduleName templateName items
 
 
-deleteGET :: Int64 -> FruitTart CGIResult
+deleteGET :: Int64 -> FruitTart ()
 deleteGET templateID = do
   let currentPage = "/templates/delete/" ++ (show templateID) ++ "/"
       targetPage = "/templates/delete/" ++ (show templateID) ++ "/"
@@ -322,10 +322,10 @@ deleteGET templateID = do
       pageContent <- getTemplate "Base.Controller.Templates" "delete"
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page"
-      output page
+      fPutStr page
 
 
-deletePOST :: Int64 -> FruitTart CGIResult
+deletePOST :: Int64 -> FruitTart ()
 deletePOST templateID = do
   right <- getRightAdminDesign
   case right of
