@@ -29,6 +29,5 @@ Executable FruitTart
                  direct-fastcgi >= 1.0.1,
                  direct-plugins >= 1.0,
                  direct-sqlite >= 1.0,
-                 hs-captcha >= 1.0,
                  FruitTartInterface >= 1.0 && < 2
   extra-libraries: sqlite3
