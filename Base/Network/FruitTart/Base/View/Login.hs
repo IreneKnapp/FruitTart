@@ -35,7 +35,7 @@ getLoginButton currentPage = do
               ++ "<a id=\"loginlink\" class=\"login\" href=\"/login/login/\">Log In</a>"
               ++ "</div>\n"
               ++ "<div id=\"loginbox\" style=\"display: none;\">"
-              ++ "<form method=\"POST\" action=\"/login/login/\">\n"
+              ++ "<form method=\"post\" action=\"/login/login/\">\n"
               ++ "<div><b>Email:</b> "
               ++ "<input type=\"text\" size=\"15\" name=\"email\" value=\""
               ++ (escapeAttribute email)
