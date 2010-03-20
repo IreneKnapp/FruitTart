@@ -445,7 +445,7 @@ baseBindings = Map.fromList
                 (("Templates", "concat"), TemplateNativeLambda tfConcat),
                 (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
                 (("Templates", "map"), TemplateNativeLambda tfMap),
-                (("Tempaltes", "groupBy"), TemplateNativeLambda tfGroupBy),
+                (("Templates", "groupBy"), TemplateNativeLambda tfGroupBy),
                 (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
                 (("Templates", "compareIntegers"),
                  TemplateNativeLambda tfCompareIntegers),
