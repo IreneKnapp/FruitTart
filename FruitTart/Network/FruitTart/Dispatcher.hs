@@ -305,5 +305,5 @@ setMimeType = do
                       Nothing -> 0.0
                       Just value -> value
   if xhtmlQValue >= htmlQValue
-    then setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF8"
-    else setResponseHeader HttpContentType "text/html; charset=UTF8"
+    then setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF-8"
+    else setResponseHeader HttpContentType "text/html; charset=UTF-8"
