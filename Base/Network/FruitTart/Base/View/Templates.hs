@@ -45,7 +45,8 @@ getPageHeadItems
       ("<link href=\"/css/normal.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
        ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
        ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
-       ++ "<script src=\"/js/buglist.js\" type=\"text/ecmascript\"></script>\n")
+       ++ "<script src=\"/js/fruit-tart.js\" type=\"text/ecmascript\"></script>\n"
+       ++ "<script src=\"/js/xhtml-document-write.js\" type=\"text/ecmascript\"></script>\n")
 
 
 bind :: Bindable a => String -> String -> a -> FruitTart ()
