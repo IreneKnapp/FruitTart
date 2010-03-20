@@ -34,7 +34,7 @@ processRequest' dispatchTable = do
   initializeSession
   processFormInput
   callModuleInitRequestMethods
-  setResponseHeader HttpContentType "text/html; charset=UTF8"
+  setResponseHeader HttpContentType "text/xhtml; charset=UTF8"
   maybeURL <- getQueryString
   let url = fromJust maybeURL
   (controllerName, actionName, urlParameters, namedParameters)
