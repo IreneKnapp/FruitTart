@@ -340,6 +340,16 @@ evalExpression expression = do
                                                     value)])
                                     oldBindings
         return $ (TemplateNull, newBindings)
+      TemplateBindMapExpression subexpressions -> do
+        if length subexpressions /= 1
+          then error $ "Invalid number of parameters to bindmap()."
+          else return ()
+        value <- (evalExpression $ head subexpressions)
+                 >>= return . fst
+        passedMap <- valueToMap value
+        oldBindings <- getBindings
+        let newBindings = Map.union passedMap oldBindings
+        return $ (TemplateNull, newBindings)
       TemplateSequence expressionA expressionB -> do
         (_, temporaryBindings) <- evalExpression expressionA
         letBindings temporaryBindings $ evalExpression expressionB

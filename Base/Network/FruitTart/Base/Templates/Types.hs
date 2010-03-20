@@ -103,6 +103,7 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateVariable (String, String)
                         | TemplateLambdaExpression [TemplateParameter] TemplateExpression
                         | TemplateBindExpression [TemplateExpression]
+                        | TemplateBindMapExpression [TemplateExpression]
                         | TemplateSequence TemplateExpression TemplateExpression
                           deriving (Show)
 
@@ -116,6 +117,7 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenLookup
                    | TokenBound
                    | TokenBind
+                   | TokenBindMap
                    | TokenLeftParen
                    | TokenRightParen
                    | TokenLeftSquareBracket

@@ -29,6 +29,7 @@ import Network.FruitTart.Base.Templates.Types
         lookup      { TokenLookup }
         bound       { TokenBound }
         bind        { TokenBind }
+        bindmap     { TokenBindMap }
         '('         { TokenLeftParen }
         ')'         { TokenRightParen }
         '['         { TokenLeftSquareBracket }
@@ -85,6 +86,8 @@ FunctionCallExpression
                       { TemplateBoundExpression $3 }
                       | bind '(' ExpressionList ')'
                       { TemplateBindExpression $3 }
+                      | bindmap '(' ExpressionList ')'
+                      { TemplateBindMapExpression $3 }
 		      | PrimaryExpression
 		      { $1 }
 
@@ -221,6 +224,8 @@ lexer defaultPackage all@(c:_)
                          | symbol == "bound" -> TokenBound
                                                 : lexer defaultPackage rest
                          | symbol == "bind" -> TokenBind
+                                               : lexer defaultPackage rest
+                         | symbol == "bindmap" -> TokenBindMap
                                                : lexer defaultPackage rest
                          | otherwise -> (TokenSymbol defaultPackage symbol)
                                         : lexer defaultPackage rest
