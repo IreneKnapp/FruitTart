@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe
 import Network.FastCGI
+import Numeric
 import Prelude hiding (catch)
 import Random
 import System.Time
@@ -35,7 +36,7 @@ processRequest' dispatchTable = do
   initializeSession
   processFormInput
   callModuleInitRequestMethods
-  setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF8"
+  setMimeType
   maybeURL <- getQueryString
   let url = fromJust maybeURL
   (controllerName, actionName, urlParameters, namedParameters)
@@ -270,3 +271,39 @@ callModuleInitRequestMethods = do
   mapM (\interface -> interfaceInitRequest interface)
        $ Map.elems interfacesMap
   return ()
+
+
+setMimeType :: FruitTart ()
+setMimeType = do
+  maybeAccept <- getRequestHeader HttpAccept
+  let accept = case maybeAccept of
+                 Nothing -> "text/html"
+                 Just accept -> accept
+  let split "" = []
+      split string = case elemIndex ',' string of
+                       Nothing -> [string]
+                       Just index -> let (first, rest) = splitAt index string
+                                     in first : (split $ drop 1 rest)
+      trim string = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace string
+      splitQValue string = case elemIndex ';' string of
+                             Nothing -> (string, 1.0)
+                             Just index -> let (first, rest) = splitAt index string
+                                           in (first, parseQValue $ drop 1 rest)
+      parseQValue ('q':'=':quantity) = let parses = readFloat quantity
+                                         in case parses of
+                                              [(result, "")] -> result
+                                              _ -> 1.0
+      parseQValue _ = 1.0
+      qValueMap = Map.fromList $ map (splitQValue . trim) $ split accept
+      defaultQValue = case Map.lookup "*/*" qValueMap of
+                        Nothing -> 0.0
+                        Just value -> value
+      htmlQValue = case Map.lookup "text/html" qValueMap of
+                     Nothing -> defaultQValue
+                     Just value -> value
+      xhtmlQValue = case Map.lookup "application/xhtml+xml" qValueMap of
+                      Nothing -> 0.0
+                      Just value -> value
+  if xhtmlQValue >= htmlQValue
+    then setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF8"
+    else setResponseHeader HttpContentType "text/html; charset=UTF8"
