@@ -143,6 +143,48 @@ initDatabase database = do
              ++ "CONSTRAINT key PRIMARY KEY (query, item)\n"
              ++ ")")
              []
+  earlyQuery database
+             (  "CREATE TABLE month_names (\n"
+             ++ "number INTEGER PRIMARY KEY,\n"
+             ++ "name TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (1, 'January')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (2, 'February')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (3, 'March')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (4, 'April')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (5, 'May')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (6, 'June')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (7, 'July')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (8, 'August')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (9, 'September')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (10, 'October')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (11, 'November')")
+             []
+  earlyQuery database
+             (  "INSERT INTO month_names (number, name) VALUES (12, 'December')")
+             []
   return ()
 
 
