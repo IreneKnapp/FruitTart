@@ -3,6 +3,7 @@ module Network.FruitTart.Dispatcher (processRequest) where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
 import Data.Dynamic
@@ -248,12 +249,14 @@ parseFormURLEncoded input =
                                       Just index -> let (first, rest)
                                                           = splitAt index string
                                                     in (first, drop 1 rest)
-        evaluateEscapes "" = ""
-        evaluateEscapes ('%':a:b:rest) | isHexDigit a && isHexDigit b
-                                           = chr ((digitToInt a * 16) + (digitToInt b))
-                                             : evaluateEscapes rest
-        evaluateEscapes ('+':rest) = ' ' : evaluateEscapes rest
-        evaluateEscapes (c:rest) = c : evaluateEscapes rest
+        evaluateEscapes' "" = []
+        evaluateEscapes' ('%':a:b:rest) | isHexDigit a && isHexDigit b
+                                           = fromIntegral ((digitToInt a * 16)
+                                                           + (digitToInt b))
+                                             : evaluateEscapes' rest
+        evaluateEscapes' ('+':rest) = (fromIntegral $ ord ' ') : evaluateEscapes' rest
+        evaluateEscapes' (c:rest) = (fromIntegral $ ord c) : evaluateEscapes' rest
+        evaluateEscapes string = UTF8.toString $ BS.pack $ evaluateEscapes' string
         nameValuePairs = map (\(name, value)
                                   -> (evaluateEscapes name, evaluateEscapes value))
                              $ map splitNameValuePair $ split input
