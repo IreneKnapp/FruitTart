@@ -59,10 +59,12 @@ getLoginButton currentPage = do
 
 outputMustLoginPage :: String -> FruitTart ()
 outputMustLoginPage currentPage = do
+  doctype <- getTemplate "Templates" "doctype"
   pageHeadItems <- getPageHeadItems
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
-  fPutStr $ "<html><head>\n"
+  fPutStr $ doctype
+         ++ "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head>\n"
          ++ "<title>Login Required</title>\n"
          ++ pageHeadItems
          ++ "</head>\n"
