@@ -144,6 +144,33 @@ initDatabase database = do
              ++ ")")
              []
   earlyQuery database
+             (  "CREATE TABLE week_day_names (\n"
+             ++ "number INTEGER PRIMARY KEY,\n"
+             ++ "name TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (0, 'Sunday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (1, 'Monday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (2, 'Tuesday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (3, 'Wednesday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (4, 'Thursday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (5, 'Friday')")
+             []
+  earlyQuery database
+             (  "INSERT INTO week_day_names (number, name) VALUES (6, 'Saturday')")
+             []
+  earlyQuery database
              (  "CREATE TABLE month_names (\n"
              ++ "number INTEGER PRIMARY KEY,\n"
              ++ "name TEXT\n"
