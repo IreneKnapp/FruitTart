@@ -32,7 +32,8 @@ index = do
     False -> outputMustLoginPage "/users/index/"
     True -> do
       bind "Templates" "pageTitle" "Buglist Users"
-      pageHeadItems <- getPageHeadItems
+      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                   [TemplateString "Buglist.Users"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return "/users/index/"
       navigationBar <- getNavigationBar currentPage
@@ -60,7 +61,8 @@ view id = do
         [[SQLText fullName, SQLText email]]
           -> do
            bind "Templates" "pageTitle" $ escapeHTML fullName
-           pageHeadItems <- getPageHeadItems
+           pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                        [TemplateString "Buglist.Users"]
            bind "Templates" "pageHeadItems" pageHeadItems
            currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
            navigationBar <- getNavigationBar currentPage

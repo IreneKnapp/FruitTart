@@ -133,7 +133,8 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                 Nothing -> "All Modules"
                                 Just moduleName -> moduleName
   reportName <- return $ reportNamePart1 ++ " in " ++ reportNamePart2
-  pageHeadItems <- getPageHeadItems
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                               [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/index/"
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage
@@ -467,7 +468,8 @@ outputView id comment fullName email maybeWarning = do
        bind "Buglist.Controller.Issues" "timestampModified" timestampModified
        bind "Templates" "pageTitle"
             $ "Issue " ++ (show id) ++ ": " ++ (escapeHTML summary)
-       pageHeadItems <- getPageHeadItems
+       pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                    [TemplateString "Buglist.Issues"]
        bind "Templates" "pageHeadItems" pageHeadItems
        currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
        navigationBar <- getNavigationBar currentPage
@@ -682,7 +684,8 @@ createPOST = do
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
                  -> FruitTart ()
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
-  pageHeadItems <- getPageHeadItems
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                               [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/create/"
   navigationBar <- getNavigationBar currentPage
   loginButton <- getLoginButton currentPage

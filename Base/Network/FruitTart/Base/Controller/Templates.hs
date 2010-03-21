@@ -39,7 +39,8 @@ index = do
     False -> outputMustLoginPage "/templates/index/"
     True -> do
           bind "Templates" "pageTitle" "All Templates"
-          pageHeadItems <- getPageHeadItems
+          pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                           [TemplateString "Base.Templates"]
           bind "Templates" "pageHeadItems" pageHeadItems
           currentPage <- return $ "/templates/index/"
           navigationBar <- getNavigationBar currentPage
@@ -169,7 +170,8 @@ outputTemplatePage
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems" "Base.Templates" []
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                               [TemplateString "Base.Templates"]
   bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
@@ -310,7 +312,8 @@ deleteGET templateID = do
     False -> outputMustLoginPage currentPage
     True -> do
       bind "Templates" "pageTitle" "Delete Confirmation"
-      pageHeadItems <- getPageHeadItems
+      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                   [TemplateString "Base.Templates"]
       bind "Templates" "pageHeadItems" pageHeadItems
       navigationBar <- getNavigationBar currentPage
       bind "Templates" "navigationBar" navigationBar

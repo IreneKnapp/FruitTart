@@ -39,7 +39,8 @@ index = do
     False -> outputMustLoginPage "/queries/index/"
     True -> do
       bind "Templates" "pageTitle" "All Queries"
-      pageHeadItems <- getPageHeadItems
+      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                   [TemplateString "Base.Queries"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return $ "/queries/index/"
       navigationBar <- getNavigationBar currentPage
@@ -329,7 +330,8 @@ deleteGET queryID = do
     False -> outputMustLoginPage currentPage
     True -> do
       bind "Templates" "pageTitle" "Delete Confirmation"
-      pageHeadItems <- getPageHeadItems
+      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                   [TemplateString "Base.Queries"]
       bind "Templates" "pageHeadItems" pageHeadItems
       navigationBar <- getNavigationBar currentPage
       bind "Templates" "navigationBar" navigationBar

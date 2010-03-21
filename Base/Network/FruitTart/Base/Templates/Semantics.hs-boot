@@ -1,4 +1,5 @@
 module Network.FruitTart.Base.Templates.Semantics (
+       						   getTemplate,
                                                    fillTemplate,
 						   eval,
                                                    baseBindings
@@ -19,6 +20,8 @@ import Network.FruitTart.Base.Templates.Syntax
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
+
+getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
 
 fillTemplate :: String
              -> String

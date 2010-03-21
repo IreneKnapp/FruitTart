@@ -1,4 +1,5 @@
 module Network.FruitTart.Base.Templates.Semantics (
+                                                   getTemplate,
                                                    fillTemplate,
                                                    eval,
                                                    baseBindings
@@ -21,6 +22,15 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 
+getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
+getTemplate moduleName templateName parameters = do
+  oldBindings <- getBindings
+  let newBindings = Map.fromList [(("Templates", "parameters"),
+                                   TemplateList parameters)]
+      allBindings = Map.union newBindings oldBindings
+  letBindings allBindings $ fillTemplate moduleName templateName
+
+
 fillTemplate :: String
              -> String
              -> FruitTart String
@@ -38,8 +48,11 @@ fillTemplate moduleName templateName = do
          case kind of
            "content" -> return body
            "expression" ->
-               fCatch ((evalExpression $ readExpression moduleName body)
-                       >>= valueToStringAllowingNull . fst)
+               fCatch (do
+                        (result, newBindings) <- evalExpression
+                                                 $ readExpression moduleName body
+                        setBindings newBindings
+                        valueToStringAllowingNull result)
                       (\e -> error $ "While processing template "
                                    ++ moduleName ++ "."
                                    ++ templateName ++ ": " ++ (show (e :: SomeException)))
@@ -71,6 +84,14 @@ getBindings = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   liftIO $ readMVar bindingsMVar
+
+
+setBindings :: Map (String, String) TemplateValue -> FruitTart ()
+setBindings newBindings = do
+  bindingsMVar <- getInterfaceStateMVar "Base"
+               :: FruitTart (MVar (Map (String, String) TemplateValue))
+  liftIO $ swapMVar bindingsMVar newBindings
+  return ()
 
 
 valueToBoolean :: TemplateValue -> FruitTart Bool

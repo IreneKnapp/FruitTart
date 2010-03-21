@@ -4,6 +4,9 @@ module Network.FruitTart.Base.View.Templates (
                                               TemplateValueType(..),
                                               TemplateValue(..),
                                               
+                                              -- Templates.Semantics
+                                              getTemplate,
+                                              
                                               -- View.Templates
                                               bind,
                                               bindQuery,
@@ -14,8 +17,7 @@ module Network.FruitTart.Base.View.Templates (
                                               convertRowToBindings,
                                               getBinding,
                                               unbind,
-                                              clearBindings,
-                                              getTemplate
+                                              clearBindings
                                              )
     where
 
@@ -246,12 +248,3 @@ clearBindings = do
                :: FruitTart (MVar (Map (String, String) TemplateValue))
   liftIO $ takeMVar bindingsMVar
   liftIO $ putMVar bindingsMVar baseBindings
-
-
-getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
-getTemplate moduleName templateName parameters = do
-  oldBindings <- getBindings
-  let newBindings = Map.fromList [(("Templates", "parameters"),
-                                   TemplateList parameters)]
-      allBindings = Map.union newBindings oldBindings
-  letBindings allBindings $ fillTemplate moduleName templateName

@@ -88,7 +88,7 @@ loginPOST = do
 doNotLogIn :: Maybe String -> Maybe String -> FruitTart ()
 doNotLogIn maybeWarning maybeEmail = do
   bind "Templates" "pageTitle" "Log In"
-  pageHeadItems <- getPageHeadItems
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Base.Login"]
   bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar "/login/login/"
   bind "Templates" "navigationBar" navigationBar
@@ -157,7 +157,8 @@ outputAccountPage = do
       sessionID <- getSessionID
       bindNamedQuery "Base.Controller.Login" "account" [SQLInteger sessionID]
       bind "Templates" "pageTitle" "Buglist Account"
-      pageHeadItems <- getPageHeadItems
+      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                                   [TemplateString "Base.Login"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return "/login/account/"
       navigationBar <- getNavigationBar currentPage
