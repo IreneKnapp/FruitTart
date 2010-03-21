@@ -123,7 +123,7 @@ accountPOST = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     Just userID -> do
       maybeFullName <- getInput "full-name"
@@ -151,7 +151,7 @@ outputAccountPage = do
   maybeUserID <- getLoggedInUserID
   case maybeUserID of
     Nothing -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     Just userID -> do
       sessionID <- getSessionID
@@ -222,4 +222,4 @@ getReferrer = do
                 maybeHTTPReferrer <- getRequestHeader HttpReferer
                 case maybeHTTPReferrer of
                   Just referrer -> return referrer
-                  Nothing -> getDefaultPage
+                  Nothing -> getTemplate "Base" "defaultPage" []

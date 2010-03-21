@@ -13,6 +13,7 @@ import Data.Int
 import Data.List
 
 import Network.FruitTart.Base
+import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Navigation
@@ -49,7 +50,7 @@ now = do
   right <- getRightSynchronize
   case right of
     False -> do
-        defaultPage <- getDefaultPage
+        defaultPage <- getTemplate "Base" "defaultPage" []
         seeOtherRedirect defaultPage
     True -> now'
 
@@ -59,7 +60,7 @@ index startTimestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> index' startTimestamp
 
@@ -69,7 +70,7 @@ issueGET issueID = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> issueGET' issueID
 
@@ -79,7 +80,7 @@ userIssueChangeGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueChangeGET' userID issueID timestamp
 
@@ -89,7 +90,7 @@ userIssueCommentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueCommentGET' userID issueID timestamp
 
@@ -99,7 +100,7 @@ userIssueAttachmentGET userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueAttachmentGET' userID issueID timestamp
 
@@ -109,7 +110,7 @@ issuePOST issueID = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> issuePOST' issueID
 
@@ -119,7 +120,7 @@ userIssueChangePOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueChangePOST' userID issueID timestamp
 
@@ -129,7 +130,7 @@ userIssueCommentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueCommentPOST' userID issueID timestamp
 
@@ -139,7 +140,7 @@ userIssueAttachmentPOST userID issueID timestamp = do
   right <- getRightSynchronize
   case right of
     False -> do
-      defaultPage <- getDefaultPage
+      defaultPage <- getTemplate "Base" "defaultPage" []
       seeOtherRedirect defaultPage
     True -> userIssueAttachmentPOST' userID issueID timestamp
 
