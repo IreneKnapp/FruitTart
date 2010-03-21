@@ -977,7 +977,7 @@ getStatusPopup maybeStatusID = do
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if Just id == maybeStatusID
-                                      then "selected "
+                                      then "selected=\"\" "
                                       else "")
                                ++ "value=\""
                                ++ (show id)
@@ -994,7 +994,7 @@ getResolutionPopup maybeResolutionID = do
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if Just id == maybeResolutionID
-                                      then "selected "
+                                      then "selected=\"\" "
                                       else "")
                                ++ "value=\""
                                ++ (show id)
@@ -1022,7 +1022,7 @@ getModulePopup maybeModuleID = do
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if Just id == maybeModuleID
-                                      then "selected "
+                                      then "selected=\"\" "
                                       else "")
                                ++ "value=\""
                                ++ (show id)
@@ -1039,7 +1039,7 @@ getSeverityPopup maybeSeverityID = do
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if Just id == maybeSeverityID
-                                      then "selected "
+                                      then "selected=\"\" "
                                       else "")
                                ++ "value=\""
                                ++ (show id)
@@ -1056,7 +1056,7 @@ getPriorityPopup maybePriorityID = do
          ++ (concat $ map (\[SQLInteger id, SQLText name]
                             -> "<option "
                                ++ (if Just id == maybePriorityID
-                                      then "selected "
+                                      then "selected=\"\" "
                                       else "")
                                ++ "value=\""
                                ++ (show id)
