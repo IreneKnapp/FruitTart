@@ -42,9 +42,9 @@ index = do
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
       bindNamedQueryMultipleRows "Buglist.Controller.Users" "indexRows" []
-      pageContent <- getTemplate "Buglist.Controller.Users" "index"
+      pageContent <- getTemplate "Buglist.Controller.Users" "index" []
       bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page"
+      page <- getTemplate "Templates" "page" []
       fPutStr page
 
 
@@ -73,8 +73,8 @@ view id = do
            bind "Buglist.Controller.Users" "email" email
            bind "Buglist.Controller.Users" "userID" id
            bindNamedQuery "Buglist.Controller.Users" "userIssueActions" []
-           pageContent <- getTemplate "Buglist.Controller.Users" "view"
+           pageContent <- getTemplate "Buglist.Controller.Users" "view" []
            bind "Templates" "pageContent" pageContent
-           page <- getTemplate "Templates" "page"
+           page <- getTemplate "Templates" "page" []
            fPutStr page
         _ -> errorInvalidID "user"

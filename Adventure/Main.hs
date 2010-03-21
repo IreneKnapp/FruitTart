@@ -123,6 +123,14 @@ initDatabase database = do
                  ++ "effect INTEGER\n"
                  ++ ")")
                  []
+  earlyQuery database
+             (  "INSERT INTO stylesheets (name, priority, controller)\n"
+             ++ "VALUES ('adventure.css', 100, 'Adventure');")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('adventure.js', 100, 'Adventure');")
+             []
   return ()
 
 

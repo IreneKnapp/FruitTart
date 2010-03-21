@@ -215,11 +215,8 @@ createVariablePOST = do
 bindDefaults :: String -> String -> FruitTart ()
 bindDefaults pageTitle currentPage = do
   bind "Templates" "pageTitle" pageTitle
-  pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems"
-       (pageHeadItems
-        ++ "<link href=\"/css/adventure.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-        ++ "<script src=\"/js/adventure.js\" type=\"text/ecmascript\"></script>\n")
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Adventure"]
+  bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
@@ -231,17 +228,17 @@ bindDefaults pageTitle currentPage = do
 
 outputPage :: String -> String -> FruitTart ()
 outputPage moduleName templateName = do
-  pageContent <- getTemplate moduleName templateName
+  pageContent <- getTemplate moduleName templateName []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
+  page <- getTemplate "Templates" "page" []
   fPutStr page
 
 
 outputPageNoScript :: String -> String -> FruitTart ()
 outputPageNoScript moduleName templateName = do
-  pageContent <- getTemplate moduleName templateName
+  pageContent <- getTemplate moduleName templateName []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript"
+  page <- getTemplate "Templates" "pageNoScript" []
   fPutStr page
 
 

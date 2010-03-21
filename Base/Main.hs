@@ -144,6 +144,52 @@ initDatabase database = do
              ++ ")")
              []
   earlyQuery database
+             (  "CREATE TABLE stylesheets (\n"
+             ++ "name TEXT,\n"
+             ++ "priority INTEGER,\n"
+             ++ "controller TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO stylesheets (name, priority, controller)\n"
+             ++ "VALUES ('normal.css', 1, '%');")
+             []
+  earlyQuery database
+             (  "INSERT INTO stylesheets (name, priority, controller)\n"
+             ++ "VALUES ('navigation.css', 2, '%');")
+             []
+  earlyQuery database
+             (  "INSERT INTO stylesheets (name, priority, controller)\n"
+             ++ "VALUES ('base.css', 100, 'Base.%');")
+             []
+  earlyQuery database
+             (  "CREATE TABLE scripts (\n"
+             ++ "name TEXT,\n"
+             ++ "priority INTEGER,\n"
+             ++ "controller TEXT\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('jquery.js', 1, '%');")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('fruit-tart.js', 2, '%');")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('xhtml-document-write.js', 3, '%');")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('queries.js', 100, 'Base.Queries');")
+             []
+  earlyQuery database
+             (  "INSERT INTO scripts (name, priority, controller)\n"
+             ++ "VALUES ('templates.js', 100, 'Base.Templates');")
+             []
+  earlyQuery database
              (  "CREATE TABLE week_day_names (\n"
              ++ "number INTEGER PRIMARY KEY,\n"
              ++ "name TEXT\n"

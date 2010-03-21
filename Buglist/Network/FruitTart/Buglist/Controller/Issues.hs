@@ -240,9 +240,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ whereClause ++ " "
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                    ([] ++ whereClauseParameters)
-  pageContent <- getTemplate "Buglist.Controller.Issues" "index"
+  pageContent <- getTemplate "Buglist.Controller.Issues" "index" []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
+  page <- getTemplate "Templates" "page" []
   fPutStr page
 
 
@@ -495,9 +495,9 @@ outputView id comment fullName email maybeWarning = do
        bind "Buglist.Controller.Issues" "rightComment" rightComment
        rightEdit <- getRightModifyIssues
        bind "Buglist.Controller.Issues" "rightEdit" rightEdit
-       pageContent <- getTemplate "Buglist.Controller.Issues" "view"
+       pageContent <- getTemplate "Buglist.Controller.Issues" "view" []
        bind "Templates" "pageContent" pageContent
-       page <- getTemplate "Templates" "page"
+       page <- getTemplate "Templates" "page" []
        fPutStr page
     _ -> errorInvalidID "issue"
 
@@ -701,9 +701,9 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   bind "Buglist.Controller.Issues" "comment" comment
   bind "Buglist.Controller.Issues" "userSelectionFormControls" userSelectionFormControls
   bind "Buglist.Controller.Issues" "captchaTimestamp" captchaTimestamp
-  pageContent <- getTemplate "Buglist.Controller.Issues" "create"
+  pageContent <- getTemplate "Buglist.Controller.Issues" "create" []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
+  page <- getTemplate "Templates" "page" []
   fPutStr page
 
 

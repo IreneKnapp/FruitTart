@@ -49,9 +49,9 @@ index = do
           popupMessage <- getPopupMessage
           bind "Templates" "popupMessage" popupMessage
           bindNamedQueryMultipleRows "Base.Controller.Templates" "indexRows" []
-          pageContent <- getTemplate "Base.Controller.Templates" "index"
+          pageContent <- getTemplate "Base.Controller.Templates" "index" []
           bind "Templates" "pageContent" pageContent
-          page <- getTemplate "Templates" "page"
+          page <- getTemplate "Templates" "page" []
           fPutStr page
 
 
@@ -169,10 +169,8 @@ outputTemplatePage
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
-  pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems" $ pageHeadItems
-         ++ "<link href=\"/css/base.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-         ++ "<script src=\"/js/templates.js\" type=\"text/ecmascript\"></script>\n"
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems" "Base.Templates" []
+  bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
@@ -193,9 +191,9 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   bind "Base.Controller.Templates" "maybeTemplateID" maybeTemplateID
   bind "Base.Controller.Templates" "moduleName" moduleName
   bind "Base.Controller.Templates" "templateName" templateName
-  pageContent <- getTemplate "Base.Controller.Templates" "template"
+  pageContent <- getTemplate "Base.Controller.Templates" "template" []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript"
+  page <- getTemplate "Templates" "pageNoScript" []
   fPutStr page
 
 
@@ -322,9 +320,9 @@ deleteGET templateID = do
       bind "Templates" "popupMessage" popupMessage
       bindNamedQuery "Base.Controller.Templates" "templateName" [SQLInteger templateID]
       bind "Base.Controller.Templates" "targetPage" targetPage
-      pageContent <- getTemplate "Base.Controller.Templates" "delete"
+      pageContent <- getTemplate "Base.Controller.Templates" "delete" []
       bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page"
+      page <- getTemplate "Templates" "page" []
       fPutStr page
 
 

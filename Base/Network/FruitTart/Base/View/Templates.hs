@@ -5,7 +5,6 @@ module Network.FruitTart.Base.View.Templates (
                                               TemplateValue(..),
                                               
                                               -- View.Templates
-                                              getPageHeadItems,
                                               bind,
                                               bindQuery,
                                               bindQueryMultipleRows,
@@ -37,16 +36,6 @@ instance Bindable String where
     toTemplate string = TemplateString string
 instance Bindable [Map (String, String) TemplateValue] where
     toTemplate rows = TemplateList $ map TemplateMap rows
-
-
-getPageHeadItems :: FruitTart String
-getPageHeadItems
-    = return 
-      ("<link href=\"/css/normal.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-       ++ "<link href=\"/css/navigation.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-       ++ "<script src=\"/js/jquery.js\" type=\"text/ecmascript\"></script>\n"
-       ++ "<script src=\"/js/fruit-tart.js\" type=\"text/ecmascript\"></script>\n"
-       ++ "<script src=\"/js/xhtml-document-write.js\" type=\"text/ecmascript\"></script>\n")
 
 
 bind :: Bindable a => String -> String -> a -> FruitTart ()
@@ -259,6 +248,10 @@ clearBindings = do
   liftIO $ putMVar bindingsMVar baseBindings
 
 
-getTemplate :: String -> String -> FruitTart String
-getTemplate moduleName templateName = do
-  fillTemplate moduleName templateName
+getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
+getTemplate moduleName templateName parameters = do
+  oldBindings <- getBindings
+  let newBindings = Map.fromList [(("Templates", "parameters"),
+                                   TemplateList parameters)]
+      allBindings = Map.union newBindings oldBindings
+  letBindings allBindings $ fillTemplate moduleName templateName

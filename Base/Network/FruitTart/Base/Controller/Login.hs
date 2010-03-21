@@ -99,9 +99,9 @@ doNotLogIn maybeWarning maybeEmail = do
   bind "Base.Controller.Login" "referrer" referrer
   bind "Base.Controller.Login" "maybeWarning" maybeWarning
   bind "Base.Controller.Login" "maybeEmail" maybeEmail
-  pageContent <- getTemplate "Base.Controller.Login" "login"
+  pageContent <- getTemplate "Base.Controller.Login" "login" []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page"
+  page <- getTemplate "Templates" "page" []
   fPutStr page
 
 
@@ -167,9 +167,9 @@ outputAccountPage = do
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
       bind "Base.Controller.Login" "privacyNote" privacyNote
-      pageContent <- getTemplate "Base.Controller.Login" "account"
+      pageContent <- getTemplate "Base.Controller.Login" "account" []
       bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page"
+      page <- getTemplate "Templates" "page" []
       fPutStr page
 
 

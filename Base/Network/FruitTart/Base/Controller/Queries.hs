@@ -51,9 +51,9 @@ index = do
       bindNamedQueryMultipleRows "Base.Controller.Queries"
                                  "indexRows"
                                  []
-      pageContent <- getTemplate "Base.Controller.Queries" "index"
+      pageContent <- getTemplate "Base.Controller.Queries" "index" []
       bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page"
+      page <- getTemplate "Templates" "page" []
       fPutStr page
 
 
@@ -169,10 +169,9 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   TemplateString queryName
       <- getBinding "Base.Controller.Queries" "queryName" >>= return . fromJust
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ queryName
-  pageHeadItems <- getPageHeadItems
-  bind "Templates" "pageHeadItems" $ pageHeadItems
-         ++ "<link href=\"/css/base.css\" rel=\"stylesheet\" type=\"text/css\" />\n"
-         ++ "<script src=\"/js/queries.js\" type=\"text/ecmascript\"></script>\n"
+  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+                               [TemplateString "Base.Queries"]
+  bind "Templates" "pageHeadItems" pageHeadItems
   navigationBar <- getNavigationBar currentPage
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
@@ -182,9 +181,9 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   bind "Base.Controller.Queries" "targetPage" targetPage
   bind "Base.Controller.Queries" "maybeWarning" maybeWarning
   bind "Base.Controller.Queries" "maybeQueryID" maybeQueryID
-  pageContent <- getTemplate "Base.Controller.Queries" "query"
+  pageContent <- getTemplate "Base.Controller.Queries" "query" []
   bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript"
+  page <- getTemplate "Templates" "pageNoScript" []
   fPutStr page
 
 
@@ -340,9 +339,9 @@ deleteGET queryID = do
       bind "Templates" "popupMessage" popupMessage
       bindNamedQuery "Base.Controller.Queries" "queryName" [SQLInteger queryID]
       bind "Base.Controller.Queries" "targetPage" targetPage
-      pageContent <- getTemplate "Base.Controller.Queries" "delete"
+      pageContent <- getTemplate "Base.Controller.Queries" "delete" []
       bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page"
+      page <- getTemplate "Templates" "page" []
       fPutStr page
 
 

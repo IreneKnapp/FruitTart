@@ -78,6 +78,10 @@ initDatabase database = do
                  ++ "body TEXT\n"
                  ++ ")")
                  []
+  earlyQuery database
+             (  "INSERT INTO stylesheets (name, priority, controller)\n"
+             ++ "VALUES ('blog.css', 100, 'Blog.%');")
+             []
   return ()
 
 

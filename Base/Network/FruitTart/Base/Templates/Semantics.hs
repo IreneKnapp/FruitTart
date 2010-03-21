@@ -39,7 +39,7 @@ fillTemplate moduleName templateName = do
            "content" -> return body
            "expression" ->
                fCatch ((evalExpression $ readExpression moduleName body)
-                       >>= valueToString . fst)
+                       >>= valueToStringAllowingNull . fst)
                       (\e -> error $ "While processing template "
                                    ++ moduleName ++ "."
                                    ++ templateName ++ ": " ++ (show (e :: SomeException)))
@@ -84,6 +84,12 @@ valueToString (TemplateString string) = return string
 valueToString value = error $ "Template value is not a String (it's " ++ (show value)
                             ++ ")."
 
+valueToStringAllowingNull :: TemplateValue -> FruitTart String
+valueToStringAllowingNull (TemplateString string) = return string
+valueToStringAllowingNull TemplateNull = return ""
+valueToStringAllowingNull value = error $ "Template value is not a String or Null (it's "
+                                        ++ (show value)
+                                        ++ ")."
 
 valueToInteger :: TemplateValue -> FruitTart Int64
 valueToInteger (TemplateInteger integer) = return integer
