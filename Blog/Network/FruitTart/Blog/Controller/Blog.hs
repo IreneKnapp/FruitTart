@@ -13,7 +13,6 @@ import Data.Maybe
 import Network.FruitTart.Base
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Login
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
 
@@ -35,7 +34,7 @@ bindDefaults pageTitle currentPage = do
   bind "Templates" "pageTitle" pageTitle
   pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Blog.Index"]
   bind "Templates" "pageHeadItems" pageHeadItems
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
   bind "Templates" "loginButton" loginButton

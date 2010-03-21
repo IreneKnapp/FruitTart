@@ -15,7 +15,6 @@ module Network.FruitTart.Base.View.Login (
 import Network.FruitTart.Base
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Templates
-import Network.FruitTart.Base.View.Navigation
 
 
 getLoginButton :: String -> FruitTart String
@@ -61,7 +60,7 @@ outputMustLoginPage :: String -> FruitTart ()
 outputMustLoginPage currentPage = do
   doctype <- getTemplate "Templates" "doctype" []
   pageHeadItems <- getTemplate "Templates" "PageHeadItems" [TemplateString "Base.Login"]
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   loginButton <- getLoginButton currentPage
   fPutStr $ doctype
          ++ "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head>\n"

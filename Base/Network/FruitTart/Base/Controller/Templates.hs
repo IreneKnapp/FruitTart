@@ -14,7 +14,6 @@ import Network.FruitTart.Base
 import Network.FruitTart.Base.Templates.Semantics
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Base.View.Login
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Util
@@ -43,7 +42,8 @@ index = do
                            [TemplateString "Base.Templates"]
           bind "Templates" "pageHeadItems" pageHeadItems
           currentPage <- return $ "/templates/index/"
-          navigationBar <- getNavigationBar currentPage
+          navigationBar
+              <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
           bind "Templates" "navigationBar" navigationBar
           loginButton <- getLoginButton currentPage
           bind "Templates" "loginButton" loginButton
@@ -173,7 +173,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Base.Templates"]
   bind "Templates" "pageHeadItems" pageHeadItems
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
   bind "Templates" "loginButton" loginButton
@@ -315,7 +315,7 @@ deleteGET templateID = do
       pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                    [TemplateString "Base.Templates"]
       bind "Templates" "pageHeadItems" pageHeadItems
-      navigationBar <- getNavigationBar currentPage
+      navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
       bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
       bind "Templates" "loginButton" loginButton

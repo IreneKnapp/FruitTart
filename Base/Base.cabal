@@ -36,7 +36,6 @@ Library
   exposed-modules: Main,
                    Network.FruitTart.Base.Templates.Types,
                    Network.FruitTart.Base.View.Login,
-                   Network.FruitTart.Base.View.Navigation,
                    Network.FruitTart.Base.View.PopupMessage,
                    Network.FruitTart.Base.View.Templates
   other-modules: Network.FruitTart.Base.Controller.Login,

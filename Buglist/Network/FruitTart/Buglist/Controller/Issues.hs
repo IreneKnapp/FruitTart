@@ -18,7 +18,6 @@ import Data.Maybe
 import Network.FruitTart.Base
 import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.Login
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
@@ -136,7 +135,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/index/"
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   loginButton <- getLoginButton currentPage
   popupMessage <- getPopupMessage
   currentPathWhichPart <- return $ "which:" ++ which ++ "/"
@@ -472,7 +471,7 @@ outputView id comment fullName email maybeWarning = do
                                     [TemplateString "Buglist.Issues"]
        bind "Templates" "pageHeadItems" pageHeadItems
        currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
-       navigationBar <- getNavigationBar currentPage
+       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
        bind "Templates" "navigationBar" navigationBar
        loginButton <- getLoginButton currentPage
        bind "Templates" "loginButton" loginButton
@@ -687,7 +686,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/create/"
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   loginButton <- getLoginButton currentPage
   popupMessage <- getPopupMessage
   modulePopup <- getModulePopup $ Just moduleID

@@ -15,7 +15,6 @@ import Data.List
 import Network.FruitTart.Base
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Login
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
 
@@ -90,7 +89,7 @@ doNotLogIn maybeWarning maybeEmail = do
   bind "Templates" "pageTitle" "Log In"
   pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Base.Login"]
   bind "Templates" "pageHeadItems" pageHeadItems
-  navigationBar <- getNavigationBar "/login/login/"
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString "/login/login/"]
   bind "Templates" "navigationBar" navigationBar
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
@@ -161,7 +160,7 @@ outputAccountPage = do
                                    [TemplateString "Base.Login"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return "/login/account/"
-      navigationBar <- getNavigationBar currentPage
+      navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
       bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
       bind "Templates" "loginButton" loginButton

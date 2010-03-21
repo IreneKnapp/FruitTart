@@ -13,7 +13,6 @@ import qualified Data.Map as Map
 import Network.FruitTart.Base
 import Network.FruitTart.Util
 import Network.FruitTart.Base.View.Login
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Buglist.View.Navigation
@@ -36,7 +35,7 @@ index = do
                                    [TemplateString "Buglist.Users"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return "/users/index/"
-      navigationBar <- getNavigationBar currentPage
+      navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
       bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
       bind "Templates" "loginButton" loginButton
@@ -65,7 +64,8 @@ view id = do
                                         [TemplateString "Buglist.Users"]
            bind "Templates" "pageHeadItems" pageHeadItems
            currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
-           navigationBar <- getNavigationBar currentPage
+           navigationBar <- getTemplate "Base" "navigationBar"
+                                        [TemplateString currentPage]
            bind "Templates" "navigationBar" navigationBar
            loginButton <- getLoginButton currentPage
            bind "Templates" "loginButton" loginButton

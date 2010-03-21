@@ -14,7 +14,6 @@ import Network.FruitTart.Base
 import Network.FruitTart.Base.Templates.Semantics
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Base.View.Login
-import Network.FruitTart.Base.View.Navigation
 import Network.FruitTart.Base.View.PopupMessage
 import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Util
@@ -43,7 +42,7 @@ index = do
                                    [TemplateString "Base.Queries"]
       bind "Templates" "pageHeadItems" pageHeadItems
       currentPage <- return $ "/queries/index/"
-      navigationBar <- getNavigationBar currentPage
+      navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
       bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
       bind "Templates" "loginButton" loginButton
@@ -173,7 +172,7 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Base.Queries"]
   bind "Templates" "pageHeadItems" pageHeadItems
-  navigationBar <- getNavigationBar currentPage
+  navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   bind "Templates" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
   bind "Templates" "loginButton" loginButton
@@ -333,7 +332,7 @@ deleteGET queryID = do
       pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                    [TemplateString "Base.Queries"]
       bind "Templates" "pageHeadItems" pageHeadItems
-      navigationBar <- getNavigationBar currentPage
+      navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
       bind "Templates" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
       bind "Templates" "loginButton" loginButton

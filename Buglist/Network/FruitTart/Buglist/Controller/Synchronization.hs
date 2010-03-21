@@ -16,7 +16,6 @@ import Network.FruitTart.Base
 import Network.FruitTart.Base.View.Templates
 import Network.FruitTart.Buglist.View.Navigation
 import Network.FruitTart.Util
-import Network.FruitTart.Base.View.Navigation
 
 
 actionTable :: ActionTable
