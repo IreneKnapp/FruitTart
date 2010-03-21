@@ -44,7 +44,7 @@ fillTemplate moduleName templateName = do
   if items == []
     then error $ "Template " ++ moduleName ++ "." ++ templateName ++ " not found."
     else return ()
-  mapM (\[SQLText kind, SQLText body] -> do
+  mapM (\([SQLText kind, SQLText body], index) -> do
          case kind of
            "content" -> return body
            "expression" ->
@@ -55,9 +55,10 @@ fillTemplate moduleName templateName = do
                         valueToStringAllowingNull result)
                       (\e -> error $ "While processing template "
                                    ++ moduleName ++ "."
-                                   ++ templateName ++ ": " ++ (show (e :: SomeException)))
+                                   ++ templateName ++ ", item " ++ (show index)
+                                   ++ ": " ++ (show (e :: SomeException)))
            _ -> error $ "Unknown template item type " ++ kind ++ ".")
-       items
+       (zip items [1..])
        >>= return . concat
 
 
