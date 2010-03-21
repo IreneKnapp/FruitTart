@@ -57,6 +57,7 @@
 ^fruittart.db$
 ^Adventure/dist($|/)
 ^Base/dist($|/)
+^Blog/dist($|/)
 ^Buglist/dist($|/)
 ^Captcha/dist($|/)
 ^FruitTart/dist($|/)
