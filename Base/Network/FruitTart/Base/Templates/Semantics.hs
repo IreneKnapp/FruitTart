@@ -466,6 +466,9 @@ applyFunction function actualParameters = do
 baseBindings :: Map (String, String) TemplateValue
 baseBindings = Map.fromList
                [(("Templates", "parameters"), TemplateList []),
+                (("Templates", "Null"), TemplateNull),
+                (("Templates", "True"), TemplateBool True),
+                (("Templates", "False"), TemplateBool False),
                 (("Templates", "Nothing"), TemplateMaybe Nothing),
                 (("Templates", "Just"), TemplateNativeLambda tfJust),
                 (("Templates", "LT"), TemplateOrdering LT),
@@ -487,6 +490,7 @@ baseBindings = Map.fromList
                 (("Templates", "compareIntegers"),
                  TemplateNativeLambda tfCompareIntegers),
                 (("Templates", "showInteger"), TemplateNativeLambda tfShowInteger),
+                (("Templates", "showBool"), TemplateNativeLambda tfShowBool),
                 (("Templates", "byteSizeToString"),
                  TemplateNativeLambda tfByteSizeToString),
                 (("Templates", "timestampToString"),
@@ -655,6 +659,14 @@ tfShowInteger parameters = do
   requireNParameters parameters 1 "showInteger"
   integer <- valueToInteger $ head parameters
   return $ TemplateString $ show integer
+
+
+tfShowBool :: [TemplateValue]
+           -> FruitTart TemplateValue
+tfShowBool parameters = do
+  requireNParameters parameters 1 "showBool"
+  bool <- valueToBoolean $ head parameters
+  return $ TemplateString $ show bool
 
 
 tfByteSizeToString :: [TemplateValue]
