@@ -20,8 +20,8 @@ import Network.FruitTart.Buglist.View.Navigation
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [], [], toDyn index),
-                       ("view", "GET", [IDParameter], [], toDyn view)]
+    = makeActionTable [("index", "GET", [], [], [], toDyn index),
+                       ("view", "GET", [IDParameter], [], [], toDyn view)]
 
 
 index :: FruitTart ()

@@ -39,111 +39,138 @@ processRequest' dispatchTable = do
   setMimeType
   maybeURL <- getQueryString
   let url = fromJust maybeURL
-  (controllerName, actionName, urlParameters, namedParameters)
-        <- return $ parseURL url
-  canonical <- return
-        $ canonicalURL controllerName actionName urlParameters namedParameters
+      (controllerName, actionName, unnamedParameters, namedParameters) = parseURL url
+      canonical = canonicalURL controllerName actionName
+                               unnamedParameters namedParameters
   maybeMethod <- getRequestMethod
   let method = fromJust maybeMethod
-  result <- if url /= canonical
-      then permanentRedirect canonical
-      else do
-        maybeControllerData <- return $ Map.lookup controllerName dispatchTable
-        case maybeControllerData of
-          Nothing -> errorControllerUndefined controllerName
-          Just controllerData
-            -> do
-             maybeActionData <- return $ Map.lookup actionName controllerData
-             case maybeActionData of
-               Nothing -> errorActionUndefined controllerName actionName
-               Just actionData
-                   -> do
-                    maybeMethodData <- return $ Map.lookup method actionData
-                    case maybeMethodData of
-                      Nothing -> errorActionMethod controllerName actionName method
-                      Just (urlParameterTypes, namedParameterTypes, dynamicFunction)
-                          -> invokeDynamicFunction controllerName actionName
-                                                   dynamicFunction
-                                                   urlParameters urlParameterTypes
-                                                   namedParameters namedParameterTypes
+  if url /= canonical
+    then permanentRedirect canonical
+    else do
+      maybeControllerData <- return $ Map.lookup controllerName dispatchTable
+      case maybeControllerData of
+        Nothing -> errorControllerUndefined controllerName
+        Just controllerData
+          -> do
+           maybeActionData <- return $ Map.lookup actionName controllerData
+           case maybeActionData of
+             Nothing -> errorActionUndefined controllerName actionName
+             Just actionData
+                 -> do
+                  maybeMethodData <- return $ Map.lookup method actionData
+                  case maybeMethodData of
+                    Nothing -> errorActionMethod controllerName actionName method
+                    Just (mandatoryParameterTypes,
+                          optionalParameterTypes,
+                          namedParameterTypes,
+                          dynamicFunction)
+                        -> invokeDynamicFunction controllerName
+                                                 actionName
+                                                 dynamicFunction
+                                                 unnamedParameters
+                                                 namedParameters
+                                                 mandatoryParameterTypes
+                                                 optionalParameterTypes
+                                                 namedParameterTypes
   endSession
-  return result
+
 
 invokeDynamicFunction
     :: String -> String
     -> Dynamic
-    -> [String] -> [ParameterType]
-    -> [(String, String)] -> [(String, ParameterType)]
+    -> [String]
+    -> [(String, String)]
+    -> [ParameterType]
+    -> [ParameterType]
+    -> [(String, ParameterType)]
     -> FruitTart ()
 invokeDynamicFunction controllerName actionName
                       dynamicFunction
-                      urlParameters urlParameterTypes
-                      namedParameters namedParameterTypes
-    = let handleURLParameters urlParameters urlParameterTypes actualParameters =
-              case urlParameterTypes of
-                [] -> case urlParameters of
-                        [] -> return $ Right $ reverse actualParameters
-                        _ -> do
-                          result <- errorActionParameters controllerName actionName
-                          return $ Left $ result
-                (parameterType:restURLParameterTypes)
-                    -> case urlParameters of
-                         (parameter:restURLParameters)
-                             | validateParameter parameterType parameter
-                             -> handleURLParameters restURLParameters
-                                                    restURLParameterTypes
-                                                    (readParameter parameterType
-                                                                   parameter
-                                                     : actualParameters)
-                         _ -> do
-                           result <- errorActionParameters controllerName actionName
-                           return $ Left $ result
-          handleNamedParameters namedParameters namedParameterTypes actualParameters =
-              case namedParameterTypes of
-                [] -> case namedParameters of
-                        [] -> return $ Right $ reverse actualParameters
-                        _ -> do
-                          result <- errorActionParameters controllerName actionName
-                          return $ Left $ result
-                ((formalParameterName, parameterType):restNamedParameterTypes)
-                    -> case namedParameters of
-                         ((actualParameterName, parameter):restNamedParameters)
-                             | (formalParameterName == actualParameterName)
-                               && (validateParameter parameterType parameter)
-                             -> handleNamedParameters restNamedParameters
-                                                      restNamedParameterTypes
-                                                      ((dynamicJust
-                                                        parameterType
-                                                        $ readParameter parameterType
-                                                                        parameter)
-                                                       : actualParameters)
-                         ((actualParameterName, parameter):restNamedParameters)
-                             | (formalParameterName == actualParameterName)
-                             -> do
-                               result <- errorActionParameters controllerName actionName
-                               return $ Left $ result
-                         _ -> handleNamedParameters namedParameters
-                                                    restNamedParameterTypes
-                                                    (dynamicNothing parameterType
-                                                     : actualParameters)
-          dynApplyAll dynamicFunction [] = dynamicFunction
-          dynApplyAll dynamicFunction (parameter:rest)
-              = dynApplyAll (dynApp dynamicFunction parameter) rest in
-      do
-        eitherErrorActualURLParameters
-            <- handleURLParameters urlParameters urlParameterTypes []
-        case eitherErrorActualURLParameters of
-          Left error -> return error
-          Right actualURLParameters -> do
-            eitherErrorActualNamedParameters
-                <- handleNamedParameters namedParameters namedParameterTypes []
-            case eitherErrorActualNamedParameters of
-              Left error -> return error
-              Right actualNamedParameters -> do
-                fromJust
-                $ fromDynamic
-                  $ dynApplyAll dynamicFunction
-                                (concat [actualURLParameters, actualNamedParameters])
+                      unnamedParameters
+                      namedParameters
+                      mandatoryParameterTypes
+                      optionalParameterTypes
+                      namedParameterTypes
+ = do
+  let handleMandatoryParameters strings types values =
+        case types of
+          [] -> case strings of
+                  [] -> return $ Just $ reverse values
+                  _ -> return Nothing
+          (type':restTypes)
+              -> case strings of
+                   (string:restStrings)
+                       | validateParameter type' string
+                       -> handleMandatoryParameters restStrings
+                                                    restTypes
+                                                    (readParameter type' string
+                                                     : values)
+                   _ -> return Nothing
+      handleOptionalParameters strings types values =
+        case types of
+          [] -> case strings of
+                  [] -> return $ Just $ reverse values
+                  _ -> return Nothing
+          (type':restTypes)
+              -> case strings of
+                   (string:restStrings)
+                       | validateParameter type' string
+                       -> handleOptionalParameters restStrings
+                                                   restTypes
+                                                   ((dynamicJust type'
+                                                      $ readParameter type' string)
+                                                    : values)
+                   _ -> handleOptionalParameters []
+                                                 restTypes
+                                                 (dynamicNothing type' : values)
+      handleNamedParameters namedParameters namedParameterTypes actualParameters =
+        case namedParameterTypes of
+          [] -> case namedParameters of
+                  [] -> return $ Just $ reverse actualParameters
+                  _ -> return Nothing
+          ((formalParameterName, parameterType):restNamedParameterTypes)
+              -> case namedParameters of
+                   ((actualParameterName, parameter):restNamedParameters)
+                       | (formalParameterName == actualParameterName)
+                         && (validateParameter parameterType parameter)
+                       -> handleNamedParameters restNamedParameters
+                                                restNamedParameterTypes
+                                                ((dynamicJust
+                                                  parameterType
+                                                  $ readParameter parameterType
+                                                                  parameter)
+                                                 : actualParameters)
+                   ((actualParameterName, parameter):restNamedParameters)
+                       | (formalParameterName == actualParameterName)
+                       -> return Nothing
+                   _ -> handleNamedParameters namedParameters
+                                              restNamedParameterTypes
+                                              (dynamicNothing parameterType
+                                               : actualParameters)
+      dynApplyAll dynamicFunction [] = dynamicFunction
+      dynApplyAll dynamicFunction (parameter:rest)
+              = dynApplyAll (dynApp dynamicFunction parameter) rest
+      nUnnamedParameters = length unnamedParameters
+      nMandatoryParameters = length mandatoryParameterTypes
+      mandatoryParameters = if (nMandatoryParameters > nUnnamedParameters)
+                              then unnamedParameters
+                              else take nMandatoryParameters unnamedParameters
+      optionalParameters = if (nMandatoryParameters > nUnnamedParameters)
+                             then []
+                             else drop nMandatoryParameters unnamedParameters
+  maybeMandatoryValues
+    <- handleMandatoryParameters mandatoryParameters mandatoryParameterTypes []
+  maybeOptionalValues
+    <- handleOptionalParameters optionalParameters optionalParameterTypes []
+  maybeNamedValues
+    <- handleNamedParameters namedParameters namedParameterTypes []
+  case (maybeMandatoryValues, maybeOptionalValues, maybeNamedValues) of
+    (Just mandatoryValues, Just optionalValues, Just namedValues) ->
+        fromJust $ fromDynamic $ dynApplyAll dynamicFunction
+                                             $ concat [mandatoryValues,
+                                                       optionalValues,
+                                                       namedValues]
+    _ -> errorActionParameters controllerName actionName
 
 
 validateParameter :: ParameterType -> String -> Bool

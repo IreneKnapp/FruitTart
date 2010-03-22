@@ -20,18 +20,18 @@ import Network.FruitTart.Base.View.Templates
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [], [], toDyn index),
-                       ("edit-index", "GET", [], [], toDyn editIndex),
-                       ("edit-node", "GET", [IDParameter], [], toDyn editNodeGET),
-                       ("edit-variable", "GET", [StringParameter], [],
+    = makeActionTable [("index", "GET", [], [], [], toDyn index),
+                       ("edit-index", "GET", [], [], [], toDyn editIndex),
+                       ("edit-node", "GET", [IDParameter], [], [], toDyn editNodeGET),
+                       ("edit-variable", "GET", [StringParameter], [], [],
                         toDyn editVariableGET),
-                       ("create-node", "GET", [], [], toDyn createNodeGET),
-                       ("create-variable", "GET", [], [], toDyn createVariableGET),
-                       ("edit-node", "POST", [IDParameter], [], toDyn editNodePOST),
-                       ("edit-variable", "POST", [StringParameter], [],
+                       ("create-node", "GET", [], [], [], toDyn createNodeGET),
+                       ("create-variable", "GET", [], [], [], toDyn createVariableGET),
+                       ("edit-node", "POST", [IDParameter], [], [], toDyn editNodePOST),
+                       ("edit-variable", "POST", [StringParameter], [], [],
                         toDyn editVariablePOST),
-                       ("create-node", "POST", [], [], toDyn createNodePOST),
-                       ("create-variable", "POST", [], [], toDyn createVariablePOST)]
+                       ("create-node", "POST", [], [], [], toDyn createNodePOST),
+                       ("create-variable", "POST", [], [], [], toDyn createVariablePOST)]
 
 
 index :: FruitTart ()

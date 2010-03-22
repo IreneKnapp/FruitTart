@@ -72,6 +72,7 @@ instance MonadFastCGI FruitTart where
 type ActionTable = Map String
                        (Map String
                             ([ParameterType],
+                             [ParameterType],
                              [(String, ParameterType)],
                              Dynamic))
 type ControllerTable = Map String ActionTable
@@ -96,18 +97,32 @@ data Interface = Interface {
 
 
 makeActionTable
-    :: [(String, String, [ParameterType], [(String, ParameterType)], Dynamic)]
+    :: [(String,
+         String,
+         [ParameterType],
+         [ParameterType],
+         [(String, ParameterType)],
+         Dynamic)]
     -> ActionTable
 makeActionTable allActions
     = Map.fromList
-      $ map (\actionsWithName@((name, _, _, _, _):_)
+      $ map (\actionsWithName@((name, _, _, _, _, _):_)
              -> (name,
                  Map.fromList
-                 $ map (\(_, method, parameters, namedParameters, function)
-                        -> (method, (parameters, namedParameters, function)))
+                 $ map (\(_,
+                          method,
+                          mandatoryParameters,
+                          optionalParameters,
+                          namedParameters,
+                          function)
+                        -> (method, (mandatoryParameters,
+                                     optionalParameters,
+                                     namedParameters,
+                                     function)))
                        actionsWithName))
-            $ groupBy (\(nameA, _, _, _, _) (nameB, _, _, _, _) -> nameA == nameB)
-                      $ sortBy (\(nameA, methodA, _, _, _) (nameB, methodB, _, _, _)
+            $ groupBy (\(nameA, _, _, _, _, _) (nameB, _, _, _, _, _) -> nameA == nameB)
+                      $ sortBy (\(nameA, methodA, _, _, _, _)
+                                 (nameB, methodB, _, _, _, _)
                                 -> let compareNames = compare nameA nameB
                                        compareMethods = compare methodA methodB
                                    in if compareNames == EQ

@@ -20,27 +20,27 @@ import Network.FruitTart.Util
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("now", "GET", [], [], toDyn now),
-                       ("index", "GET", [IDParameter], [], toDyn index),
-                       ("issue", "GET", [IDParameter], [], toDyn issueGET),
-                       ("issue", "POST", [IDParameter], [], toDyn issuePOST),
+    = makeActionTable [("now", "GET", [], [], [], toDyn now),
+                       ("index", "GET", [IDParameter], [], [], toDyn index),
+                       ("issue", "GET", [IDParameter], [], [], toDyn issueGET),
+                       ("issue", "POST", [IDParameter], [], [], toDyn issuePOST),
                        ("user-issue-change", "GET",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueChangeGET),
                        ("user-issue-change", "POST",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueChangePOST),
                        ("user-issue-comment", "GET",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueCommentGET),
                        ("user-issue-comment", "POST",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueCommentPOST),
                        ("user-issue-attachment", "GET",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueAttachmentGET),
                        ("user-issue-attachment", "POST",
-                        [IDParameter, IDParameter, IDParameter], [],
+                        [IDParameter, IDParameter, IDParameter], [], [],
                         toDyn userIssueAttachmentPOST)]
 
 

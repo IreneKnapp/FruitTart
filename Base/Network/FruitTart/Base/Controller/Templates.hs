@@ -21,14 +21,14 @@ import Network.FruitTart.Util
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [], [], toDyn index),
-                       ("view", "GET", [IDParameter], [], toDyn view),
-                       ("create", "GET", [], [], toDyn createGET),
-                       ("create", "POST", [], [], toDyn createPOST),
-                       ("edit", "POST", [IDParameter], [], toDyn edit),
-                       ("copy", "GET", [IDParameter], [], toDyn copy),
-                       ("delete", "GET", [IDParameter], [], toDyn deleteGET),
-                       ("delete", "POST", [IDParameter], [], toDyn deletePOST)]
+    = makeActionTable [("index", "GET", [], [], [], toDyn index),
+                       ("view", "GET", [IDParameter], [], [], toDyn view),
+                       ("create", "GET", [], [], [], toDyn createGET),
+                       ("create", "POST", [], [], [], toDyn createPOST),
+                       ("edit", "POST", [IDParameter], [], [], toDyn edit),
+                       ("copy", "GET", [IDParameter], [], [], toDyn copy),
+                       ("delete", "GET", [IDParameter], [], [], toDyn deleteGET),
+                       ("delete", "POST", [IDParameter], [], [], toDyn deletePOST)]
 
 
 index :: FruitTart ()

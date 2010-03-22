@@ -21,13 +21,13 @@ import Network.FruitTart.Base.View.Templates
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("login", "GET", [], [], toDyn loginGET),
-                       ("login", "POST", [], [], toDyn loginPOST),
-                       ("logout", "GET", [], [], toDyn logout),
-                       ("account", "GET", [], [], toDyn accountGET),
-                       ("account", "POST", [], [], toDyn accountPOST),
-                       ("password", "GET", [], [], toDyn passwordGET),
-                       ("password", "POST", [], [], toDyn passwordPOST)]
+    = makeActionTable [("login", "GET", [], [], [], toDyn loginGET),
+                       ("login", "POST", [], [], [], toDyn loginPOST),
+                       ("logout", "GET", [], [], [], toDyn logout),
+                       ("account", "GET", [], [], [], toDyn accountGET),
+                       ("account", "POST", [], [], [], toDyn accountPOST),
+                       ("password", "GET", [], [], [], toDyn passwordGET),
+                       ("password", "POST", [], [], [], toDyn passwordPOST)]
 
 
 loginGET :: FruitTart ()

@@ -19,7 +19,7 @@ import Network.FruitTart.Base.View.Templates
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [], [], toDyn index)]
+    = makeActionTable [("index", "GET", [], [], [], toDyn index)]
 
 
 index :: FruitTart ()

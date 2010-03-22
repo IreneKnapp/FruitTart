@@ -26,15 +26,15 @@ import Network.FruitTart.Captcha.Controller.Captcha hiding (actionTable)
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [],
+    = makeActionTable [("index", "GET", [], [],
                         [("which", StringParameter),
                          ("module", EitherStringIDParameter)],
                         toDyn index),
-                       ("view", "GET", [IDParameter], [], toDyn view),
-                       ("create", "GET", [], [], toDyn createGET),
-                       ("create", "POST", [], [], toDyn createPOST),
-                       ("comment", "POST", [IDParameter], [], toDyn comment),
-                       ("edit", "POST", [IDParameter], [], toDyn edit)]
+                       ("view", "GET", [IDParameter], [], [], toDyn view),
+                       ("create", "GET", [], [], [], toDyn createGET),
+                       ("create", "POST", [], [], [], toDyn createPOST),
+                       ("comment", "POST", [IDParameter], [], [], toDyn comment),
+                       ("edit", "POST", [IDParameter], [], [], toDyn edit)]
 
 
 index :: Maybe String -> Maybe (Either String Int64) -> FruitTart ()

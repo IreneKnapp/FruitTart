@@ -18,7 +18,7 @@ import Network.FruitTart.Util
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [IDParameter], [], toDyn index)]
+    = makeActionTable [("index", "GET", [IDParameter], [], [], toDyn index)]
 
 
 index :: Int64 -> FruitTart ()
