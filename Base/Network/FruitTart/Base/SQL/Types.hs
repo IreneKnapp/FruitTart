@@ -12,19 +12,18 @@ import qualified Data.ByteString as BS
 import Data.Char
 import Data.Int
 import Data.List
+import Data.Word
 import Numeric
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Typeable
-
-import Network.FruitTart.Util
 
 
 class ShowTokens a where
     showTokens :: a -> [Token]
 
 
-data Type = Type String (Maybe (Either Double Int64, Maybe (Either Double Int64)))
+data Type = Type String (Maybe (Either Double Word64, Maybe (Either Double Word64)))
 instance ShowTokens Type where
     showTokens (Type name Nothing)
         = [Identifier name]
@@ -41,13 +40,11 @@ instance ShowTokens Type where
           ++ showTokens maxLength
           ++ [PunctuationRightParenthesis]
 
-instance ShowTokens (Either Double Int64) where
+instance ShowTokens (Either Double Word64) where
     showTokens (Left double)
         | double < 0 = [PunctuationMinus, LiteralFloat $ abs double]
         | otherwise = [LiteralFloat double]
-    showTokens (Right integer)
-        | integer < 0 = [PunctuationMinus, LiteralInteger $ abs integer]
-        | otherwise = [LiteralInteger integer]
+    showTokens (Right word) = [LiteralInteger word]
 
 data LikeType = Like
               | NotLike
@@ -67,7 +64,7 @@ instance ShowTokens LikeType where
     showTokens Match = [KeywordMatch]
     showTokens NotMatch = [KeywordNot, KeywordMatch]
 
-data Expression = ExpressionLiteralInteger Int64
+data Expression = ExpressionLiteralInteger Word64
                 | ExpressionLiteralFloat Double
                 | ExpressionLiteralString String
                 | ExpressionLiteralBlob BS.ByteString
@@ -76,7 +73,7 @@ data Expression = ExpressionLiteralInteger Int64
                 | ExpressionLiteralCurrentDate
                 | ExpressionLiteralCurrentTimestamp
                 | ExpressionVariable
-                | ExpressionVariableN Int64
+                | ExpressionVariableN Word64
                 | ExpressionVariableNamed String
                 | ExpressionIdentifier DoublyQualifiedIdentifier
                 | ExpressionUnaryNegative Expression
@@ -398,21 +395,182 @@ instance ShowTokens MaybeIfNotExists where
     showTokens NoIfNotExists = []
     showTokens IfNotExists = [KeywordIf, KeywordNot, KeywordExists]
 
-data MaybeIfExists = NoIfExists | IfExists;
+data MaybeIfExists = NoIfExists | IfExists
 instance ShowTokens MaybeIfExists where
     showTokens NoIfExists = []
     showTokens IfExists = [KeywordIf, KeywordExists]
 
-data MaybeForEachRow = NoForEachRow | ForEachRow;
+data MaybeForEachRow = NoForEachRow | ForEachRow
 instance ShowTokens MaybeForEachRow where
     showTokens NoForEachRow = []
     showTokens ForEachRow = [KeywordFor, KeywordEach, KeywordRow]
 
-data Permanence = Permanent | Temp | Temporary;
+data Permanence = Permanent | Temp | Temporary
 instance ShowTokens Permanence where
     showTokens Permanent = []
     showTokens Temp = [KeywordTemp]
     showTokens Temporary = [KeywordTemporary]
+
+data MaybeCollation = NoCollation | Collation UnqualifiedIdentifier
+instance ShowTokens MaybeCollation where
+    showTokens NoCollation = []
+    showTokens (Collation name) = [KeywordCollate] ++ showTokens name
+
+data MaybeAscDesc = NoAscDesc | Asc | Desc
+instance ShowTokens MaybeAscDesc where
+    showTokens NoAscDesc = []
+    showTokens Asc = [KeywordAsc]
+    showTokens Desc = [KeywordDesc]
+
+data MaybeAutoincrement = NoAutoincrement | Autoincrement
+instance ShowTokens MaybeAutoincrement where
+    showTokens NoAutoincrement = []
+    showTokens Autoincrement = [KeywordAutoincrement]
+
+data MaybeSign = NoSign | PositiveSign | NegativeSign
+instance ShowTokens MaybeSign where
+    showTokens NoSign = []
+    showTokens PositiveSign = [PunctuationPlus]
+    showTokens NegativeSign = [PunctuationMinus]
+
+data ColumnDefinition
+    = ColumnDefinition UnqualifiedIdentifier (Maybe Type) [ColumnConstraint]
+instance ShowTokens ColumnDefinition where
+    showTokens (ColumnDefinition name maybeType constraints)
+        = showTokens name
+          ++ (case maybeType of
+                Nothing -> []
+                Just typeName -> showTokens typeName)
+          ++ (concat $ map showTokens constraints)
+
+data DefaultValue
+    = DefaultValueSignedInteger MaybeSign Word64
+    | DefaultValueSignedFloat MaybeSign Double
+    | DefaultValueLiteralString String
+    | DefaultValueLiteralBlob BS.ByteString
+    | DefaultValueLiteralNull
+    | DefaultValueLiteralCurrentTime
+    | DefaultValueLiteralCurrentDate
+    | DefaultValueLiteralCurrentTimestamp
+    | DefaultValueExpression Expression
+instance ShowTokens DefaultValue where
+    showTokens (DefaultValueSignedInteger maybeSign word)
+        = showTokens maybeSign
+          ++ [LiteralInteger word]
+    showTokens (DefaultValueSignedFloat maybeSign double)
+        = showTokens maybeSign
+          ++ [LiteralFloat double]
+    showTokens (DefaultValueLiteralString string)
+        = [LiteralString string]
+    showTokens (DefaultValueLiteralBlob bytestring)
+        = [LiteralBlob bytestring]
+    showTokens DefaultValueLiteralNull
+        = [KeywordNull]
+    showTokens DefaultValueLiteralCurrentTime
+        = [KeywordCurrentTime]
+    showTokens DefaultValueLiteralCurrentDate
+        = [KeywordCurrentDate]
+    showTokens DefaultValueLiteralCurrentTimestamp
+        = [KeywordCurrentTimestamp]
+    showTokens (DefaultValueExpression expression)
+        = [PunctuationLeftParenthesis]
+          ++ showTokens expression
+          ++ [PunctuationRightParenthesis]
+
+data IndexedColumn
+    = IndexedColumn UnqualifiedIdentifier MaybeCollation MaybeAscDesc
+instance ShowTokens IndexedColumn where
+    showTokens (IndexedColumn name maybeCollation maybeAscDesc)
+        = showTokens name
+          ++ showTokens maybeCollation
+          ++ showTokens maybeAscDesc
+
+data ColumnConstraint
+    = ColumnPrimaryKey UnqualifiedIdentifier
+                       MaybeAscDesc
+                       ConflictClause
+                       MaybeAutoincrement
+    | ColumnNotNull UnqualifiedIdentifier ConflictClause
+    | ColumnUnique UnqualifiedIdentifier ConflictClause
+    | ColumnCheck UnqualifiedIdentifier Expression
+    | ColumnDefault UnqualifiedIdentifier DefaultValue
+    | ColumnCollate UnqualifiedIdentifier UnqualifiedIdentifier
+    | ColumnForeignKey UnqualifiedIdentifier ForeignKeyClause
+instance ShowTokens ColumnConstraint where
+    showTokens (ColumnPrimaryKey constraintName
+                                 maybeAscDesc
+                                 conflictClause
+                                 maybeAutoincrement)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordPrimary, KeywordKey]
+          ++ showTokens maybeAscDesc
+          ++ showTokens conflictClause
+          ++ showTokens maybeAutoincrement
+    showTokens (ColumnNotNull constraintName conflictClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordNot, KeywordNull]
+          ++ showTokens conflictClause
+    showTokens (ColumnUnique constraintName conflictClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordUnique]
+          ++ showTokens conflictClause
+    showTokens (ColumnCheck constraintName expression)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordCheck, PunctuationLeftParenthesis]
+          ++ showTokens expression
+          ++ [PunctuationRightParenthesis]
+    showTokens (ColumnDefault constraintName defaultValue)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordDefault]
+          ++ showTokens defaultValue
+    showTokens (ColumnCollate constraintName collationName)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordCollate]
+          ++ showTokens collationName
+    showTokens (ColumnForeignKey constraintName foreignKeyClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ showTokens foreignKeyClause
+
+data TableConstraint
+    = TablePrimaryKey UnqualifiedIdentifier [IndexedColumn] ConflictClause
+    | TableUnique UnqualifiedIdentifier [IndexedColumn] ConflictClause
+    | TableCheck UnqualifiedIdentifier Expression
+    | TableForeignKey UnqualifiedIdentifier [UnqualifiedIdentifier] ForeignKeyClause
+instance ShowTokens TableConstraint where
+    showTokens (TablePrimaryKey constraintName indexedColumns conflictClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordPrimary, KeywordKey, PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma] $ map showTokens indexedColumns)
+          ++ [PunctuationRightParenthesis]
+          ++ showTokens conflictClause
+    showTokens (TableUnique constraintName indexedColumns conflictClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordUnique, PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma] $ map showTokens indexedColumns)
+          ++ [PunctuationRightParenthesis]
+          ++ showTokens conflictClause
+    showTokens (TableCheck constraintName expression)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordCheck, PunctuationLeftParenthesis]
+          ++ showTokens expression
+          ++ [PunctuationRightParenthesis]
+    showTokens (TableForeignKey constraintName columns foreignKeyClause)
+        = [KeywordConstraint]
+          ++ showTokens constraintName
+          ++ [KeywordForeign, KeywordKey, PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma] $ map showTokens columns)
+          ++ [PunctuationRightParenthesis]
+          ++ showTokens foreignKeyClause
 
 data TriggerTime = Before | After | InsteadOf;
 instance ShowTokens TriggerTime where
@@ -430,20 +588,126 @@ instance ShowTokens TriggerCondition where
                                                        (map showTokens columnNames)
                                         ++ [KeywordOn]
 
+data ModuleArgument = ModuleArgument String
+instance ShowTokens ModuleArgument where
+    showTokens (ModuleArgument string) = [ModuleArgumentToken string]
+
+data TriggerStatement
+    = TriggerL0TNS (Statement L0 T NS)
+    | TriggerL0TS (Statement L0 T S)
+instance ShowTokens TriggerStatement where
+    showTokens (TriggerL0TNS statement) = showTokens statement
+    showTokens (TriggerL0TS statement) = showTokens statement
+
 data WhenClause = When Expression;
 instance ShowTokens WhenClause where
     showTokens (When expression) = [KeywordWhen] ++ showTokens expression
+
+data ConflictClause
+    = NoConflictClause
+    | OnConflictRollback
+    | OnConflictAbort
+    | OnConflictFail
+    | OnConflictIgnore
+    | OnConflictReplace
+instance ShowTokens ConflictClause where
+    showTokens NoConflictClause = []
+    showTokens OnConflictRollback = [KeywordOn, KeywordConflict, KeywordRollback]
+    showTokens OnConflictAbort = [KeywordOn, KeywordConflict, KeywordAbort]
+    showTokens OnConflictFail = [KeywordOn, KeywordConflict, KeywordFail]
+    showTokens OnConflictIgnore = [KeywordOn, KeywordConflict, KeywordIgnore]
+    showTokens OnConflictReplace = [KeywordOn, KeywordConflict, KeywordReplace]
+
+data ForeignKeyClause
+    = References UnqualifiedIdentifier
+                 [UnqualifiedIdentifier]
+                 [ForeignKeyClauseActionOrMatchPart]
+                 (Maybe ForeignKeyClauseDeferrablePart)
+instance ShowTokens ForeignKeyClause where
+    showTokens (References tableName
+                           columnNames
+                           actionOrMatchParts
+                           maybeDeferrablePart)
+        = [KeywordReferences]
+          ++ (case columnNames of
+                [] -> []
+                _ -> [PunctuationLeftParenthesis]
+                     ++ (intercalate [PunctuationComma] $ map showTokens columnNames)
+                     ++ [PunctuationRightParenthesis])
+          ++ (concat $ map showTokens actionOrMatchParts)
+          ++ (case maybeDeferrablePart of
+                Nothing -> []
+                Just deferrablePart -> showTokens deferrablePart)
+
+data ForeignKeyClauseActionOrMatchPart
+    = OnDelete ForeignKeyClauseActionPart
+    | OnUpdate ForeignKeyClauseActionPart
+    | ReferencesMatch UnqualifiedIdentifier
+instance ShowTokens ForeignKeyClauseActionOrMatchPart where
+    showTokens (OnDelete actionPart)
+        = [KeywordOn, KeywordDelete]
+          ++ showTokens actionPart
+    showTokens (OnUpdate actionPart)
+        = [KeywordOn, KeywordUpdate]
+          ++ showTokens actionPart
+    showTokens (ReferencesMatch name)
+        = [KeywordMatch]
+          ++ showTokens name
+
+data ForeignKeyClauseActionPart
+    = SetNull
+    | SetDefault
+    | Cascade
+    | Restrict
+    | NoAction
+instance ShowTokens ForeignKeyClauseActionPart where
+    showTokens SetNull = [KeywordSet, KeywordNull]
+    showTokens SetDefault = [KeywordSet, KeywordDefault]
+    showTokens Cascade = [KeywordCascade]
+    showTokens Restrict = [KeywordRestrict]
+    showTokens NoAction = [KeywordNo, KeywordAction]
+
+data ForeignKeyClauseDeferrablePart
+    = Deferrable MaybeInitialDeferralStatus
+    | NotDeferrable MaybeInitialDeferralStatus
+instance ShowTokens ForeignKeyClauseDeferrablePart where
+    showTokens (Deferrable maybeInitialDeferralStatus)
+        = [KeywordDeferrable]
+          ++ showTokens maybeInitialDeferralStatus
+    showTokens (NotDeferrable maybeInitialDeferralStatus)
+        = [KeywordNot, KeywordDeferrable]
+          ++ showTokens maybeInitialDeferralStatus
+
+data MaybeInitialDeferralStatus
+    = NoInitialDeferralStatus
+    | InitiallyDeferred
+    | InitiallyImmediate
+instance ShowTokens MaybeInitialDeferralStatus where
+    showTokens NoInitialDeferralStatus = []
+    showTokens InitiallyDeferred = [KeywordInitially, KeywordDeferred]
+    showTokens InitiallyImmediate = [KeywordInitially, KeywordImmediate]
 
 data Statement level triggerable valueReturning where
     Explain :: Statement L0 a1 a2 -> Statement L1 NT NS
     ExplainQueryPlan :: Statement L0 a1 a2 -> Statement L1 NT NS
     AlterTable :: Statement L0 NT NS
+        -- TODO correct type
     Analyze :: Statement L0 NT NS
+        -- TODO correct type
     Attach :: Statement L0 NT NS
+        -- TODO correct type
     Begin :: Statement L0 NT NS
+        -- TODO correct type
     Commit :: Statement L0 NT NS
+        -- TODO correct type
     CreateIndex :: Statement L0 NT NS
-    CreateTable :: Statement L0 NT NS
+        -- TODO correct type
+    CreateTable
+        :: Permanence
+        -> MaybeIfNotExists
+        -> SinglyQualifiedIdentifier
+        -> (Either ([ColumnDefinition], [TableConstraint]) (Statement L0 T S))
+        -> Statement L0 NT NS
     CreateTrigger
         :: Permanence
         -> MaybeIfNotExists
@@ -453,30 +717,55 @@ data Statement level triggerable valueReturning where
         -> UnqualifiedIdentifier
         -> MaybeForEachRow
         -> (Maybe WhenClause)
-        -> [Statement a1 T a2]
+        -> [TriggerStatement]
         -> Statement L0 NT NS
-    CreateView :: Statement L0 NT NS
-    CreateVirtualTable :: Statement L0 NT NS
+    CreateView
+        :: Permanence
+        -> MaybeIfNotExists
+        -> SinglyQualifiedIdentifier
+        -> (Statement L0 T S)
+        -> Statement L0 NT NS
+    CreateVirtualTable
+        :: SinglyQualifiedIdentifier
+        -> UnqualifiedIdentifier
+        -> [ModuleArgument]
+        -> Statement L0 NT NS
     Delete :: Statement L0 T NS
+        -- TODO correct type
     DeleteLimited :: Statement L0 NT NS
+        -- TODO correct type
     Detach :: Statement L0 NT NS
+        -- TODO correct type
     DropIndex :: Statement L0 NT NS
+        -- TODO correct type
     DropTable :: Statement L0 NT NS
+        -- TODO correct type
     DropTrigger :: Statement L0 NT NS
+        -- TODO correct type
     DropView
         :: MaybeIfExists
         -> SinglyQualifiedIdentifier
         -> Statement L0 NT NS
     Insert :: Statement L0 T NS
+        -- TODO correct type
     Pragma :: Statement L0 NT NS
+        -- TODO correct type
     Reindex :: Statement L0 NT NS
+        -- TODO correct type
     Release :: Statement L0 NT NS
+        -- TODO correct type
     Rollback :: Statement L0 NT NS
+        -- TODO correct type
     Savepoint :: Statement L0 NT NS
+        -- TODO correct type
     Select :: Statement L0 T S
+        -- TODO correct type
     Update :: Statement L0 T NS
+        -- TODO correct type
     UpdateLimited :: Statement L0 NT NS
+        -- TODO correct type
     Vacuum :: Statement L0 NT NS
+        -- TODO correct type
 
 
 instance ShowTokens (Statement a b c) where
@@ -487,19 +776,40 @@ instance ShowTokens (Statement a b c) where
         = [KeywordExplain, KeywordQuery, KeywordPlan]
           ++ showTokens statement
     showTokens AlterTable
+        -- TODO correct instance
         = [KeywordAlter, KeywordTable]
     showTokens Analyze
+        -- TODO correct instance
         = [KeywordAnalyze]
     showTokens Attach
+        -- TODO correct instance
         = [KeywordAttach]
     showTokens Begin
+        -- TODO correct instance
         = [KeywordBegin]
     showTokens Commit
+        -- TODO correct instance
         = [KeywordCommit]
     showTokens CreateIndex
+        -- TODO correct instance
         = [KeywordCreate, KeywordIndex]
-    showTokens CreateTable
-        = [KeywordCreate, KeywordTable]
+    showTokens (CreateTable permanence maybeIfNotExists name
+                            eitherColumnsAndConstraintsSelect)
+        = [KeywordCreate]
+          ++ showTokens permanence
+          ++ [KeywordTable]
+          ++ showTokens maybeIfNotExists
+          ++ showTokens name
+          ++ (case eitherColumnsAndConstraintsSelect of
+                Left (columns, constraints)
+                    -> [PunctuationLeftParenthesis]
+                       ++ (intercalate [PunctuationComma]
+                                       $ concat [map showTokens columns,
+                                                 map showTokens constraints])
+                       ++ [PunctuationRightParenthesis]
+                Right select
+                    -> [KeywordAs]
+                       ++ showTokens select)
     showTokens (CreateTrigger permanence maybeIfNotExists name time condition
                               tableName maybeForEachRow maybeWhenClause
                               statements)
@@ -516,46 +826,75 @@ instance ShowTokens (Statement a b c) where
                 Nothing -> []
                 Just whenClause -> showTokens whenClause)
           ++ (intercalate [PunctuationSemicolon] $ map showTokens statements)
-          ++ [KeywordEnd]
-    showTokens CreateView
-        = [KeywordCreate, KeywordView]
-    showTokens CreateVirtualTable
+          ++ [PunctuationSemicolon, KeywordEnd]
+    showTokens (CreateView permanence maybeIfNotExists viewName selectStatement)
+        = [KeywordCreate]
+          ++ showTokens permanence
+          ++ [KeywordView]
+          ++ showTokens maybeIfNotExists
+          ++ showTokens viewName
+          ++ [KeywordAs]
+          ++ showTokens selectStatement
+    showTokens (CreateVirtualTable tableName moduleName moduleArguments)
         = [KeywordCreate, KeywordVirtual, KeywordTable]
+          ++ showTokens tableName
+          ++ [KeywordUsing]
+          ++ showTokens moduleName
+          ++ [PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma] $ map showTokens moduleArguments)
+          ++ [PunctuationRightParenthesis]
     showTokens Delete
+        -- TODO correct instance
         = [KeywordDelete]
     showTokens DeleteLimited
+        -- TODO correct instance
         = [KeywordDelete, KeywordLimit]
     showTokens Detach
+        -- TODO correct instance
         = [KeywordDetach]
     showTokens DropIndex
+        -- TODO correct instance
         = [KeywordDrop, KeywordIndex]
     showTokens DropTable
+        -- TODO correct instance
         = [KeywordDrop, KeywordTable]
     showTokens DropTrigger
+        -- TODO correct instance
         = [KeywordDrop, KeywordTrigger]
-    showTokens (DropView ifExists name)
+    showTokens (DropView maybeIfExists name)
+        -- TODO correct instance
         = [KeywordDrop, KeywordView]
-          ++ showTokens ifExists
+          ++ showTokens maybeIfExists
           ++ showTokens name
     showTokens Insert
+        -- TODO correct instance
         = [KeywordInsert]
     showTokens Pragma
+        -- TODO correct instance
         = [KeywordPragma]
     showTokens Reindex
+        -- TODO correct instance
         = [KeywordReindex]
     showTokens Release
+        -- TODO correct instance
         = [KeywordRelease]
     showTokens Rollback
+        -- TODO correct instance
         = [KeywordRollback]
     showTokens Savepoint
+        -- TODO correct instance
         = [KeywordSavepoint]
     showTokens Select
+        -- TODO correct instance
         = [KeywordSelect]
     showTokens Update
+        -- TODO correct instance
         = [KeywordUpdate]
     showTokens UpdateLimited
+        -- TODO correct instance
         = [KeywordUpdate, KeywordLimit]
     showTokens Vacuum
+        -- TODO correct instance
         = [KeywordVacuum]
 
 
@@ -593,13 +932,14 @@ instance ShowTokens DoublyQualifiedIdentifier where
 
 
 data Token = Identifier String
-           | LiteralInteger Int64
+           | LiteralInteger Word64
            | LiteralFloat Double
            | LiteralString String
            | LiteralBlob BS.ByteString
            | Variable
-           | VariableN Int64
+           | VariableN Word64
            | VariableNamed String
+           | ModuleArgumentToken String
            | PunctuationBarBar
            | PunctuationStar
            | PunctuationSlash
@@ -774,6 +1114,7 @@ instance Show Token where
     show Variable = "?"
     show (VariableN n) = "?" ++ (show n)
     show (VariableNamed name) = ":" ++ name
+    show (ModuleArgumentToken string) = string
     show PunctuationBarBar = "||"
     show PunctuationStar = "*"
     show PunctuationSlash = "/"
