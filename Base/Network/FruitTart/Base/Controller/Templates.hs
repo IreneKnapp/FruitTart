@@ -21,7 +21,7 @@ import Network.FruitTart.Util
 
 actionTable :: ActionTable
 actionTable
-    = makeActionTable [("index", "GET", [], [], [], toDyn index),
+    = makeActionTable [("index", "GET", [], [StringParameter], [], toDyn index),
                        ("view", "GET", [IDParameter], [], [], toDyn view),
                        ("create", "GET", [], [], [], toDyn createGET),
                        ("create", "POST", [], [], [], toDyn createPOST),
@@ -31,13 +31,15 @@ actionTable
                        ("delete", "POST", [IDParameter], [], [], toDyn deletePOST)]
 
 
-index :: FruitTart ()
-index = do
+index :: Maybe String -> FruitTart ()
+index maybeModule = do
   right <- getRightAdminDesign
   case right of
     False -> outputMustLoginPage "/templates/index/"
     True -> do
-          bind "Templates" "pageTitle" "All Templates"
+          case maybeModule of
+            Nothing -> bind "Templates" "pageTitle" "All Templates"
+            Just module' -> bind "Templates" "pageTitle" $ "Templates in " ++ module'
           pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                            [TemplateString "Base.Templates"]
           bind "Templates" "pageHeadItems" pageHeadItems
