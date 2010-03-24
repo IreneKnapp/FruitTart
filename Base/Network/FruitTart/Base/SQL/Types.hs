@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, ExistentialQuantification #-}
+{-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, ExistentialQuantification,
+             StandaloneDeriving #-}
 module Network.FruitTart.Base.SQL.Types (
                                          ShowTokens(..),
                                          OneOrMore,
@@ -88,6 +89,9 @@ class ShowTokens a where
 
 data OneOrMore a = MkOneOrMore [a]
 
+instance (Show a) => Show (OneOrMore a) where
+    show (MkOneOrMore list) = "1" ++ show list
+
 mkOneOrMore :: [a] -> Maybe (OneOrMore a)
 mkOneOrMore [] = Nothing
 mkOneOrMore list = Just $ MkOneOrMore list
@@ -100,6 +104,9 @@ fromOneOrMore (MkOneOrMore list) = list
 
 data NonnegativeDouble = MkNonnegativeDouble Double
 
+instance Show NonnegativeDouble where
+    show (MkNonnegativeDouble double) = "+" ++ show double
+
 mkNonnegativeDouble :: Double -> Maybe NonnegativeDouble
 mkNonnegativeDouble double =
     if double < 0.0
@@ -111,6 +118,7 @@ fromNonnegativeDouble (MkNonnegativeDouble double) = double
 
 data Type = Type String (Maybe ((MaybeSign, Either NonnegativeDouble Word64),
                                 Maybe (MaybeSign, (Either NonnegativeDouble Word64))))
+            deriving (Show)
 instance ShowTokens Type where
     showTokens (Type name Nothing)
         = [Identifier name]
@@ -140,6 +148,7 @@ data LikeType = Like
               | NotRegexp
               | Match
               | NotMatch
+                deriving (Show)
 instance ShowTokens LikeType where
     showTokens Like = [KeywordLike]
     showTokens NotLike = [KeywordNot, KeywordLike]
@@ -215,6 +224,7 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionRaiseRollback String
                 | ExpressionRaiseAbort String
                 | ExpressionRaiseFail String
+                  deriving (Show)
 
 instance ShowTokens Expression where
     showTokens (ExpressionLiteralInteger word)
@@ -458,48 +468,57 @@ instance ShowTokens Expression where
 
 
 data MaybeUnique = NoUnique | Unique
+                   deriving (Show)
 instance ShowTokens MaybeUnique where
     showTokens NoUnique = []
     showTokens Unique = [KeywordUnique]
 
 data MaybeIfNotExists = NoIfNotExists | IfNotExists
+                        deriving (Show)
 instance ShowTokens MaybeIfNotExists where
     showTokens NoIfNotExists = []
     showTokens IfNotExists = [KeywordIf, KeywordNot, KeywordExists]
 
 data MaybeIfExists = NoIfExists | IfExists
+                     deriving (Show)
 instance ShowTokens MaybeIfExists where
     showTokens NoIfExists = []
     showTokens IfExists = [KeywordIf, KeywordExists]
 
 data MaybeForEachRow = NoForEachRow | ForEachRow
+                       deriving (Show)
 instance ShowTokens MaybeForEachRow where
     showTokens NoForEachRow = []
     showTokens ForEachRow = [KeywordFor, KeywordEach, KeywordRow]
 
 data Permanence = Permanent | Temp | Temporary
+                  deriving (Show)
 instance ShowTokens Permanence where
     showTokens Permanent = []
     showTokens Temp = [KeywordTemp]
     showTokens Temporary = [KeywordTemporary]
 
 data MaybeCollation = NoCollation | Collation UnqualifiedIdentifier
+                      deriving (Show)
 instance ShowTokens MaybeCollation where
     showTokens NoCollation = []
     showTokens (Collation name) = [KeywordCollate] ++ showTokens name
 
 data MaybeAscDesc = NoAscDesc | Asc | Desc
+                    deriving (Show)
 instance ShowTokens MaybeAscDesc where
     showTokens NoAscDesc = []
     showTokens Asc = [KeywordAsc]
     showTokens Desc = [KeywordDesc]
 
 data MaybeAutoincrement = NoAutoincrement | Autoincrement
+                          deriving (Show)
 instance ShowTokens MaybeAutoincrement where
     showTokens NoAutoincrement = []
     showTokens Autoincrement = [KeywordAutoincrement]
 
 data MaybeSign = NoSign | PositiveSign | NegativeSign
+                 deriving (Show)
 instance ShowTokens MaybeSign where
     showTokens NoSign = []
     showTokens PositiveSign = [PunctuationPlus]
@@ -508,6 +527,7 @@ instance ShowTokens MaybeSign where
 data AlterTableBody
     = RenameTo UnqualifiedIdentifier
     | AddColumn Bool ColumnDefinition
+      deriving (Show)
 instance ShowTokens AlterTableBody where
     showTokens (RenameTo newTableName)
         = [KeywordRename, KeywordTo]
@@ -521,6 +541,7 @@ instance ShowTokens AlterTableBody where
 
 data ColumnDefinition
     = ColumnDefinition UnqualifiedIdentifier (Maybe Type) [ColumnConstraint]
+      deriving (Show)
 instance ShowTokens ColumnDefinition where
     showTokens (ColumnDefinition name maybeType constraints)
         = showTokens name
@@ -539,6 +560,7 @@ data DefaultValue
     | DefaultValueLiteralCurrentDate
     | DefaultValueLiteralCurrentTimestamp
     | DefaultValueExpression Expression
+      deriving (Show)
 instance ShowTokens DefaultValue where
     showTokens (DefaultValueSignedInteger maybeSign word)
         = showTokens maybeSign
@@ -565,6 +587,7 @@ instance ShowTokens DefaultValue where
 
 data IndexedColumn
     = IndexedColumn UnqualifiedIdentifier MaybeCollation MaybeAscDesc
+      deriving (Show)
 instance ShowTokens IndexedColumn where
     showTokens (IndexedColumn name maybeCollation maybeAscDesc)
         = showTokens name
@@ -582,6 +605,7 @@ data ColumnConstraint
     | ColumnDefault UnqualifiedIdentifier DefaultValue
     | ColumnCollate UnqualifiedIdentifier UnqualifiedIdentifier
     | ColumnForeignKey UnqualifiedIdentifier ForeignKeyClause
+      deriving (Show)
 instance ShowTokens ColumnConstraint where
     showTokens (ColumnPrimaryKey constraintName
                                  maybeAscDesc
@@ -642,6 +666,7 @@ data TableConstraint
     | TableForeignKey UnqualifiedIdentifier
                       (OneOrMore UnqualifiedIdentifier)
                       ForeignKeyClause
+      deriving (Show)
 instance ShowTokens TableConstraint where
     showTokens (TablePrimaryKey constraintName indexedColumns maybeConflictClause)
         = [KeywordConstraint]
@@ -675,13 +700,15 @@ instance ShowTokens TableConstraint where
           ++ [PunctuationRightParenthesis]
           ++ showTokens foreignKeyClause
 
-data TriggerTime = Before | After | InsteadOf;
+data TriggerTime = Before | After | InsteadOf
+                   deriving (Show)
 instance ShowTokens TriggerTime where
     showTokens Before = [KeywordBefore]
     showTokens After = [KeywordAfter]
     showTokens InsteadOf = [KeywordInstead, KeywordOf]
     
-data TriggerCondition = DeleteOn | InsertOn | UpdateOn [UnqualifiedIdentifier];
+data TriggerCondition = DeleteOn | InsertOn | UpdateOn [UnqualifiedIdentifier]
+                        deriving (Show)
 instance ShowTokens TriggerCondition where
     showTokens DeleteOn = [KeywordDelete, KeywordOn]
     showTokens InsertOn = [KeywordInsert, KeywordOn]
@@ -692,10 +719,12 @@ instance ShowTokens TriggerCondition where
                                         ++ [KeywordOn]
 
 data ModuleArgument = ModuleArgument String
+                      deriving (Show)
 instance ShowTokens ModuleArgument where
     showTokens (ModuleArgument string) = [ModuleArgumentToken string]
 
 data TriggerStatement = forall l v . TriggerStatement (Statement l T v)
+deriving instance Show TriggerStatement
 instance ShowTokens TriggerStatement where
     showTokens (TriggerStatement statement) = showTokens statement
 
@@ -703,6 +732,7 @@ data QualifiedTableName
     = TableNoIndexedBy SinglyQualifiedIdentifier
     | TableIndexedBy SinglyQualifiedIdentifier UnqualifiedIdentifier
     | TableNotIndexed SinglyQualifiedIdentifier
+      deriving (Show)
 instance ShowTokens QualifiedTableName where
     showTokens (TableNoIndexedBy tableName) =
         showTokens tableName
@@ -715,6 +745,7 @@ instance ShowTokens QualifiedTableName where
         ++ [KeywordNot, KeywordIndexed]
 
 data OrderingTerm = OrderingTerm Expression MaybeCollation MaybeAscDesc
+                    deriving (Show)
 instance ShowTokens OrderingTerm where
     showTokens (OrderingTerm expression maybeCollation maybeAscDesc) =
         showTokens expression
@@ -723,6 +754,7 @@ instance ShowTokens OrderingTerm where
 
 data PragmaValue = EqualsPragmaValue PragmaValue'
                  | CallPragmaValue PragmaValue'
+                   deriving (Show)
 instance ShowTokens PragmaValue where
     showTokens (EqualsPragmaValue pragmaValue')
         = [PunctuationEquals]
@@ -736,6 +768,7 @@ data PragmaValue' = SignedIntegerPragmaValue MaybeSign Word64
                   | SignedFloatPragmaValue MaybeSign NonnegativeDouble
                   | NamePragmaValue UnqualifiedIdentifier
                   | StringPragmaValue String
+                    deriving (Show)
 instance ShowTokens PragmaValue' where
     showTokens (SignedIntegerPragmaValue maybeSign word)
         = showTokens maybeSign
@@ -755,6 +788,7 @@ data InsertHead = InsertNoAlternative
                 | InsertOrFail
                 | InsertOrIgnore
                 | Replace
+                  deriving (Show)
 instance ShowTokens InsertHead where
     showTokens InsertNoAlternative = [KeywordInsert]
     showTokens InsertOrRollback = [KeywordInsert, KeywordOr, KeywordRollback]
@@ -767,6 +801,7 @@ instance ShowTokens InsertHead where
 data InsertBody = InsertValues [UnqualifiedIdentifier] (OneOrMore Expression)
                 | InsertSelect [UnqualifiedIdentifier] (Statement L0 T S)
                 | InsertDefaultValues
+                  deriving (Show)
 instance ShowTokens InsertBody where
     showTokens (InsertValues columns expressions)
         = (case columns of
@@ -793,6 +828,7 @@ data UpdateHead = UpdateNoAlternative
                 | UpdateOrReplace
                 | UpdateOrFail
                 | UpdateOrIgnore
+                  deriving (Show)
 instance ShowTokens UpdateHead where
     showTokens UpdateNoAlternative = [KeywordUpdate]
     showTokens UpdateOrRollback = [KeywordUpdate, KeywordOr, KeywordRollback]
@@ -802,23 +838,27 @@ instance ShowTokens UpdateHead where
     showTokens UpdateOrIgnore = [KeywordUpdate, KeywordOr, KeywordIgnore]
 
 data Distinctness = NoDistinctness | Distinct | All
+                    deriving (Show)
 instance ShowTokens Distinctness where
     showTokens NoDistinctness = []
     showTokens Distinct = [KeywordDistinct]
     showTokens All = [KeywordAll]
 
 data MaybeHaving = NoHaving | Having Expression
+                   deriving (Show)
 instance ShowTokens MaybeHaving where
     showTokens NoHaving = []
     showTokens (Having expression) = [KeywordHaving] ++ showTokens expression
 
 data MaybeAs = NoAs | As UnqualifiedIdentifier | ElidedAs UnqualifiedIdentifier
+               deriving (Show)
 instance ShowTokens MaybeAs where
     showTokens NoAs = []
     showTokens (As thingAlias) = [KeywordAs] ++ showTokens thingAlias
     showTokens (ElidedAs thingAlias) = showTokens thingAlias
 
 data CompoundOperator = Union | UnionAll | Intersect | Except
+                        deriving (Show)
 instance ShowTokens CompoundOperator where
     showTokens Union = [KeywordUnion]
     showTokens UnionAll = [KeywordUnion, KeywordAll]
@@ -830,6 +870,7 @@ data SelectCore = SelectCore Distinctness
                              (Maybe FromClause)
                              (Maybe WhereClause)
                              (Maybe GroupClause)
+                  deriving (Show)
 instance ShowTokens SelectCore where
     showTokens (SelectCore distinctness
                            resultColumns
@@ -852,6 +893,7 @@ instance ShowTokens SelectCore where
 data ResultColumn = Star
                   | TableStar UnqualifiedIdentifier
                   | Result Expression MaybeAs
+                    deriving (Show)
 instance ShowTokens ResultColumn where
     showTokens Star
         = [PunctuationStar]
@@ -864,6 +906,7 @@ instance ShowTokens ResultColumn where
 
 data JoinSource = JoinSource SingleSource
                              [(JoinOperation, SingleSource, JoinConstraint)]
+                  deriving (Show)
 instance ShowTokens JoinSource where
     showTokens (JoinSource firstSource additionalSources)
         = showTokens firstSource
@@ -879,6 +922,7 @@ data SingleSource = TableSource SinglyQualifiedIdentifier
                   | SelectSource (Statement L0 T S)
                                  MaybeAs
                   | SubjoinSource JoinSource
+                    deriving (Show)
 instance ShowTokens SingleSource where
     showTokens (TableSource tableName maybeAs maybeIndexedBy)
         = showTokens tableName
@@ -907,6 +951,7 @@ data JoinOperation = Comma
                    | NaturalLeftOuterJoin
                    | NaturalInnerJoin
                    | NaturalCrossJoin
+                     deriving (Show)
 instance ShowTokens JoinOperation where
     showTokens Comma = [PunctuationComma]
     showTokens Join = [KeywordJoin]
@@ -926,6 +971,7 @@ instance ShowTokens JoinOperation where
 data JoinConstraint = NoConstraint
                     | On Expression
                     | Using (OneOrMore UnqualifiedIdentifier)
+                      deriving (Show)
 instance ShowTokens JoinConstraint where
     showTokens NoConstraint = []
     showTokens (On expression) = [KeywordOn] ++ showTokens expression
@@ -936,6 +982,7 @@ instance ShowTokens JoinConstraint where
 data MaybeIndexedBy = NoIndexedBy
                     | IndexedBy UnqualifiedIdentifier
                     | NotIndexed
+                      deriving (Show)
 instance ShowTokens MaybeIndexedBy where
     showTokens NoIndexedBy = []
     showTokens (IndexedBy indexName)
@@ -943,14 +990,17 @@ instance ShowTokens MaybeIndexedBy where
     showTokens NotIndexed = [KeywordNot, KeywordIndexed]
 
 data FromClause = From JoinSource
+                  deriving (Show)
 instance ShowTokens FromClause where
     showTokens (From joinSource) = [KeywordFrom] ++ showTokens joinSource
 
-data WhereClause = Where Expression;
+data WhereClause = Where Expression
+                   deriving (Show)
 instance ShowTokens WhereClause where
     showTokens (Where expression) = [KeywordWhere] ++ showTokens expression
 
 data GroupClause = GroupBy (OneOrMore OrderingTerm) MaybeHaving
+                   deriving (Show)
 instance ShowTokens GroupClause where
     showTokens (GroupBy orderingTerms maybeHaving)
         = [KeywordGroup, KeywordBy]
@@ -958,6 +1008,7 @@ instance ShowTokens GroupClause where
           ++ showTokens maybeHaving
 
 data OrderClause = OrderBy (OneOrMore OrderingTerm)
+                   deriving (Show)
 instance ShowTokens OrderClause where
     showTokens (OrderBy orderingTerms)
         = [KeywordOrder, KeywordBy]
@@ -966,6 +1017,7 @@ instance ShowTokens OrderClause where
 data LimitClause = Limit Word64
                  | LimitOffset Word64 Word64
                  | LimitComma Word64 Word64
+                   deriving (Show)
 instance ShowTokens LimitClause where
     showTokens (Limit count)
         = [KeywordLimit, LiteralInteger count]
@@ -974,7 +1026,8 @@ instance ShowTokens LimitClause where
     showTokens (LimitComma offset count)
         = [KeywordLimit, LiteralInteger offset, KeywordOffset, LiteralInteger count]
 
-data WhenClause = When Expression;
+data WhenClause = When Expression
+                  deriving (Show)
 instance ShowTokens WhenClause where
     showTokens (When expression) = [KeywordWhen] ++ showTokens expression
 
@@ -984,6 +1037,7 @@ data ConflictClause
     | OnConflictFail
     | OnConflictIgnore
     | OnConflictReplace
+      deriving (Show)
 instance ShowTokens ConflictClause where
     showTokens OnConflictRollback = [KeywordOn, KeywordConflict, KeywordRollback]
     showTokens OnConflictAbort = [KeywordOn, KeywordConflict, KeywordAbort]
@@ -996,6 +1050,7 @@ data ForeignKeyClause
                  [UnqualifiedIdentifier]
                  [ForeignKeyClauseActionOrMatchPart]
                  (Maybe ForeignKeyClauseDeferrablePart)
+      deriving (Show)
 instance ShowTokens ForeignKeyClause where
     showTokens (References tableName
                            columnNames
@@ -1016,6 +1071,7 @@ data ForeignKeyClauseActionOrMatchPart
     = OnDelete ForeignKeyClauseActionPart
     | OnUpdate ForeignKeyClauseActionPart
     | ReferencesMatch UnqualifiedIdentifier
+      deriving (Show)
 instance ShowTokens ForeignKeyClauseActionOrMatchPart where
     showTokens (OnDelete actionPart)
         = [KeywordOn, KeywordDelete]
@@ -1033,6 +1089,7 @@ data ForeignKeyClauseActionPart
     | Cascade
     | Restrict
     | NoAction
+      deriving (Show)
 instance ShowTokens ForeignKeyClauseActionPart where
     showTokens SetNull = [KeywordSet, KeywordNull]
     showTokens SetDefault = [KeywordSet, KeywordDefault]
@@ -1043,6 +1100,7 @@ instance ShowTokens ForeignKeyClauseActionPart where
 data ForeignKeyClauseDeferrablePart
     = Deferrable MaybeInitialDeferralStatus
     | NotDeferrable MaybeInitialDeferralStatus
+      deriving (Show)
 instance ShowTokens ForeignKeyClauseDeferrablePart where
     showTokens (Deferrable maybeInitialDeferralStatus)
         = [KeywordDeferrable]
@@ -1055,6 +1113,7 @@ data MaybeInitialDeferralStatus
     = NoInitialDeferralStatus
     | InitiallyDeferred
     | InitiallyImmediate
+      deriving (Show)
 instance ShowTokens MaybeInitialDeferralStatus where
     showTokens NoInitialDeferralStatus = []
     showTokens InitiallyDeferred = [KeywordInitially, KeywordDeferred]
@@ -1065,6 +1124,7 @@ data MaybeTransactionType
     | Deferred
     | Immediate
     | Exclusive
+      deriving (Show)
 instance ShowTokens MaybeTransactionType where
     showTokens NoTransactionType = []
     showTokens Deferred = [KeywordDeferred]
@@ -1072,11 +1132,13 @@ instance ShowTokens MaybeTransactionType where
     showTokens Exclusive = [KeywordExclusive]
 
 data StatementList = StatementList [AnyStatement]
+                     deriving (Show)
 instance ShowTokens StatementList where
     showTokens (StatementList list) =
         intercalate [PunctuationSemicolon] $ map showTokens list
 
 data AnyStatement = forall l t v . Statement (Statement l t v)
+deriving instance Show AnyStatement
 instance ShowTokens AnyStatement where
     showTokens (Statement statement) = showTokens statement
 
@@ -1238,6 +1300,7 @@ data Statement level triggerable valueReturning where
         -> Statement L0 NT NS
     Vacuum
         :: Statement L0 NT NS
+deriving instance Show (Statement l t v)
 
 
 instance ShowTokens (Statement a b c) where
@@ -1457,6 +1520,7 @@ instance ShowTokens (Statement a b c) where
 
 
 data UnqualifiedIdentifier = UnqualifiedIdentifier String
+                             deriving (Show)
 instance ShowTokens UnqualifiedIdentifier where
     showTokens (UnqualifiedIdentifier properName)
         = [Identifier properName]
@@ -1464,6 +1528,7 @@ instance ShowTokens UnqualifiedIdentifier where
 
 data SinglyQualifiedIdentifier
     = SinglyQualifiedIdentifier (Maybe String) String
+      deriving (Show)
 instance ShowTokens SinglyQualifiedIdentifier where
     showTokens (SinglyQualifiedIdentifier Nothing properName)
         = [Identifier properName]
@@ -1473,6 +1538,7 @@ instance ShowTokens SinglyQualifiedIdentifier where
 
 data DoublyQualifiedIdentifier
     = DoublyQualifiedIdentifier (Maybe (String, (Maybe String))) String
+      deriving (Show)
 instance ShowTokens DoublyQualifiedIdentifier where
     showTokens (DoublyQualifiedIdentifier Nothing properName)
         = [Identifier properName]
