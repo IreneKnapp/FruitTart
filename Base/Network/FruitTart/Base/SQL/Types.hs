@@ -1,6 +1,4 @@
 {-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances #-}
--- TODO: Audit this for cases where empty lists are allowed and only nonempty ones should
--- be.  Implement a generic-nonempty-list type and use it to fix those.
 module Network.FruitTart.Base.SQL.Types (
                                          ShowTokens(..),
                                          Type(..),
@@ -34,6 +32,9 @@ mkOneOrMore list = Just $ OneOrMore list
 
 mapOneOrMore :: (a -> b) -> (OneOrMore a) -> [b]
 mapOneOrMore function (OneOrMore list) = map function list
+
+fromOneOrMore :: (OneOrMore a) -> [a]
+fromOneOrMore (OneOrMore list) = list
 
 data NonnegativeDouble = NonnegativeDouble Double
 
@@ -124,7 +125,7 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionBinaryLogicalAnd Expression Expression
                 | ExpressionBinaryLogicalOr Expression Expression
                 | ExpressionFunctionCall String [Expression]
-                | ExpressionFunctionCallDistinct String [Expression]
+                | ExpressionFunctionCallDistinct String (OneOrMore Expression)
                 | ExpressionFunctionCallStar String
                 | ExpressionCast Expression Type
                 | ExpressionCollate Expression String
@@ -146,7 +147,7 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionExistsSubquery (Statement L0 T S)
                 | ExpressionNotExistsSubquery (Statement L0 T S)
                 | ExpressionCase (Maybe Expression)
-                                 [(Expression, Expression)]
+                                 (OneOrMore (Expression, Expression))
                                  (Maybe Expression)
                 | ExpressionRaiseIgnore
                 | ExpressionRaiseRollback String
@@ -235,7 +236,7 @@ instance ShowTokens Expression where
         = [Identifier name,
            PunctuationLeftParenthesis,
            KeywordDistinct]
-          ++ intercalate [PunctuationComma] (map showTokens parameters)
+          ++ intercalate [PunctuationComma] (mapOneOrMore showTokens parameters)
           ++ [PunctuationRightParenthesis]
     showTokens (ExpressionFunctionCallStar name)
         = [Identifier name,
@@ -333,39 +334,39 @@ instance ShowTokens Expression where
           ++ [PunctuationRightParenthesis]
     showTokens (ExpressionCase Nothing cases Nothing)
         = [KeywordCase]
-          ++ (concat $ map (\(condition, result) -> [KeywordWhen]
-                                                    ++ showTokens condition
-                                                    ++ [KeywordThen]
-                                                    ++ showTokens result)
-                           cases)
+          ++ (concat $ mapOneOrMore (\(condition, result) -> [KeywordWhen]
+                                                             ++ showTokens condition
+                                                             ++ [KeywordThen]
+                                                             ++ showTokens result)
+                                    cases)
           ++ [KeywordEnd]
     showTokens (ExpressionCase Nothing cases (Just defaultResult))
         = [KeywordCase]
-          ++ (concat $ map (\(condition, result) -> [KeywordWhen]
-                                                    ++ showTokens condition
-                                                    ++ [KeywordThen]
-                                                    ++ showTokens result)
-                           cases)
+          ++ (concat $ mapOneOrMore (\(condition, result) -> [KeywordWhen]
+                                                             ++ showTokens condition
+                                                             ++ [KeywordThen]
+                                                             ++ showTokens result)
+                                    cases)
           ++ [KeywordElse]
           ++ showTokens defaultResult
           ++ [KeywordEnd]
     showTokens (ExpressionCase (Just expression) cases Nothing)
         = [KeywordCase]
           ++ showTokens expression
-          ++ (concat $ map (\(condition, result) -> [KeywordWhen]
-                                                    ++ showTokens condition
-                                                    ++ [KeywordThen]
-                                                    ++ showTokens result)
-                           cases)
+          ++ (concat $ mapOneOrMore (\(condition, result) -> [KeywordWhen]
+                                                             ++ showTokens condition
+                                                             ++ [KeywordThen]
+                                                             ++ showTokens result)
+                                    cases)
           ++ [KeywordEnd]
     showTokens (ExpressionCase (Just expression) cases (Just defaultResult))
         = [KeywordCase]
           ++ showTokens expression
-          ++ (concat $ map (\(condition, result) -> [KeywordWhen]
-                                                    ++ showTokens condition
-                                                    ++ [KeywordThen]
-                                                    ++ showTokens result)
-                           cases)
+          ++ (concat $ mapOneOrMore (\(condition, result) -> [KeywordWhen]
+                                                             ++ showTokens condition
+                                                             ++ [KeywordThen]
+                                                             ++ showTokens result)
+                                    cases)
           ++ [KeywordElse]
           ++ showTokens defaultResult
           ++ [KeywordEnd]
@@ -393,25 +394,6 @@ instance ShowTokens Expression where
            LiteralString message,
            PunctuationRightParenthesis]
 
-
--- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
-data L0
--- | Used as a GADT parameter to Statement to indicate a type which can not be EXPLAINed.
-data L1
-
--- | Used as a GADT parameter to Statement to indicate a type which does not represent
---   a DELETE, INSERT, UPDATE, or SELECT statement.
-data NT
--- | Used as a GADT parameter to Statement to indicate a type which represents
---   a DELETE, INSERT, UPDATE, or SELECT statement.
-data T
-
--- | Used as a GADT parameter to Statement to indicate a type which does not represent
---   a SELECT statement.
-data NS
--- | Used as a GADT parameter to Statement to indicate a type which represents a
---   SELECT statement.
-data S
 
 data MaybeUnique = NoUnique | Unique
 instance ShowTokens MaybeUnique where
@@ -581,23 +563,30 @@ instance ShowTokens ColumnConstraint where
           ++ showTokens foreignKeyClause
 
 data TableConstraint
-    = TablePrimaryKey UnqualifiedIdentifier [IndexedColumn] ConflictClause
-    | TableUnique UnqualifiedIdentifier [IndexedColumn] ConflictClause
-    | TableCheck UnqualifiedIdentifier Expression
-    | TableForeignKey UnqualifiedIdentifier [UnqualifiedIdentifier] ForeignKeyClause
+    = TablePrimaryKey UnqualifiedIdentifier
+                      (OneOrMore IndexedColumn)
+                      ConflictClause
+    | TableUnique UnqualifiedIdentifier
+                  (OneOrMore IndexedColumn)
+                  ConflictClause
+    | TableCheck UnqualifiedIdentifier
+                 Expression
+    | TableForeignKey UnqualifiedIdentifier
+                      (OneOrMore UnqualifiedIdentifier)
+                      ForeignKeyClause
 instance ShowTokens TableConstraint where
     showTokens (TablePrimaryKey constraintName indexedColumns conflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordPrimary, KeywordKey, PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens indexedColumns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens indexedColumns)
           ++ [PunctuationRightParenthesis]
           ++ showTokens conflictClause
     showTokens (TableUnique constraintName indexedColumns conflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordUnique, PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens indexedColumns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens indexedColumns)
           ++ [PunctuationRightParenthesis]
           ++ showTokens conflictClause
     showTokens (TableCheck constraintName expression)
@@ -610,7 +599,7 @@ instance ShowTokens TableConstraint where
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordForeign, KeywordKey, PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens columns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens columns)
           ++ [PunctuationRightParenthesis]
           ++ showTokens foreignKeyClause
 
@@ -706,7 +695,7 @@ instance ShowTokens InsertHead where
     showTokens InsertOrIgnore = [KeywordInsert, KeywordOr, KeywordIgnore]
     showTokens Replace = [KeywordReplace]
 
-data InsertBody = InsertValues [UnqualifiedIdentifier] [Expression]
+data InsertBody = InsertValues [UnqualifiedIdentifier] (OneOrMore Expression)
                 | InsertSelect [UnqualifiedIdentifier] (Statement L0 T S)
                 | InsertDefaultValues
 instance ShowTokens InsertBody where
@@ -717,7 +706,7 @@ instance ShowTokens InsertBody where
                   ++ (intercalate [PunctuationComma] $ map showTokens columns)
                   ++ [PunctuationRightParenthesis])
           ++ [KeywordValues, PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens expressions)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens expressions)
           ++ [PunctuationRightParenthesis]
     showTokens (InsertSelect columns select)
         = (case columns of
@@ -767,7 +756,7 @@ instance ShowTokens CompoundOperator where
     showTokens Except = [KeywordExcept]
 
 data SelectCore = SelectCore Distinctness
-                             [ResultColumn] 
+                             (OneOrMore ResultColumn)
                              (Maybe FromClause)
                              (Maybe WhereClause)
                              (Maybe GroupClause)
@@ -779,7 +768,7 @@ instance ShowTokens SelectCore where
                            maybeGroupClause)
         = [KeywordSelect]
           ++ showTokens distinctness
-          ++ (intercalate [PunctuationComma] $ map showTokens resultColumns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens resultColumns)
           ++ (case maybeFromClause of
                 Nothing -> []
                 Just fromClause -> showTokens fromClause)
@@ -872,13 +861,13 @@ instance ShowTokens JoinOperation where
 
 data JoinConstraint = NoConstraint
                     | On Expression
-                    | Using [UnqualifiedIdentifier]
+                    | Using (OneOrMore UnqualifiedIdentifier)
 instance ShowTokens JoinConstraint where
     showTokens NoConstraint = []
     showTokens (On expression) = [KeywordOn] ++ showTokens expression
     showTokens (Using columns)
         = [KeywordUsing, PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens columns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens columns)
 
 data MaybeIndexedBy = NoIndexedBy
                     | IndexedBy UnqualifiedIdentifier
@@ -897,18 +886,18 @@ data WhereClause = Where Expression;
 instance ShowTokens WhereClause where
     showTokens (Where expression) = [KeywordWhere] ++ showTokens expression
 
-data GroupClause = GroupBy [OrderingTerm] MaybeHaving
+data GroupClause = GroupBy (OneOrMore OrderingTerm) MaybeHaving
 instance ShowTokens GroupClause where
     showTokens (GroupBy orderingTerms maybeHaving)
         = [KeywordGroup, KeywordBy]
-          ++ (intercalate [PunctuationComma] $ map showTokens orderingTerms)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens orderingTerms)
           ++ showTokens maybeHaving
 
-data OrderClause = OrderBy [OrderingTerm]
+data OrderClause = OrderBy (OneOrMore OrderingTerm)
 instance ShowTokens OrderClause where
     showTokens (OrderBy orderingTerms)
         = [KeywordOrder, KeywordBy]
-          ++ (intercalate [PunctuationComma] $ map showTokens orderingTerms)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens orderingTerms)
 
 data LimitClause = Limit Word64
                  | LimitOffset Word64 Word64
@@ -1020,6 +1009,40 @@ instance ShowTokens MaybeTransactionType where
     showTokens Immediate = [KeywordImmediate]
     showTokens Exclusive = [KeywordExclusive]
 
+data StatementList = StatementList [StatementListItem]
+instance ShowTokens StatementList where
+    showTokens (StatementList list) =
+        intercalate [PunctuationSemicolon] $ map showTokens list
+
+data StatementListItem = L1NTNS (Statement L1 NT NS)
+                       | L0NTNS (Statement L0 NT NS)
+                       | L0TNS (Statement L0 T NS)
+                       | L0TS (Statement L0 T S)
+instance ShowTokens StatementListItem where
+    showTokens (L1NTNS statement) = showTokens statement
+    showTokens (L0NTNS statement) = showTokens statement
+    showTokens (L0TNS statement) = showTokens statement
+    showTokens (L0TS statement) = showTokens statement
+
+-- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
+data L0
+-- | Used as a GADT parameter to Statement to indicate a type which can not be EXPLAINed.
+data L1
+
+-- | Used as a GADT parameter to Statement to indicate a type which does not represent
+--   a DELETE, INSERT, UPDATE, or SELECT statement.
+data NT
+-- | Used as a GADT parameter to Statement to indicate a type which represents
+--   a DELETE, INSERT, UPDATE, or SELECT statement.
+data T
+
+-- | Used as a GADT parameter to Statement to indicate a type which does not represent
+--   a SELECT statement.
+data NS
+-- | Used as a GADT parameter to Statement to indicate a type which represents a
+--   SELECT statement.
+data S
+
 data Statement level triggerable valueReturning where
     Explain
         :: Statement L0 a1 a2
@@ -1052,13 +1075,13 @@ data Statement level triggerable valueReturning where
         -> MaybeIfNotExists
         -> SinglyQualifiedIdentifier
         -> UnqualifiedIdentifier
-        -> [IndexedColumn]
+        -> (OneOrMore IndexedColumn)
         -> Statement L0 NT NS
     CreateTable
         :: Permanence
         -> MaybeIfNotExists
         -> SinglyQualifiedIdentifier
-        -> (Either ([ColumnDefinition], [TableConstraint]) (Statement L0 T S))
+        -> (Either (OneOrMore ColumnDefinition, [TableConstraint]) (Statement L0 T S))
         -> Statement L0 NT NS
     CreateTrigger
         :: Permanence
@@ -1144,13 +1167,13 @@ data Statement level triggerable valueReturning where
     Update
         :: UpdateHead
         -> QualifiedTableName
-        -> [(UnqualifiedIdentifier, Expression)]
+        -> (OneOrMore (UnqualifiedIdentifier, Expression))
         -> (Maybe WhereClause)
         -> Statement L0 T NS
     UpdateLimited
         :: UpdateHead
         -> QualifiedTableName
-        -> [(UnqualifiedIdentifier, Expression)]
+        -> (OneOrMore (UnqualifiedIdentifier, Expression))
         -> (Maybe WhereClause)
         -> (Maybe OrderClause)
         -> LimitClause
@@ -1202,7 +1225,7 @@ instance ShowTokens (Statement a b c) where
           ++ showTokens indexName
           ++ showTokens tableName
           ++ [PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens indexedColumns)
+          ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens indexedColumns)
           ++ [PunctuationRightParenthesis]
     showTokens (CreateTable permanence maybeIfNotExists name
                             eitherColumnsAndConstraintsSelect)
@@ -1215,7 +1238,7 @@ instance ShowTokens (Statement a b c) where
                 Left (columns, constraints)
                     -> [PunctuationLeftParenthesis]
                        ++ (intercalate [PunctuationComma]
-                                       $ concat [map showTokens columns,
+                                       $ concat [mapOneOrMore showTokens columns,
                                                  map showTokens constraints])
                        ++ [PunctuationRightParenthesis]
                 Right select
@@ -1251,9 +1274,11 @@ instance ShowTokens (Statement a b c) where
           ++ showTokens tableName
           ++ [KeywordUsing]
           ++ showTokens moduleName
-          ++ [PunctuationLeftParenthesis]
-          ++ (intercalate [PunctuationComma] $ map showTokens moduleArguments)
-          ++ [PunctuationRightParenthesis]
+          ++ (case moduleArguments of
+                [] -> []
+                _ -> [PunctuationLeftParenthesis]
+                     ++ (intercalate [PunctuationComma] $ map showTokens moduleArguments)
+                     ++ [PunctuationRightParenthesis])
     showTokens (Delete qualifiedTableName maybeWhereClause)
         = [KeywordDelete, KeywordFrom]
           ++ showTokens qualifiedTableName
@@ -1343,11 +1368,11 @@ instance ShowTokens (Statement a b c) where
           ++ showTokens qualifiedTableName
           ++ [KeywordSet]
           ++ (intercalate [PunctuationComma]
-                          $ map (\(columnName, expression) ->
-                                  showTokens columnName
-                                  ++ [PunctuationEquals]
-                                  ++ showTokens expression)
-                                setOperations)
+                          $ mapOneOrMore (\(columnName, expression) ->
+                                           showTokens columnName
+                                           ++ [PunctuationEquals]
+                                           ++ showTokens expression)
+                                         setOperations)
           ++ (case maybeWhereClause of
                 Nothing -> []
                 Just whereClause -> showTokens whereClause)
@@ -1357,11 +1382,11 @@ instance ShowTokens (Statement a b c) where
           ++ showTokens qualifiedTableName
           ++ [KeywordSet]
           ++ (intercalate [PunctuationComma]
-                          $ map (\(columnName, expression) ->
-                                  showTokens columnName
-                                  ++ [PunctuationEquals]
-                                  ++ showTokens expression)
-                                setOperations)
+                          $ mapOneOrMore (\(columnName, expression) ->
+                                           showTokens columnName
+                                           ++ [PunctuationEquals]
+                                           ++ showTokens expression)
+                                         setOperations)
           ++ (case maybeWhereClause of
                 Nothing -> []
                 Just whereClause -> showTokens whereClause)
