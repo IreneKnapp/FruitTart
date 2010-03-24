@@ -38,7 +38,7 @@ module Network.FruitTart.Base.SQL.Types (
                                          UpdateHead(..),
                                          Distinctness(..),
                                          MaybeHaving(..),
-                                         As(..),
+                                         MaybeAs(..),
                                          CompoundOperator(..),
                                          SelectCore(..),
                                          ResultColumn(..),
@@ -61,7 +61,7 @@ module Network.FruitTart.Base.SQL.Types (
                                          MaybeInitialDeferralStatus(..),
                                          MaybeTransactionType(..),
                                          StatementList(..),
-                                         StatementListItem(..),
+                                         AnyStatement(..),
                                          Select,
                                          Statement(..),
                                          UnqualifiedIdentifier(..),
@@ -574,10 +574,10 @@ instance ShowTokens IndexedColumn where
 data ColumnConstraint
     = ColumnPrimaryKey UnqualifiedIdentifier
                        MaybeAscDesc
-                       ConflictClause
+                       (Maybe ConflictClause)
                        MaybeAutoincrement
-    | ColumnNotNull UnqualifiedIdentifier ConflictClause
-    | ColumnUnique UnqualifiedIdentifier ConflictClause
+    | ColumnNotNull UnqualifiedIdentifier (Maybe ConflictClause)
+    | ColumnUnique UnqualifiedIdentifier (Maybe ConflictClause)
     | ColumnCheck UnqualifiedIdentifier Expression
     | ColumnDefault UnqualifiedIdentifier DefaultValue
     | ColumnCollate UnqualifiedIdentifier UnqualifiedIdentifier
@@ -585,24 +585,30 @@ data ColumnConstraint
 instance ShowTokens ColumnConstraint where
     showTokens (ColumnPrimaryKey constraintName
                                  maybeAscDesc
-                                 conflictClause
+                                 maybeConflictClause
                                  maybeAutoincrement)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordPrimary, KeywordKey]
           ++ showTokens maybeAscDesc
-          ++ showTokens conflictClause
+          ++ (case maybeConflictClause of
+                Nothing -> []
+                Just conflictClause -> showTokens conflictClause)
           ++ showTokens maybeAutoincrement
-    showTokens (ColumnNotNull constraintName conflictClause)
+    showTokens (ColumnNotNull constraintName maybeConflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordNot, KeywordNull]
-          ++ showTokens conflictClause
-    showTokens (ColumnUnique constraintName conflictClause)
+          ++ (case maybeConflictClause of
+                Nothing -> []
+                Just conflictClause -> showTokens conflictClause)
+    showTokens (ColumnUnique constraintName maybeConflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordUnique]
-          ++ showTokens conflictClause
+          ++ (case maybeConflictClause of
+                Nothing -> []
+                Just conflictClause -> showTokens conflictClause)
     showTokens (ColumnCheck constraintName expression)
         = [KeywordConstraint]
           ++ showTokens constraintName
@@ -627,30 +633,34 @@ instance ShowTokens ColumnConstraint where
 data TableConstraint
     = TablePrimaryKey UnqualifiedIdentifier
                       (OneOrMore IndexedColumn)
-                      ConflictClause
+                      (Maybe ConflictClause)
     | TableUnique UnqualifiedIdentifier
                   (OneOrMore IndexedColumn)
-                  ConflictClause
+                  (Maybe ConflictClause)
     | TableCheck UnqualifiedIdentifier
                  Expression
     | TableForeignKey UnqualifiedIdentifier
                       (OneOrMore UnqualifiedIdentifier)
                       ForeignKeyClause
 instance ShowTokens TableConstraint where
-    showTokens (TablePrimaryKey constraintName indexedColumns conflictClause)
+    showTokens (TablePrimaryKey constraintName indexedColumns maybeConflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordPrimary, KeywordKey, PunctuationLeftParenthesis]
           ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens indexedColumns)
           ++ [PunctuationRightParenthesis]
-          ++ showTokens conflictClause
-    showTokens (TableUnique constraintName indexedColumns conflictClause)
+          ++ (case maybeConflictClause of
+                Nothing -> []
+                Just conflictClause -> showTokens conflictClause)
+    showTokens (TableUnique constraintName indexedColumns maybeConflictClause)
         = [KeywordConstraint]
           ++ showTokens constraintName
           ++ [KeywordUnique, PunctuationLeftParenthesis]
           ++ (intercalate [PunctuationComma] $ mapOneOrMore showTokens indexedColumns)
           ++ [PunctuationRightParenthesis]
-          ++ showTokens conflictClause
+          ++ (case maybeConflictClause of
+                Nothing -> []
+                Just conflictClause -> showTokens conflictClause)
     showTokens (TableCheck constraintName expression)
         = [KeywordConstraint]
           ++ showTokens constraintName
@@ -802,8 +812,9 @@ instance ShowTokens MaybeHaving where
     showTokens NoHaving = []
     showTokens (Having expression) = [KeywordHaving] ++ showTokens expression
 
-data As = As UnqualifiedIdentifier | ElidedAs UnqualifiedIdentifier
-instance ShowTokens As where
+data MaybeAs = NoAs | As UnqualifiedIdentifier | ElidedAs UnqualifiedIdentifier
+instance ShowTokens MaybeAs where
+    showTokens NoAs = []
     showTokens (As thingAlias) = [KeywordAs] ++ showTokens thingAlias
     showTokens (ElidedAs thingAlias) = showTokens thingAlias
 
@@ -840,7 +851,7 @@ instance ShowTokens SelectCore where
 
 data ResultColumn = Star
                   | TableStar UnqualifiedIdentifier
-                  | Result Expression (Maybe As)
+                  | Result Expression MaybeAs
 instance ShowTokens ResultColumn where
     showTokens Star
         = [PunctuationStar]
@@ -849,9 +860,7 @@ instance ShowTokens ResultColumn where
           ++ [PunctuationDot, PunctuationStar]
     showTokens (Result expression maybeAs)
         = showTokens expression
-          ++ (case maybeAs of
-                Nothing -> []
-                Just as -> showTokens as)
+          ++ showTokens maybeAs
 
 data JoinSource = JoinSource SingleSource
                              [(JoinOperation, SingleSource, JoinConstraint)]
@@ -865,25 +874,21 @@ instance ShowTokens JoinSource where
                            additionalSources)
 
 data SingleSource = TableSource SinglyQualifiedIdentifier
-                                (Maybe As)
+                                MaybeAs
                                 MaybeIndexedBy
                   | SelectSource (Statement L0 T S)
-                                 (Maybe As)
+                                 MaybeAs
                   | SubjoinSource JoinSource
 instance ShowTokens SingleSource where
     showTokens (TableSource tableName maybeAs maybeIndexedBy)
         = showTokens tableName
-          ++ (case maybeAs of
-                Nothing -> []
-                Just as -> showTokens as)
+          ++ showTokens maybeAs
           ++ showTokens maybeIndexedBy
     showTokens (SelectSource select maybeAs)
         = [PunctuationLeftParenthesis]
           ++ showTokens select
           ++ [PunctuationRightParenthesis]
-          ++ (case maybeAs of
-                Nothing -> []
-                Just as -> showTokens as)
+          ++ showTokens maybeAs
     showTokens (SubjoinSource joinSource)
         = [PunctuationLeftParenthesis]
           ++ showTokens joinSource
@@ -974,14 +979,12 @@ instance ShowTokens WhenClause where
     showTokens (When expression) = [KeywordWhen] ++ showTokens expression
 
 data ConflictClause
-    = NoConflictClause
-    | OnConflictRollback
+    = OnConflictRollback
     | OnConflictAbort
     | OnConflictFail
     | OnConflictIgnore
     | OnConflictReplace
 instance ShowTokens ConflictClause where
-    showTokens NoConflictClause = []
     showTokens OnConflictRollback = [KeywordOn, KeywordConflict, KeywordRollback]
     showTokens OnConflictAbort = [KeywordOn, KeywordConflict, KeywordAbort]
     showTokens OnConflictFail = [KeywordOn, KeywordConflict, KeywordFail]
@@ -1068,13 +1071,13 @@ instance ShowTokens MaybeTransactionType where
     showTokens Immediate = [KeywordImmediate]
     showTokens Exclusive = [KeywordExclusive]
 
-data StatementList = StatementList [StatementListItem]
+data StatementList = StatementList [AnyStatement]
 instance ShowTokens StatementList where
     showTokens (StatementList list) =
         intercalate [PunctuationSemicolon] $ map showTokens list
 
-data StatementListItem = forall l t v . Statement (Statement l t v)
-instance ShowTokens StatementListItem where
+data AnyStatement = forall l t v . Statement (Statement l t v)
+instance ShowTokens AnyStatement where
     showTokens (Statement statement) = showTokens statement
 
 -- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
@@ -1486,7 +1489,8 @@ instance ShowTokens DoublyQualifiedIdentifier where
            Identifier properName]
 
 
-data Token = Identifier String
+data Token = ErrorToken String
+           | Identifier String
            | LiteralInteger Word64
            | LiteralFloat NonnegativeDouble
            | LiteralString String
@@ -1643,6 +1647,7 @@ data Token = Identifier String
 
 
 instance Show Token where
+    show (ErrorToken string) = error string
     show (Identifier identifier) =
         let validCharacter c = if isAscii c
                                  then (isAlphaNum c) || (elem c "_$")
