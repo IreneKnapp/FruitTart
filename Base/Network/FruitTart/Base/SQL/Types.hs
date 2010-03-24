@@ -622,17 +622,17 @@ instance ShowTokens TriggerStatement where
     showTokens (TriggerL0TS statement) = showTokens statement
 
 data QualifiedTableName
-    = NoIndexedBy SinglyQualifiedIdentifier
-    | IndexedBy SinglyQualifiedIdentifier UnqualifiedIdentifier
-    | NotIndexed SinglyQualifiedIdentifier
+    = TableNoIndexedBy SinglyQualifiedIdentifier
+    | TableIndexedBy SinglyQualifiedIdentifier UnqualifiedIdentifier
+    | TableNotIndexed SinglyQualifiedIdentifier
 instance ShowTokens QualifiedTableName where
-    showTokens (NoIndexedBy tableName) =
+    showTokens (TableNoIndexedBy tableName) =
         showTokens tableName
-    showTokens (IndexedBy tableName indexName) =
+    showTokens (TableIndexedBy tableName indexName) =
         showTokens tableName
         ++ [KeywordIndexed, KeywordBy]
         ++ showTokens indexName
-    showTokens (NotIndexed tableName) =
+    showTokens (TableNotIndexed tableName) =
         showTokens tableName
         ++ [KeywordNot, KeywordIndexed]
 
@@ -723,13 +723,166 @@ instance ShowTokens UpdateHead where
     showTokens UpdateOrFail = [KeywordUpdate, KeywordOr, KeywordFail]
     showTokens UpdateOrIgnore = [KeywordUpdate, KeywordOr, KeywordIgnore]
 
-data WhenClause = When Expression;
-instance ShowTokens WhenClause where
-    showTokens (When expression) = [KeywordWhen] ++ showTokens expression
+data Distinctness = NoDistinctness | Distinct | All
+instance ShowTokens Distinctness where
+    showTokens NoDistinctness = []
+    showTokens Distinct = [KeywordDistinct]
+    showTokens All = [KeywordAll]
+
+data MaybeHaving = NoHaving | Having Expression
+instance ShowTokens MaybeHaving where
+    showTokens NoHaving = []
+    showTokens (Having expression) = [KeywordHaving] ++ showTokens expression
+
+data As = As UnqualifiedIdentifier | ElidedAs UnqualifiedIdentifier
+instance ShowTokens As where
+    showTokens (As thingAlias) = [KeywordAs] ++ showTokens thingAlias
+    showTokens (ElidedAs thingAlias) = showTokens thingAlias
+
+data CompoundOperator = Union | UnionAll | Intersect | Except
+instance ShowTokens CompoundOperator where
+    showTokens Union = [KeywordUnion]
+    showTokens UnionAll = [KeywordUnion, KeywordAll]
+    showTokens Intersect = [KeywordIntersect]
+    showTokens Except = [KeywordExcept]
+
+data SelectCore = SelectCore Distinctness
+                             [ResultColumn] 
+                             (Maybe FromClause)
+                             (Maybe WhereClause)
+                             (Maybe GroupClause)
+instance ShowTokens SelectCore where
+    showTokens (SelectCore distinctness
+                           resultColumns
+                           maybeFromClause
+                           maybeWhereClause
+                           maybeGroupClause)
+        = [KeywordSelect]
+          ++ showTokens distinctness
+          ++ (intercalate [PunctuationComma] $ map showTokens resultColumns)
+          ++ (case maybeFromClause of
+                Nothing -> []
+                Just fromClause -> showTokens fromClause)
+          ++ (case maybeWhereClause of
+                Nothing -> []
+                Just whereClause -> showTokens whereClause)
+          ++ (case maybeGroupClause of
+                Nothing -> []
+                Just groupClause -> showTokens groupClause)
+
+data ResultColumn = Star
+                  | TableStar UnqualifiedIdentifier
+                  | Result Expression (Maybe As)
+instance ShowTokens ResultColumn where
+    showTokens Star
+        = [PunctuationStar]
+    showTokens (TableStar tableName)
+        = showTokens tableName
+          ++ [PunctuationDot, PunctuationStar]
+    showTokens (Result expression maybeAs)
+        = showTokens expression
+          ++ (case maybeAs of
+                Nothing -> []
+                Just as -> showTokens as)
+
+data JoinSource = JoinSource SingleSource
+                             [(JoinOperation, SingleSource, JoinConstraint)]
+instance ShowTokens JoinSource where
+    showTokens (JoinSource firstSource additionalSources)
+        = showTokens firstSource
+          ++ (concat $ map (\(joinOperation, additionalSource, joinConstraint) ->
+                             showTokens joinOperation
+                             ++ showTokens additionalSource
+                             ++ showTokens joinConstraint)
+                           additionalSources)
+
+data SingleSource = TableSource SinglyQualifiedIdentifier
+                                (Maybe As)
+                                MaybeIndexedBy
+                  | SelectSource (Statement L0 T S)
+                                 (Maybe As)
+                  | SubjoinSource JoinSource
+instance ShowTokens SingleSource where
+    showTokens (TableSource tableName maybeAs maybeIndexedBy)
+        = showTokens tableName
+          ++ (case maybeAs of
+                Nothing -> []
+                Just as -> showTokens as)
+          ++ showTokens maybeIndexedBy
+    showTokens (SelectSource select maybeAs)
+        = [PunctuationLeftParenthesis]
+          ++ showTokens select
+          ++ [PunctuationRightParenthesis]
+          ++ (case maybeAs of
+                Nothing -> []
+                Just as -> showTokens as)
+    showTokens (SubjoinSource joinSource)
+        = [PunctuationLeftParenthesis]
+          ++ showTokens joinSource
+          ++ [PunctuationRightParenthesis]
+
+data JoinOperation = Comma
+                   | Join
+                   | OuterJoin
+                   | LeftJoin
+                   | LeftOuterJoin
+                   | InnerJoin
+                   | CrossJoin
+                   | NaturalJoin
+                   | NaturalOuterJoin
+                   | NaturalLeftJoin
+                   | NaturalLeftOuterJoin
+                   | NaturalInnerJoin
+                   | NaturalCrossJoin
+instance ShowTokens JoinOperation where
+    showTokens Comma = [PunctuationComma]
+    showTokens Join = [KeywordJoin]
+    showTokens OuterJoin = [KeywordOuter, KeywordJoin]
+    showTokens LeftJoin = [KeywordLeft, KeywordJoin]
+    showTokens LeftOuterJoin = [KeywordLeft, KeywordOuter, KeywordJoin]
+    showTokens InnerJoin = [KeywordInner, KeywordJoin]
+    showTokens CrossJoin = [KeywordCross, KeywordJoin]
+    showTokens NaturalJoin = [KeywordNatural, KeywordJoin]
+    showTokens NaturalOuterJoin = [KeywordNatural, KeywordOuter, KeywordJoin]
+    showTokens NaturalLeftJoin = [KeywordNatural, KeywordLeft, KeywordJoin]
+    showTokens NaturalLeftOuterJoin
+        = [KeywordNatural, KeywordLeft, KeywordOuter, KeywordJoin]
+    showTokens NaturalInnerJoin = [KeywordNatural, KeywordInner, KeywordJoin]
+    showTokens NaturalCrossJoin = [KeywordNatural, KeywordCross, KeywordJoin]
+
+data JoinConstraint = NoConstraint
+                    | On Expression
+                    | Using [UnqualifiedIdentifier]
+instance ShowTokens JoinConstraint where
+    showTokens NoConstraint = []
+    showTokens (On expression) = [KeywordOn] ++ showTokens expression
+    showTokens (Using columns)
+        = [KeywordUsing, PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma] $ map showTokens columns)
+
+data MaybeIndexedBy = NoIndexedBy
+                    | IndexedBy UnqualifiedIdentifier
+                    | NotIndexed
+instance ShowTokens MaybeIndexedBy where
+    showTokens NoIndexedBy = []
+    showTokens (IndexedBy indexName)
+        = [KeywordIndexed, KeywordBy] ++ showTokens indexName
+    showTokens NotIndexed = [KeywordNot, KeywordIndexed]
+
+data FromClause = From JoinSource
+instance ShowTokens FromClause where
+    showTokens (From joinSource) = [KeywordFrom] ++ showTokens joinSource
 
 data WhereClause = Where Expression;
 instance ShowTokens WhereClause where
     showTokens (Where expression) = [KeywordWhere] ++ showTokens expression
+
+data GroupClause = GroupBy [OrderingTerm] MaybeHaving
+instance ShowTokens GroupClause where
+    showTokens (GroupBy orderingTerms maybeHaving)
+        = [KeywordGroup, KeywordBy]
+          ++ (intercalate [PunctuationComma] $ map showTokens orderingTerms)
+          ++ showTokens maybeHaving
 
 data OrderClause = OrderBy [OrderingTerm]
 instance ShowTokens OrderClause where
@@ -747,6 +900,10 @@ instance ShowTokens LimitClause where
         = [KeywordLimit, LiteralInteger count, KeywordOffset, LiteralInteger offset]
     showTokens (LimitComma offset count)
         = [KeywordLimit, LiteralInteger offset, KeywordOffset, LiteralInteger count]
+
+data WhenClause = When Expression;
+instance ShowTokens WhenClause where
+    showTokens (When expression) = [KeywordWhen] ++ showTokens expression
 
 data ConflictClause
     = NoConflictClause
@@ -959,8 +1116,11 @@ data Statement level triggerable valueReturning where
         :: UnqualifiedIdentifier
         -> Statement L0 NT NS
     Select
-        :: Statement L0 T S
-        -- TODO correct type
+        :: SelectCore
+        -> [(CompoundOperator, SelectCore)]
+        -> (Maybe OrderClause)
+        -> (Maybe LimitClause)
+        -> Statement L0 T S
     Update
         :: UpdateHead
         -> QualifiedTableName
@@ -1146,9 +1306,18 @@ instance ShowTokens (Statement a b c) where
     showTokens (Savepoint savepointName)
         = [KeywordSavepoint]
           ++ showTokens savepointName
-    showTokens Select
-        -- TODO correct instance
-        = [KeywordSelect]
+    showTokens (Select firstCore compoundCores maybeOrderClause maybeLimitClause)
+        = showTokens firstCore
+          ++ (concat $ map (\(compoundOperator, additionalCore) -> 
+                                concat [showTokens compoundOperator,
+                                        showTokens additionalCore])
+                           compoundCores)
+          ++ (case maybeOrderClause of
+                Nothing -> []
+                Just orderClause -> showTokens orderClause)
+          ++ (case maybeLimitClause of
+                Nothing -> []
+                Just limitClause -> showTokens limitClause)
     showTokens (Update updateHead qualifiedTableName setOperations maybeWhereClause)
         = showTokens updateHead
           ++ showTokens qualifiedTableName
