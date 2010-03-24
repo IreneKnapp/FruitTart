@@ -62,6 +62,7 @@ module Network.FruitTart.Base.SQL.Types (
                                          MaybeTransactionType(..),
                                          StatementList(..),
                                          StatementListItem(..),
+                                         Select,
                                          Statement(..),
                                          UnqualifiedIdentifier(..),
                                          SinglyQualifiedIdentifier(..),
@@ -1094,6 +1095,8 @@ data NS
 -- | Used as a GADT parameter to Statement to indicate a type which represents a
 --   SELECT statement.
 data S
+
+type Select = Statement L0 T S
 
 data Statement level triggerable valueReturning where
     Explain
