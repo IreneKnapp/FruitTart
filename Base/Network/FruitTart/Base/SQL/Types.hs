@@ -116,20 +116,21 @@ mkNonnegativeDouble double =
 fromNonnegativeDouble :: NonnegativeDouble -> Double
 fromNonnegativeDouble (MkNonnegativeDouble double) = double
 
-data Type = Type String (Maybe ((MaybeSign, Either NonnegativeDouble Word64),
-                                Maybe (MaybeSign, (Either NonnegativeDouble Word64))))
+data Type = Type UnqualifiedIdentifier
+                 (Maybe ((MaybeSign, Either NonnegativeDouble Word64),
+                         Maybe (MaybeSign, (Either NonnegativeDouble Word64))))
             deriving (Show)
 instance ShowTokens Type where
     showTokens (Type name Nothing)
-        = [Identifier name]
+        = showTokens name
     showTokens (Type name (Just (maxLength, Nothing)))
-        = [Identifier name,
-           PunctuationLeftParenthesis]
+        = showTokens name
+          ++ [PunctuationLeftParenthesis]
           ++ showTokens maxLength
           ++ [PunctuationRightParenthesis]
     showTokens (Type name (Just (minLength, Just maxLength)))
-        = [Identifier name,
-           PunctuationLeftParenthesis]
+        = showTokens name
+          ++ [PunctuationLeftParenthesis]
           ++ showTokens minLength
           ++ [PunctuationComma]
           ++ showTokens maxLength
