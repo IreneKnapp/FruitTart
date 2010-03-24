@@ -2,6 +2,7 @@
 -- TODO: Audit this for cases where empty lists are allowed and only nonempty ones should
 -- be.  Implement a generic-nonempty-list type and use it to fix those.
 module Network.FruitTart.Base.SQL.Types (
+                                         ShowTokens(..),
                                          Type(..),
                                          LikeType(..),
                                          Expression(..),
@@ -25,8 +26,28 @@ class ShowTokens a where
     showTokens :: a -> [Token]
 
 
-data Type = Type String (Maybe ((MaybeSign, Either Double Word64),
-                                Maybe (MaybeSign, (Either Double Word64))))
+data OneOrMore a = OneOrMore [a]
+
+mkOneOrMore :: [a] -> Maybe (OneOrMore a)
+mkOneOrMore [] = Nothing
+mkOneOrMore list = Just $ OneOrMore list
+
+mapOneOrMore :: (a -> b) -> (OneOrMore a) -> [b]
+mapOneOrMore function (OneOrMore list) = map function list
+
+data NonnegativeDouble = NonnegativeDouble Double
+
+mkNonnegativeDouble :: Double -> Maybe NonnegativeDouble
+mkNonnegativeDouble double =
+    if double < 0.0
+       then Nothing
+       else Just $ NonnegativeDouble double
+
+fromNonnegativeDouble :: NonnegativeDouble -> Double
+fromNonnegativeDouble (NonnegativeDouble double) = double
+
+data Type = Type String (Maybe ((MaybeSign, Either NonnegativeDouble Word64),
+                                Maybe (MaybeSign, (Either NonnegativeDouble Word64))))
 instance ShowTokens Type where
     showTokens (Type name Nothing)
         = [Identifier name]
@@ -43,10 +64,9 @@ instance ShowTokens Type where
           ++ showTokens maxLength
           ++ [PunctuationRightParenthesis]
 
-instance ShowTokens (MaybeSign, (Either Double Word64)) where
-    showTokens (maybeSign, (Left double))
-        | double < 0 = error "SQL floating-point literal less than zero."
-        | otherwise = showTokens maybeSign ++ [LiteralFloat double]
+instance ShowTokens (MaybeSign, (Either NonnegativeDouble Word64)) where
+    showTokens (maybeSign, (Left nonnegativeDouble))
+        = showTokens maybeSign ++ [LiteralFloat nonnegativeDouble]
     showTokens (maybeSign, (Right word)) = showTokens maybeSign ++ [LiteralInteger word]
 
 data LikeType = Like
@@ -68,7 +88,7 @@ instance ShowTokens LikeType where
     showTokens NotMatch = [KeywordNot, KeywordMatch]
 
 data Expression = ExpressionLiteralInteger Word64
-                | ExpressionLiteralFloat Double
+                | ExpressionLiteralFloat NonnegativeDouble
                 | ExpressionLiteralString String
                 | ExpressionLiteralBlob BS.ByteString
                 | ExpressionLiteralNull
@@ -134,10 +154,10 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionRaiseFail String
 
 instance ShowTokens Expression where
-    showTokens (ExpressionLiteralInteger integer)
-        = [LiteralInteger $ abs integer]
-    showTokens (ExpressionLiteralFloat double)
-        = [LiteralFloat $ abs double]
+    showTokens (ExpressionLiteralInteger word)
+        = [LiteralInteger word]
+    showTokens (ExpressionLiteralFloat nonnegativeDouble)
+        = [LiteralFloat nonnegativeDouble]
     showTokens (ExpressionLiteralString string)
         = [LiteralString string]
     showTokens (ExpressionLiteralBlob bytestring)
@@ -467,7 +487,7 @@ instance ShowTokens ColumnDefinition where
 
 data DefaultValue
     = DefaultValueSignedInteger MaybeSign Word64
-    | DefaultValueSignedFloat MaybeSign Double
+    | DefaultValueSignedFloat MaybeSign NonnegativeDouble
     | DefaultValueLiteralString String
     | DefaultValueLiteralBlob BS.ByteString
     | DefaultValueLiteralNull
@@ -655,7 +675,7 @@ instance ShowTokens PragmaValue where
           ++ [PunctuationRightParenthesis]
 
 data PragmaValue' = SignedIntegerPragmaValue MaybeSign Word64
-                  | SignedFloatPragmaValue MaybeSign Double
+                  | SignedFloatPragmaValue MaybeSign NonnegativeDouble
                   | NamePragmaValue UnqualifiedIdentifier
                   | StringPragmaValue String
 instance ShowTokens PragmaValue' where
@@ -1388,7 +1408,7 @@ instance ShowTokens DoublyQualifiedIdentifier where
 
 data Token = Identifier String
            | LiteralInteger Word64
-           | LiteralFloat Double
+           | LiteralFloat NonnegativeDouble
            | LiteralString String
            | LiteralBlob BS.ByteString
            | Variable
@@ -1553,7 +1573,7 @@ instance Show Token where
              then identifier
              else "\"" ++ (concat $ map escapeCharacter identifier) ++ "\""
     show (LiteralInteger integer) = show integer
-    show (LiteralFloat double) = show double
+    show (LiteralFloat (NonnegativeDouble double)) = show double
     show (LiteralString string) =
         let showChar char = case char of
                               '\'' -> "''"
