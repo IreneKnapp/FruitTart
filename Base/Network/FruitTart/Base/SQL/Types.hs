@@ -1,10 +1,71 @@
-{-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances #-}
+{-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, ExistentialQuantification #-}
 module Network.FruitTart.Base.SQL.Types (
                                          ShowTokens(..),
+                                         OneOrMore,
+                                         mkOneOrMore,
+                                         fromOneOrMore,
+                                         NonnegativeDouble,
+                                         mkNonnegativeDouble,
+                                         fromNonnegativeDouble,
                                          Type(..),
                                          LikeType(..),
                                          Expression(..),
+                                         MaybeUnique(..),
+                                         MaybeIfNotExists(..),
+                                         MaybeIfExists(..),
+                                         MaybeForEachRow(..),
+                                         Permanence(..),
+                                         MaybeCollation(..),
+                                         MaybeAscDesc(..),
+                                         MaybeAutoincrement(..),
+                                         MaybeSign(..),
+                                         AlterTableBody(..),
+                                         ColumnDefinition(..),
+                                         DefaultValue(..),
+                                         IndexedColumn(..),
+                                         ColumnConstraint(..),
+                                         TableConstraint(..),
+                                         TriggerTime(..),
+                                         TriggerCondition(..),
+                                         ModuleArgument(..),
+                                         TriggerStatement(..),
+                                         QualifiedTableName(..),
+                                         OrderingTerm(..),
+                                         PragmaValue(..),
+                                         PragmaValue'(..),
+                                         InsertHead(..),
+                                         InsertBody(..),
+                                         UpdateHead(..),
+                                         Distinctness(..),
+                                         MaybeHaving(..),
+                                         As(..),
+                                         CompoundOperator(..),
+                                         SelectCore(..),
+                                         ResultColumn(..),
+                                         JoinSource(..),
+                                         SingleSource(..),
+                                         JoinOperation(..),
+                                         JoinConstraint(..),
+                                         MaybeIndexedBy(..),
+                                         FromClause(..),
+                                         WhereClause(..),
+                                         GroupClause(..),
+                                         OrderClause(..),
+                                         LimitClause(..),
+                                         WhenClause(..),
+                                         ConflictClause(..),
+                                         ForeignKeyClause(..),
+                                         ForeignKeyClauseActionOrMatchPart(..),
+                                         ForeignKeyClauseActionPart(..),
+                                         ForeignKeyClauseDeferrablePart(..),
+                                         MaybeInitialDeferralStatus(..),
+                                         MaybeTransactionType(..),
+                                         StatementList(..),
+                                         StatementListItem(..),
                                          Statement(..),
+                                         UnqualifiedIdentifier(..),
+                                         SinglyQualifiedIdentifier(..),
+                                         DoublyQualifiedIdentifier(..),
                                          Token(..)
                                         )
     where
@@ -24,28 +85,28 @@ class ShowTokens a where
     showTokens :: a -> [Token]
 
 
-data OneOrMore a = OneOrMore [a]
+data OneOrMore a = MkOneOrMore [a]
 
 mkOneOrMore :: [a] -> Maybe (OneOrMore a)
 mkOneOrMore [] = Nothing
-mkOneOrMore list = Just $ OneOrMore list
+mkOneOrMore list = Just $ MkOneOrMore list
 
 mapOneOrMore :: (a -> b) -> (OneOrMore a) -> [b]
-mapOneOrMore function (OneOrMore list) = map function list
+mapOneOrMore function (MkOneOrMore list) = map function list
 
 fromOneOrMore :: (OneOrMore a) -> [a]
-fromOneOrMore (OneOrMore list) = list
+fromOneOrMore (MkOneOrMore list) = list
 
-data NonnegativeDouble = NonnegativeDouble Double
+data NonnegativeDouble = MkNonnegativeDouble Double
 
 mkNonnegativeDouble :: Double -> Maybe NonnegativeDouble
 mkNonnegativeDouble double =
     if double < 0.0
        then Nothing
-       else Just $ NonnegativeDouble double
+       else Just $ MkNonnegativeDouble double
 
 fromNonnegativeDouble :: NonnegativeDouble -> Double
-fromNonnegativeDouble (NonnegativeDouble double) = double
+fromNonnegativeDouble (MkNonnegativeDouble double) = double
 
 data Type = Type String (Maybe ((MaybeSign, Either NonnegativeDouble Word64),
                                 Maybe (MaybeSign, (Either NonnegativeDouble Word64))))
@@ -623,12 +684,9 @@ data ModuleArgument = ModuleArgument String
 instance ShowTokens ModuleArgument where
     showTokens (ModuleArgument string) = [ModuleArgumentToken string]
 
-data TriggerStatement
-    = TriggerL0TNS (Statement L0 T NS)
-    | TriggerL0TS (Statement L0 T S)
+data TriggerStatement = forall l v . TriggerStatement (Statement l T v)
 instance ShowTokens TriggerStatement where
-    showTokens (TriggerL0TNS statement) = showTokens statement
-    showTokens (TriggerL0TS statement) = showTokens statement
+    showTokens (TriggerStatement statement) = showTokens statement
 
 data QualifiedTableName
     = TableNoIndexedBy SinglyQualifiedIdentifier
@@ -1014,15 +1072,9 @@ instance ShowTokens StatementList where
     showTokens (StatementList list) =
         intercalate [PunctuationSemicolon] $ map showTokens list
 
-data StatementListItem = L1NTNS (Statement L1 NT NS)
-                       | L0NTNS (Statement L0 NT NS)
-                       | L0TNS (Statement L0 T NS)
-                       | L0TS (Statement L0 T S)
+data StatementListItem = forall l t v . Statement (Statement l t v)
 instance ShowTokens StatementListItem where
-    showTokens (L1NTNS statement) = showTokens statement
-    showTokens (L0NTNS statement) = showTokens statement
-    showTokens (L0TNS statement) = showTokens statement
-    showTokens (L0TS statement) = showTokens statement
+    showTokens (Statement statement) = showTokens statement
 
 -- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
 data L0
@@ -1092,7 +1144,7 @@ data Statement level triggerable valueReturning where
         -> UnqualifiedIdentifier
         -> MaybeForEachRow
         -> (Maybe WhenClause)
-        -> [TriggerStatement]
+        -> (OneOrMore TriggerStatement)
         -> Statement L0 NT NS
     CreateView
         :: Permanence
@@ -1259,7 +1311,7 @@ instance ShowTokens (Statement a b c) where
           ++ (case maybeWhenClause of
                 Nothing -> []
                 Just whenClause -> showTokens whenClause)
-          ++ (intercalate [PunctuationSemicolon] $ map showTokens statements)
+          ++ (intercalate [PunctuationSemicolon] $ mapOneOrMore showTokens statements)
           ++ [PunctuationSemicolon, KeywordEnd]
     showTokens (CreateView permanence maybeIfNotExists viewName selectStatement)
         = [KeywordCreate]
@@ -1598,7 +1650,7 @@ instance Show Token where
              then identifier
              else "\"" ++ (concat $ map escapeCharacter identifier) ++ "\""
     show (LiteralInteger integer) = show integer
-    show (LiteralFloat (NonnegativeDouble double)) = show double
+    show (LiteralFloat nonnegativeDouble) = show $ fromNonnegativeDouble nonnegativeDouble
     show (LiteralString string) =
         let showChar char = case char of
                               '\'' -> "''"
@@ -1760,6 +1812,21 @@ instance Show Token where
     show KeywordVirtual = "VIRTUAL"
     show KeywordWhen = "WHEN"
     show KeywordWhere = "WHERE"
+    showList [] string = "" ++ string
+    showList (onlyToken:[]) string
+        = show onlyToken ++ string
+    showList (firstToken:rest@(PunctuationComma:_)) string
+        = show firstToken ++ show rest
+    showList (firstToken:rest@(PunctuationSemicolon:_)) string
+        = show firstToken ++ show rest
+    showList (firstToken:rest@(PunctuationDot:_)) string
+        = show firstToken ++ show rest
+    showList (PunctuationSemicolon:rest@(_:_)) string
+        = show PunctuationSemicolon ++ "\n" ++ show rest
+    showList (PunctuationDot:rest@(_:_)) string
+        = show PunctuationDot ++ show rest
+    showList (firstToken:rest) string
+        = show firstToken ++ " " ++ show rest ++ string
 
 
 keywordList :: [String]
