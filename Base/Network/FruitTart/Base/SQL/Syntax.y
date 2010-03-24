@@ -2,7 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Network.FruitTart.Base.SQL.Syntax (
 					  readStatementList,
--- 					  readStatement,
+ 					  readStatement,
 					  readExpression,
 					  readFromClause,
 					  readWhereClause,
@@ -21,12 +21,10 @@ import Numeric
 
 import Network.FruitTart.Base.SQL.Types
 
-import Debug.Trace
-
 }
 
 %name parseStatementList StatementList
-%name parseStatement AnyStatement
+%name parseStatement Statement
 %name parseExpression Expression
 %name parseFromClause FromClause
 %name parseWhereClause WhereClause
