@@ -196,13 +196,14 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionBinaryLessGreater Expression Expression
                 | ExpressionBinaryLogicalAnd Expression Expression
                 | ExpressionBinaryLogicalOr Expression Expression
-                | ExpressionFunctionCall String [Expression]
-                | ExpressionFunctionCallDistinct String (OneOrMore Expression)
-                | ExpressionFunctionCallStar String
+                | ExpressionFunctionCall UnqualifiedIdentifier [Expression]
+                | ExpressionFunctionCallDistinct UnqualifiedIdentifier
+                                                 (OneOrMore Expression)
+                | ExpressionFunctionCallStar UnqualifiedIdentifier
                 | ExpressionCast Expression Type
-                | ExpressionCollate Expression String
+                | ExpressionCollate Expression UnqualifiedIdentifier
                 | ExpressionLike Expression LikeType Expression (Maybe Expression)
-                | ExpressionIsNull Expression
+                | ExpressionIsnull Expression
                 | ExpressionNotnull Expression
                 | ExpressionNotNull Expression
                 | ExpressionIs Expression Expression
@@ -301,21 +302,21 @@ instance ShowTokens Expression where
     showTokens (ExpressionBinaryLogicalOr a b)
         = showTokens a ++ [KeywordOr] ++ showTokens b
     showTokens (ExpressionFunctionCall name parameters)
-        = [Identifier name,
-           PunctuationLeftParenthesis]
+        = showTokens name
+          ++ [PunctuationLeftParenthesis]
           ++ intercalate [PunctuationComma] (map showTokens parameters)
           ++ [PunctuationRightParenthesis]
     showTokens (ExpressionFunctionCallDistinct name parameters)
-        = [Identifier name,
-           PunctuationLeftParenthesis,
-           KeywordDistinct]
+        = showTokens name
+          ++ [PunctuationLeftParenthesis,
+              KeywordDistinct]
           ++ intercalate [PunctuationComma] (mapOneOrMore showTokens parameters)
           ++ [PunctuationRightParenthesis]
     showTokens (ExpressionFunctionCallStar name)
-        = [Identifier name,
-           PunctuationLeftParenthesis,
-           PunctuationStar,
-           PunctuationRightParenthesis]
+        = showTokens name
+          ++ [PunctuationLeftParenthesis,
+              PunctuationStar,
+              PunctuationRightParenthesis]
     showTokens (ExpressionCast expression typeDescriptor)
         = [KeywordCast,
            PunctuationLeftParenthesis]
@@ -325,7 +326,8 @@ instance ShowTokens Expression where
           ++ [PunctuationRightParenthesis]
     showTokens (ExpressionCollate expression collation)
         = showTokens expression
-          ++ [KeywordCollate, Identifier collation]
+          ++ [KeywordCollate]
+          ++ showTokens collation
     showTokens (ExpressionLike a likeType b Nothing)
         = showTokens a
           ++ showTokens likeType
@@ -336,7 +338,7 @@ instance ShowTokens Expression where
           ++ showTokens b
           ++ [KeywordEscape]
           ++ showTokens escape
-    showTokens (ExpressionIsNull expression)
+    showTokens (ExpressionIsnull expression)
         = showTokens expression
           ++ [KeywordIsnull]
     showTokens (ExpressionNotnull expression)
@@ -452,18 +454,21 @@ instance ShowTokens Expression where
         = [KeywordRaise,
            PunctuationLeftParenthesis,
            KeywordRollback,
+           PunctuationComma,
            LiteralString message,
            PunctuationRightParenthesis]
     showTokens (ExpressionRaiseAbort message)
         = [KeywordRaise,
            PunctuationLeftParenthesis,
            KeywordAbort,
+           PunctuationComma,
            LiteralString message,
            PunctuationRightParenthesis]
     showTokens (ExpressionRaiseFail message)
         = [KeywordRaise,
            PunctuationLeftParenthesis,
            KeywordFail,
+           PunctuationComma,
            LiteralString message,
            PunctuationRightParenthesis]
 
