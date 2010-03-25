@@ -205,7 +205,7 @@ import Network.FruitTart.Base.SQL.Types
 
 %left or
 %left and
-%left EXPRESSION_6
+%left LOOSER_THAN_NOT
 %right not
 %left is match like glob regexp between in isnull notnull '!=' '<>' '=' '=='
 %left '>' '>=' '<' '<='
@@ -214,11 +214,11 @@ import Network.FruitTart.Base.SQL.Types
 %left '+' '-'
 %left '*' '/' '%'
 %left '|'
-%left EXPRESSION_3
+%left LOOSER_THAN_COLLATE
 %left collate
 %right '~'
 
-%left SINGLY_QUALIFIED_IDENTIFIER
+%left LOOSER_THAN_DOT
 %left '.'
 
 %token
@@ -467,7 +467,7 @@ Expression2 :: { Expression }
     { ExpressionCollate $1 $3 }
 
 Expression3 :: { Expression }
-    : Expression2 %prec EXPRESSION_3
+    : Expression2 %prec LOOSER_THAN_COLLATE
     { $1 }
     | case CaseList end
     { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
@@ -497,7 +497,7 @@ Expression5 :: { Expression }
     { ExpressionNotInTable $1 $4 }
 
 Expression6 :: { Expression }
-    : Expression5 %prec EXPRESSION_6
+    : Expression5 %prec LOOSER_THAN_NOT
     { $1 }
     | '(' Select ')'
     { ExpressionSubquery $2 }
@@ -1493,7 +1493,7 @@ OneOrMoreUnqualifiedIdentifier :: { [UnqualifiedIdentifier] }
     { $1 ++ [$3] }
 
 SinglyQualifiedIdentifier :: { SinglyQualifiedIdentifier }
-    : UnqualifiedIdentifier %prec SINGLY_QUALIFIED_IDENTIFIER
+    : UnqualifiedIdentifier %prec LOOSER_THAN_DOT
     { let UnqualifiedIdentifier properName = $1
       in SinglyQualifiedIdentifier Nothing properName }
     | UnqualifiedIdentifier '.' UnqualifiedIdentifier
