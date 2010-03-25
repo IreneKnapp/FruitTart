@@ -213,6 +213,7 @@ import Network.FruitTart.Base.SQL.Types
 %left '+' '-'
 %left '*' '/' '%'
 %left '|'
+%left EXPRESSION_3
 %left collate
 %right '~'
 
@@ -465,7 +466,7 @@ Expression2 :: { Expression }
     { ExpressionCollate $1 $3 }
 
 Expression3 :: { Expression }
-    : Expression2
+    : Expression2 %prec EXPRESSION_3
     { $1 }
     | case CaseList end
     { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
