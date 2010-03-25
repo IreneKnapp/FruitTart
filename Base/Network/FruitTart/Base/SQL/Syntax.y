@@ -203,6 +203,19 @@ import Network.FruitTart.Base.SQL.Types
 %tokentype { Token }
 %error { parseError }
 
+%left or
+%left and
+%right not
+%left is match like glob regexp between in isnull notnull '!=' '<>' '=' '=='
+%left '>' '>=' '<' '<='
+%right escape
+%left '&' '|' '<<' '>>'
+%left '+' '-'
+%left '*' '/' '%'
+%left '|'
+%left collate
+%right '~'
+
 %token
         identifier            { Identifier $$ }
         integer               { LiteralInteger $$ }
