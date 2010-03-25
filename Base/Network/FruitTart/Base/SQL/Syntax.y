@@ -510,9 +510,9 @@ Expression9 :: { Expression }
     : Expression8
     { $1 }
     | Expression9 is Expression8
-    { ExpressionIs $1 $3 }
-    | Expression9 is not Expression8
-    { ExpressionIsNot $1 $4 }
+    { case $3 of
+        ExpressionUnaryLogicalNot subexpression -> ExpressionIsNot $1 subexpression
+	_ -> ExpressionIs $1 $3 }
 
 Expression10 :: { Expression }
     : Expression9
