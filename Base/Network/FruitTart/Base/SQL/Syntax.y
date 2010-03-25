@@ -205,6 +205,7 @@ import Network.FruitTart.Base.SQL.Types
 
 %left or
 %left and
+%left EXPRESSION_6
 %right not
 %left is match like glob regexp between in isnull notnull '!=' '<>' '=' '=='
 %left '>' '>=' '<' '<='
@@ -496,7 +497,7 @@ Expression5 :: { Expression }
     { ExpressionNotInTable $1 $4 }
 
 Expression6 :: { Expression }
-    : Expression5
+    : Expression5 %prec EXPRESSION_6
     { $1 }
     | '(' Select ')'
     { ExpressionSubquery $2 }
