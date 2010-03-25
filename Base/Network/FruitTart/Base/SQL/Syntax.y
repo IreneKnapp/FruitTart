@@ -543,11 +543,11 @@ Expression10 :: { Expression }
     { ExpressionNotNull $1 }
 
 Expression11 :: { Expression }
-    : Expression10
+    : Expression10 %prec LOOSER_THAN_NOT
     { $1 }
-    | Expression11 LikeType Expression10
+    | Expression11 LikeType Expression10 %prec LOOSER_THAN_NOT
     { ExpressionLike $1 $2 $3 Nothing }
-    | Expression11 LikeType Expression10 escape Expression10
+    | Expression11 LikeType Expression10 escape Expression10 %prec LOOSER_THAN_NOT
     { ExpressionLike $1 $2 $3 (Just $5) }
 
 Expression12 :: { Expression }
@@ -615,7 +615,7 @@ Expression17 :: { Expression }
     { ExpressionNotInList $1 $5 }
 
 Expression18 :: { Expression }
-    : Expression17
+    : Expression17 %prec LOOSER_THAN_NOT
     { $1 }
     | Expression18 and Expression17
     { ExpressionBinaryLogicalAnd $1 $3 }
