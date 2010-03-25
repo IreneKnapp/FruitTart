@@ -211,6 +211,7 @@ import Network.FruitTart.Base.SQL.Types
 %left '>' '>=' '<' '<='
 %right escape
 %left '&' '|' '<<' '>>'
+%left LOOSER_THAN_ADDITIVE
 %left '+' '-'
 %left '*' '/' '%'
 %left '|'
@@ -575,7 +576,7 @@ Expression14 :: { Expression }
     { ExpressionBinarySubtract $1 $3 }
 
 Expression15 :: { Expression }
-    : Expression14
+    : Expression14 %prec LOOSER_THAN_ADDITIVE
     { $1 }
     | Expression15 '<<' Expression14
     { ExpressionBinaryLeftShift $1 $3 }
