@@ -1922,6 +1922,10 @@ lexer ('>':rest) = PunctuationGreater : lexer rest
 lexer ('|':'|':rest) = PunctuationBarBar : lexer rest
 lexer ('|':rest) = PunctuationBar : lexer rest
 lexer ('~':rest) = PunctuationTilde : lexer rest
+lexer all@('x':rest) = let (token, rest) = readBlobLiteral all
+                       in token : lexer rest
+lexer all@('X':rest) = let (token, rest) = readBlobLiteral all
+                       in token : lexer rest
 lexer all@('\'':_) = let (token, rest) = readStringLiteral all
                      in token : lexer rest
 lexer all@(c:_)
@@ -2062,11 +2066,25 @@ readStringLiteral :: String -> (Token, String)
 readStringLiteral input =
     let readString' ('\'':('\'':rest)) = let (a, b) = readString' rest
                                          in ("'" ++ a, b)
-        readString' ('\"':rest) = ("", rest)
+        readString' ('\'':rest) = ("", rest)
         readString' (c:rest) = let (a, b) = readString' rest
                                in ([c] ++ a, b)
+        readString' "" = error $ "SQL-lexing error: "
+                         ++ "Missing close-single-quote in string or blob literal."
         (string, unparsed) = readString' $ drop 1 input
     in (LiteralString string, unparsed)
+
+
+readBlobLiteral :: String -> (Token, String)
+readBlobLiteral input =
+    let (LiteralString blobAsText, unparsed) = case input of
+                                                 ('x':rest) -> readStringLiteral rest
+                                                 ('X':rest) -> readStringLiteral rest
+        bytestring = if (all isHexDigit blobAsText)
+                        && ((length blobAsText `mod` 2) == 0)
+                       then read ("\"" ++ blobAsText ++ "\"")
+                       else error "SQL-lexing error: Invalid blob literal."
+    in (LiteralBlob bytestring, unparsed)
 
 
 readNumericLiteral :: String -> (Token, String)
