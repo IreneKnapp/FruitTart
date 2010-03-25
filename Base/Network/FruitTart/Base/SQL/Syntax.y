@@ -511,7 +511,7 @@ Expression7 :: { Expression }
     { ExpressionNotBetween $1 $4 $6 }
 
 Expression8 :: { Expression }
-    : Expression7
+    : Expression7 %prec LOOSER_THAN_NOT
     { $1 }
     | '-' Expression8
     { ExpressionUnaryNegative $2 }
