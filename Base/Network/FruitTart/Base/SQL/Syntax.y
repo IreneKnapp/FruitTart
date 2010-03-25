@@ -555,7 +555,7 @@ Expression11 :: { Expression }
 Expression12 :: { Expression }
     : Expression11 %prec LOOSER_THAN_NOT
     { $1 }
-    | Expression12 '||' Expression11
+    | Expression12 '||' Expression11 %prec LOOSER_THAN_NOT
     { ExpressionBinaryConcatenate $1 $3 }
 
 Expression13 :: { Expression }
