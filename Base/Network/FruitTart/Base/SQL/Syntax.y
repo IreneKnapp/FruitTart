@@ -2,7 +2,98 @@
 {-# LANGUAGE ExistentialQuantification, Rank2Types #-}
 module Network.FruitTart.Base.SQL.Syntax (
        					  readType,
-       					  readSelect
+					  readLikeType,
+					  readExpression,
+					  readMaybeUnique,
+					  readMaybeIfNotExists,
+					  readMaybeIfExists,
+					  readMaybeForEachRow,
+					  readPermanence,
+					  readMaybeCollation,
+					  readMaybeAscDesc,
+					  readMaybeAutoincrement,
+					  readMaybeSign,
+					  readAlterTableBody,
+					  readColumnDefinition,
+					  readDefaultValue,
+					  readIndexedColumn,
+					  readColumnConstraint,
+					  readTableConstraint,
+					  readTriggerTime,
+					  readTriggerCondition,
+					  -- TODO remember to uncomment this
+					  -- readModuleArgument,
+					  readTriggerStatement,
+					  readQualifiedTableName,
+					  readOrderingTerm,
+					  readPragmaBody,
+					  readPragmaValue,
+					  readEitherColumnsAndConstraintsSelect,
+					  readInsertHead,
+					  readInsertBody,
+					  readUpdateHead,
+					  readDistinctness,
+					  readMaybeHaving,
+					  readMaybeAs,
+					  readCompoundOperator,
+					  readSelectCore,
+					  readResultColumn,
+					  readJoinSource,
+					  readSingleSource,
+					  readJoinOperation,
+					  readJoinConstraint,
+					  readMaybeIndexedBy,
+					  readFromClause,
+					  readWhereClause,
+					  readGroupClause,
+					  readOrderClause,
+					  readLimitClause,
+					  readWhenClause,
+					  readConflictClause,
+					  readForeignKeyClause,
+					  readForeignKeyClauseActionOrMatchPart,
+					  readForeignKeyClauseActionPart,
+					  readForeignKeyClauseDeferrablePart,
+					  readMaybeInitialDeferralStatus,
+					  readMaybeTransactionType,
+					  readStatementList,
+					  readAnyStatement,
+					  readExplainableStatement,
+       					  readExplain,
+					  readExplainQueryPlan,
+					  readAlterTable,
+					  readAnalyze,
+					  readAttach,
+					  readBegin,
+					  readCommit,
+					  readCreateIndex,
+					  readCreateTable,
+					  readCreateTrigger,
+					  readCreateView,
+					  -- TODO remember to uncomment this
+					  -- readCreateVirtualTable,
+					  readDelete,
+					  readDeleteLimited,
+					  readDeleteOrDeleteLimited,
+					  readDetach,
+					  readDropIndex,
+					  readDropTable,
+					  readDropTrigger,
+					  readDropView,
+					  readInsert,
+					  readPragma,
+					  readReindex,
+					  readRelease,
+					  readRollback,
+					  readSavepoint,
+					  readSelect,
+					  readUpdate,
+					  readUpdateLimited,
+					  readUpdateOrUpdateLimited,
+					  readVacuum,
+					  readUnqualifiedIdentifier,
+					  readSinglyQualifiedIdentifier,
+					  readDoublyQualifiedIdentifier
 					 )
     where
 
@@ -16,11 +107,47 @@ import Network.FruitTart.Base.SQL.Types
 }
 
 %name parseType Type
-%name parseSelect Select
-{-
-%name parseStatementList StatementList
-%name parseStatement Statement
+%name parseLikeType LikeType
 %name parseExpression Expression
+%name parseMaybeUnique MaybeUnique
+%name parseMaybeIfNotExists MaybeIfNotExists
+%name parseMaybeIfExists MaybeIfExists
+%name parseMaybeForEachRow MaybeForEachRow
+%name parsePermanence Permanence
+%name parseMaybeCollation MaybeCollation
+%name parseMaybeAscDesc MaybeAscDesc
+%name parseMaybeAutoincrement MaybeAutoincrement
+%name parseMaybeSign MaybeSign
+%name parseAlterTableBody AlterTableBody
+%name parseColumnDefinition ColumnDefinition
+%name parseDefaultValue DefaultValue
+%name parseIndexedColumn IndexedColumn
+%name parseColumnConstraint ColumnConstraint
+%name parseTableConstraint TableConstraint
+%name parseTriggerTime TriggerTime
+%name parseTriggerCondition TriggerCondition
+-- %name parseModuleArgument ModuleArgument
+-- TODO remember to uncomment this
+%name parseTriggerStatement TriggerStatement
+%name parseQualifiedTableName QualifiedTableName
+%name parseOrderingTerm OrderingTerm
+%name parsePragmaBody PragmaBody
+%name parsePragmaValue PragmaValue
+%name parseEitherColumnsAndConstraintsSelect EitherColumnsAndConstraintsSelect
+%name parseInsertHead InsertHead
+%name parseInsertBody InsertBody
+%name parseUpdateHead UpdateHead
+%name parseDistinctness Distinctness
+%name parseMaybeHaving MaybeHaving
+%name parseMaybeAs MaybeAs
+%name parseCompoundOperator CompoundOperator
+%name parseSelectCore SelectCore
+%name parseResultColumn ResultColumn
+%name parseJoinSource JoinSource
+%name parseSingleSource SingleSource
+%name parseJoinOperation JoinOperation
+%name parseJoinConstraint JoinConstraint
+%name parseMaybeIndexedBy MaybeIndexedBy
 %name parseFromClause FromClause
 %name parseWhereClause WhereClause
 %name parseGroupClause GroupClause
@@ -29,8 +156,49 @@ import Network.FruitTart.Base.SQL.Types
 %name parseWhenClause WhenClause
 %name parseConflictClause ConflictClause
 %name parseForeignKeyClause ForeignKeyClause
-
--}
+%name parseForeignKeyClauseActionOrMatchPart ForeignKeyClauseActionOrMatchPart
+%name parseForeignKeyClauseActionPart ForeignKeyClauseActionPart
+%name parseForeignKeyClauseDeferrablePart ForeignKeyClauseDeferrablePart
+%name parseMaybeInitialDeferralStatus MaybeInitialDeferralStatus
+%name parseMaybeTransactionType MaybeTransactionType
+%name parseStatementList StatementList
+%name parseAnyStatement Statement
+%name parseExplainableStatement ExplainableStatement
+%name parseExplain Explain
+%name parseExplainQueryPlan ExplainQueryPlan
+%name parseAlterTable AlterTable
+%name parseAnalyze Analyze
+%name parseAttach Attach
+%name parseBegin Begin
+%name parseCommit Commit
+%name parseCreateIndex CreateIndex
+%name parseCreateTable CreateTable
+%name parseCreateTrigger CreateTrigger
+%name parseCreateView CreateView
+-- %name parseCreateVirtualTable CreateVirtualTable
+-- TODO remember to uncomment this
+%name parseDelete Delete
+%name parseDeleteLimited DeleteLimited
+%name parseDeleteOrDeleteLimited DeleteOrDeleteLimited
+%name parseDetach Detach
+%name parseDropIndex DropIndex
+%name parseDropTable DropTable
+%name parseDropTrigger DropTrigger
+%name parseDropView DropView
+%name parseInsert Insert
+%name parsePragma Pragma
+%name parseReindex Reindex
+%name parseRelease Release
+%name parseRollback Rollback
+%name parseSavepoint Savepoint
+%name parseSelect Select
+%name parseUpdate Update
+%name parseUpdateLimited UpdateLimited
+%name parseUpdateOrUpdateLimited UpdateOrUpdateLimited
+%name parseVacuum Vacuum
+%name parseUnqualifiedIdentifier UnqualifiedIdentifier
+%name parseSinglyQualifiedIdentifier SinglyQualifiedIdentifier
+%name parseDoublyQualifiedIdentifier DoublyQualifiedIdentifier
 
 %tokentype { Token }
 %error { parseError }
@@ -978,11 +1146,11 @@ MaybeTransactionType :: { MaybeTransactionType }
     | exclusive
     { Exclusive }
 
-StatementList :: { [AnyStatement] }
+StatementList :: { StatementList }
     :
-    { [] }
+    { StatementList [] }
     | OneOrMoreStatement
-    { $1 }
+    { StatementList $1 }
 
 OneOrMoreStatement :: { [AnyStatement] }
     : Statement
@@ -1177,6 +1345,12 @@ DeleteLimited :: { Statement L0 NT NS }
     : delete from QualifiedTableName MaybeWhereClause MaybeOrderClause LimitClause
     { DeleteLimited $3 $4 $5 $6 }
 
+DeleteOrDeleteLimited :: { AnyStatement }
+    : Delete
+    { Statement $1 }
+    | DeleteLimited
+    { Statement $1 }
+
 Detach :: { Statement L0 NT NS }
     : detach UnqualifiedIdentifier
     { Detach False $2 }
@@ -1248,6 +1422,12 @@ UpdateLimited :: { Statement L0 NT NS }
       MaybeOrderClause LimitClause
     { UpdateLimited $1 $2 (fromJust $ mkOneOrMore $4) $5 $6 $7 }
 
+UpdateOrUpdateLimited :: { AnyStatement }
+    : Update
+    { Statement $1 }
+    | UpdateLimited
+    { Statement $1 }
+
 Vacuum :: { Statement L0 NT NS }
     : vacuum
     { Vacuum }
@@ -1282,8 +1462,368 @@ readType :: String -> Type
 readType input = parseType $ lexer input
 
 
+readLikeType :: String -> LikeType
+readLikeType input = parseLikeType $ lexer input
+
+
+readExpression :: String -> Expression
+readExpression input = parseExpression $ lexer input
+
+
+readMaybeUnique :: String -> MaybeUnique
+readMaybeUnique input = parseMaybeUnique $ lexer input
+
+
+readMaybeIfNotExists :: String -> MaybeIfNotExists
+readMaybeIfNotExists input = parseMaybeIfNotExists $ lexer input
+
+
+readMaybeIfExists :: String -> MaybeIfExists
+readMaybeIfExists input = parseMaybeIfExists $ lexer input
+
+
+readMaybeForEachRow :: String -> MaybeForEachRow
+readMaybeForEachRow input = parseMaybeForEachRow $ lexer input
+
+
+readPermanence :: String -> Permanence
+readPermanence input = parsePermanence $ lexer input
+
+
+readMaybeCollation :: String -> MaybeCollation
+readMaybeCollation input = parseMaybeCollation $ lexer input
+
+
+readMaybeAscDesc :: String -> MaybeAscDesc
+readMaybeAscDesc input = parseMaybeAscDesc $ lexer input
+
+
+readMaybeAutoincrement :: String -> MaybeAutoincrement
+readMaybeAutoincrement input = parseMaybeAutoincrement $ lexer input
+
+
+readMaybeSign :: String -> MaybeSign
+readMaybeSign input = parseMaybeSign $ lexer input
+
+
+readAlterTableBody :: String -> AlterTableBody
+readAlterTableBody input = parseAlterTableBody $ lexer input
+
+
+readColumnDefinition :: String -> ColumnDefinition
+readColumnDefinition input = parseColumnDefinition $ lexer input
+
+
+readDefaultValue :: String -> DefaultValue
+readDefaultValue input = parseDefaultValue $ lexer input
+
+
+readIndexedColumn :: String -> IndexedColumn
+readIndexedColumn input = parseIndexedColumn $ lexer input
+
+
+readColumnConstraint :: String -> ColumnConstraint
+readColumnConstraint input = parseColumnConstraint $ lexer input
+
+
+readTableConstraint :: String -> TableConstraint
+readTableConstraint input = parseTableConstraint $ lexer input
+
+
+readTriggerTime :: String -> TriggerTime
+readTriggerTime input = parseTriggerTime $ lexer input
+
+
+readTriggerCondition :: String -> TriggerCondition
+readTriggerCondition input = parseTriggerCondition $ lexer input
+
+
+{- TODO remember to uncomment this
+readModuleArgument :: String -> ModuleArgument
+readModuleArgument input = parseModuleArgument $ lexer input
+-}
+
+
+readTriggerStatement :: String -> TriggerStatement
+readTriggerStatement input = parseTriggerStatement $ lexer input
+
+
+readQualifiedTableName :: String -> QualifiedTableName
+readQualifiedTableName input = parseQualifiedTableName $ lexer input
+
+
+readOrderingTerm :: String -> OrderingTerm
+readOrderingTerm input = parseOrderingTerm $ lexer input
+
+
+readPragmaBody :: String -> PragmaBody
+readPragmaBody input = parsePragmaBody $ lexer input
+
+
+readPragmaValue :: String -> PragmaValue
+readPragmaValue input = parsePragmaValue $ lexer input
+
+
+readEitherColumnsAndConstraintsSelect :: String -> EitherColumnsAndConstraintsSelect
+readEitherColumnsAndConstraintsSelect input = parseEitherColumnsAndConstraintsSelect $ lexer input
+
+
+readInsertHead :: String -> InsertHead
+readInsertHead input = parseInsertHead $ lexer input
+
+
+readInsertBody :: String -> InsertBody
+readInsertBody input = parseInsertBody $ lexer input
+
+
+readUpdateHead :: String -> UpdateHead
+readUpdateHead input = parseUpdateHead $ lexer input
+
+
+readDistinctness :: String -> Distinctness
+readDistinctness input = parseDistinctness $ lexer input
+
+
+readMaybeHaving :: String -> MaybeHaving
+readMaybeHaving input = parseMaybeHaving $ lexer input
+
+
+readMaybeAs :: String -> MaybeAs
+readMaybeAs input = parseMaybeAs $ lexer input
+
+
+readCompoundOperator :: String -> CompoundOperator
+readCompoundOperator input = parseCompoundOperator $ lexer input
+
+
+readSelectCore :: String -> SelectCore
+readSelectCore input = parseSelectCore $ lexer input
+
+
+readResultColumn :: String -> ResultColumn
+readResultColumn input = parseResultColumn $ lexer input
+
+
+readJoinSource :: String -> JoinSource
+readJoinSource input = parseJoinSource $ lexer input
+
+
+readSingleSource :: String -> SingleSource
+readSingleSource input = parseSingleSource $ lexer input
+
+
+readJoinOperation :: String -> JoinOperation
+readJoinOperation input = parseJoinOperation $ lexer input
+
+
+readJoinConstraint :: String -> JoinConstraint
+readJoinConstraint input = parseJoinConstraint $ lexer input
+
+
+readMaybeIndexedBy :: String -> MaybeIndexedBy
+readMaybeIndexedBy input = parseMaybeIndexedBy $ lexer input
+
+
+readFromClause :: String -> FromClause
+readFromClause input = parseFromClause $ lexer input
+
+
+readWhereClause :: String -> WhereClause
+readWhereClause input = parseWhereClause $ lexer input
+
+
+readGroupClause :: String -> GroupClause
+readGroupClause input = parseGroupClause $ lexer input
+
+
+readOrderClause :: String -> OrderClause
+readOrderClause input = parseOrderClause $ lexer input
+
+
+readLimitClause :: String -> LimitClause
+readLimitClause input = parseLimitClause $ lexer input
+
+
+readWhenClause :: String -> WhenClause
+readWhenClause input = parseWhenClause $ lexer input
+
+
+readConflictClause :: String -> ConflictClause
+readConflictClause input = parseConflictClause $ lexer input
+
+
+readForeignKeyClause :: String -> ForeignKeyClause
+readForeignKeyClause input = parseForeignKeyClause $ lexer input
+
+
+readForeignKeyClauseActionOrMatchPart :: String -> ForeignKeyClauseActionOrMatchPart
+readForeignKeyClauseActionOrMatchPart input = parseForeignKeyClauseActionOrMatchPart $ lexer input
+
+
+readForeignKeyClauseActionPart :: String -> ForeignKeyClauseActionPart
+readForeignKeyClauseActionPart input = parseForeignKeyClauseActionPart $ lexer input
+
+
+readForeignKeyClauseDeferrablePart :: String -> ForeignKeyClauseDeferrablePart
+readForeignKeyClauseDeferrablePart input = parseForeignKeyClauseDeferrablePart $ lexer input
+
+
+readMaybeInitialDeferralStatus :: String -> MaybeInitialDeferralStatus
+readMaybeInitialDeferralStatus input = parseMaybeInitialDeferralStatus $ lexer input
+
+
+readMaybeTransactionType :: String -> MaybeTransactionType
+readMaybeTransactionType input = parseMaybeTransactionType $ lexer input
+
+
+readStatementList :: String -> StatementList
+readStatementList input = parseStatementList $ lexer input
+
+
+readAnyStatement :: String -> AnyStatement
+readAnyStatement input = parseAnyStatement $ lexer input
+
+
+readExplainableStatement :: String -> ExplainableStatement
+readExplainableStatement input = parseExplainableStatement $ lexer input
+
+
+readExplain :: String -> Statement L1 NT NS
+readExplain input = parseExplain $ lexer input
+
+
+readExplainQueryPlan :: String -> Statement L1 NT NS
+readExplainQueryPlan input = parseExplainQueryPlan $ lexer input
+
+
+readAlterTable :: String -> Statement L0 NT NS
+readAlterTable input = parseAlterTable $ lexer input
+
+
+readAnalyze :: String -> Statement L0 NT NS
+readAnalyze input = parseAnalyze $ lexer input
+
+
+readAttach :: String -> Statement L0 NT NS
+readAttach input = parseAttach $ lexer input
+
+
+readBegin :: String -> Statement L0 NT NS
+readBegin input = parseBegin $ lexer input
+
+
+readCommit :: String -> Statement L0 NT NS
+readCommit input = parseCommit $ lexer input
+
+
+readCreateIndex :: String -> Statement L0 NT NS
+readCreateIndex input = parseCreateIndex $ lexer input
+
+
+readCreateTable :: String -> Statement L0 NT NS
+readCreateTable input = parseCreateTable $ lexer input
+
+
+readCreateTrigger :: String -> Statement L0 NT NS
+readCreateTrigger input = parseCreateTrigger $ lexer input
+
+
+readCreateView :: String -> Statement L0 NT NS
+readCreateView input = parseCreateView $ lexer input
+
+
+{- TODO remember to uncomment this
+readCreateVirtualTable :: String -> Statement L0 NT NS
+readCreateVirtualTable input = parseCreateVirtualTable $ lexer input
+-}
+
+
+readDelete :: String -> Statement L0 T NS
+readDelete input = parseDelete $ lexer input
+
+
+readDeleteLimited :: String -> Statement L0 NT NS
+readDeleteLimited input = parseDeleteLimited $ lexer input
+
+
+readDeleteOrDeleteLimited :: String -> AnyStatement
+readDeleteOrDeleteLimited input = parseDeleteOrDeleteLimited $ lexer input
+
+
+readDetach :: String -> Statement L0 NT NS
+readDetach input = parseDetach $ lexer input
+
+
+readDropIndex :: String -> Statement L0 NT NS
+readDropIndex input = parseDropIndex $ lexer input
+
+
+readDropTable :: String -> Statement L0 NT NS
+readDropTable input = parseDropTable $ lexer input
+
+
+readDropTrigger :: String -> Statement L0 NT NS
+readDropTrigger input = parseDropTrigger $ lexer input
+
+
+readDropView :: String -> Statement L0 NT NS
+readDropView input = parseDropView $ lexer input
+
+
+readInsert :: String -> Statement L0 T NS
+readInsert input = parseInsert $ lexer input
+
+
+readPragma :: String -> Statement L0 NT NS
+readPragma input = parsePragma $ lexer input
+
+
+readReindex :: String -> Statement L0 NT NS
+readReindex input = parseReindex $ lexer input
+
+
+readRelease :: String -> Statement L0 NT NS
+readRelease input = parseRelease $ lexer input
+
+
+readRollback :: String -> Statement L0 NT NS
+readRollback input = parseRollback $ lexer input
+
+
+readSavepoint :: String -> Statement L0 NT NS
+readSavepoint input = parseSavepoint $ lexer input
+
+
 readSelect :: String -> Statement L0 T S
 readSelect input = parseSelect $ lexer input
+
+
+readUpdate :: String -> Statement L0 T NS
+readUpdate input = parseUpdate $ lexer input
+
+
+readUpdateLimited :: String -> Statement L0 NT NS
+readUpdateLimited input = parseUpdateLimited $ lexer input
+
+
+readUpdateOrUpdateLimited :: String -> AnyStatement
+readUpdateOrUpdateLimited input = parseUpdateOrUpdateLimited $ lexer input
+
+
+readVacuum :: String -> Statement L0 NT NS
+readVacuum input = parseVacuum $ lexer input
+
+
+readUnqualifiedIdentifier :: String -> UnqualifiedIdentifier
+readUnqualifiedIdentifier input = parseUnqualifiedIdentifier $ lexer input
+
+
+readSinglyQualifiedIdentifier :: String -> SinglyQualifiedIdentifier
+readSinglyQualifiedIdentifier input = parseSinglyQualifiedIdentifier $ lexer input
+
+
+readDoublyQualifiedIdentifier :: String -> DoublyQualifiedIdentifier
+readDoublyQualifiedIdentifier input = parseDoublyQualifiedIdentifier $ lexer input
 
 
 parseError :: [Token] -> a
