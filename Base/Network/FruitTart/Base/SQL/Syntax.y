@@ -1,5 +1,5 @@
 {
-{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ExistentialQuantification, Rank2Types #-}
 module Network.FruitTart.Base.SQL.Syntax (
        					  readType,
        					  readSelect
@@ -226,7 +226,7 @@ LikeType :: { LikeType }
     | not match
     { NotMatch }
 
-Expression :: { Expression }
+Expression0 :: { Expression }
     : integer
     { ExpressionLiteralInteger $1 }
     | float
@@ -251,54 +251,6 @@ Expression :: { Expression }
     { ExpressionVariableNamed $1 }
     | DoublyQualifiedIdentifier
     { ExpressionIdentifier $1 }
-    | '-' Expression
-    { ExpressionUnaryNegative $2 }
-    | '+' Expression
-    { ExpressionUnaryPositive $2 }
-    | '~' Expression
-    { ExpressionUnaryBitwiseNot $2 }
-    | not Expression		
-    { ExpressionUnaryLogicalNot $2 }
-    | Expression '||' Expression
-    { ExpressionBinaryConcatenate $1 $3 }
-    | Expression '*' Expression
-    { ExpressionBinaryMultiply $1 $3 }
-    | Expression '/' Expression
-    { ExpressionBinaryDivide $1 $3 }
-    | Expression '%' Expression
-    { ExpressionBinaryModulus $1 $3 }
-    | Expression '+' Expression
-    { ExpressionBinaryAdd $1 $3 }
-    | Expression '-' Expression
-    { ExpressionBinarySubtract $1 $3 }
-    | Expression '<<' Expression
-    { ExpressionBinaryLeftShift $1 $3 }
-    | Expression '>>' Expression
-    { ExpressionBinaryRightShift $1 $3 }
-    | Expression '&' Expression
-    { ExpressionBinaryBitwiseAnd $1 $3 }
-    | Expression '|' Expression
-    { ExpressionBinaryBitwiseOr $1 $3 }
-    | Expression '<' Expression
-    { ExpressionBinaryLess $1 $3 }
-    | Expression '<=' Expression
-    { ExpressionBinaryLessEquals $1 $3 }
-    | Expression '>' Expression
-    { ExpressionBinaryGreater $1 $3 }
-    | Expression '>=' Expression
-    { ExpressionBinaryGreaterEquals $1 $3 }
-    | Expression '=' Expression
-    { ExpressionBinaryEquals $1 $3 }
-    | Expression '==' Expression
-    { ExpressionBinaryEqualsEquals $1 $3 }
-    | Expression '!=' Expression
-    { ExpressionBinaryNotEquals $1 $3 }
-    | Expression '<>' Expression
-    { ExpressionBinaryLessGreater $1 $3 }
-    | Expression and Expression
-    { ExpressionBinaryLogicalAnd $1 $3 }
-    | Expression or Expression
-    { ExpressionBinaryLogicalOr $1 $3 }
     | UnqualifiedIdentifier '(' ExpressionList ')'
     { ExpressionFunctionCall $1 $3 }
     | UnqualifiedIdentifier '(' distinct OneOrMoreExpression ')'
@@ -307,44 +259,10 @@ Expression :: { Expression }
     { ExpressionFunctionCallStar $1 }
     | cast '(' Expression as Type ')'
     { ExpressionCast $3 $5 }
-    | Expression collate UnqualifiedIdentifier
-    { ExpressionCollate $1 $3 }
-    | Expression LikeType Expression
-    { ExpressionLike $1 $2 $3 Nothing }
-    | Expression LikeType Expression escape Expression
-    { ExpressionLike $1 $2 $3 (Just $5) }
-    | Expression isnull
-    { ExpressionIsnull $1 }
-    | Expression notnull
-    { ExpressionNotnull $1 }
-    | Expression not null
-    { ExpressionNotNull $1 }
-    | Expression is Expression
-    { ExpressionIs $1 $3 }
-    | Expression is not Expression
-    { ExpressionIsNot $1 $4 }
-    | Expression between Expression and Expression
-    { ExpressionBetween $1 $3 $5 }
-    | Expression not between Expression and Expression
-    { ExpressionNotBetween $1 $4 $6 }
-    | Expression in '(' Select ')'
-    { ExpressionInSelect $1 $4 }
-    | Expression not in '(' Select ')'
-    { ExpressionNotInSelect $1 $5 }
-    | Expression in '(' ExpressionList ')'
-    { ExpressionInList $1 $4 }
-    | Expression not in '(' ExpressionList ')'
-    { ExpressionNotInList $1 $5 }
-    | Expression in SinglyQualifiedIdentifier
-    { ExpressionInTable $1 $3 }
-    | Expression not in SinglyQualifiedIdentifier
-    { ExpressionNotInTable $1 $4 }
     | '(' Select ')'
     { ExpressionSubquery $2 }
     | exists '(' Select ')'
     { ExpressionExistsSubquery $3 }
-    | not exists '(' Select ')'
-    { ExpressionNotExistsSubquery $4 }
     | case CaseList end
     { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
     | case CaseList else Expression end
@@ -361,6 +279,138 @@ Expression :: { Expression }
     { ExpressionRaiseAbort $5 }
     | raise '(' fail ',' string ')'
     { ExpressionRaiseFail $5 }
+    | '(' Expression ')'
+    { ExpressionParenthesized $2 }
+
+Expression1 :: { Expression }
+    : Expression0
+    { $1 }
+    | Expression1 collate UnqualifiedIdentifier
+    { ExpressionCollate $1 $3 }
+
+Expression2 :: { Expression }
+    : Expression1
+    { $1 }
+    | '-' Expression2
+    { ExpressionUnaryNegative $2 }
+    | '+' Expression2
+    { ExpressionUnaryPositive $2 }
+    | '~' Expression2
+    { ExpressionUnaryBitwiseNot $2 }
+    | not Expression2
+    { case $2 of
+        ExpressionExistsSubquery subquery -> ExpressionNotExistsSubquery subquery
+	subexpression -> ExpressionUnaryLogicalNot subexpression }
+
+Expression3 :: { Expression }
+    : Expression2
+    { $1 }
+    | Expression3 '||' Expression2
+    { ExpressionBinaryConcatenate $1 $3 }
+
+Expression4 :: { Expression }
+    : Expression3
+    { $1 }
+    | Expression4 '*' Expression3
+    { ExpressionBinaryMultiply $1 $3 }
+    | Expression4 '/' Expression3
+    { ExpressionBinaryDivide $1 $3 }
+    | Expression4 '%' Expression3
+    { ExpressionBinaryModulus $1 $3 }
+
+Expression5 :: { Expression }
+    : Expression4
+    { $1 }
+    | Expression5 '+' Expression4
+    { ExpressionBinaryAdd $1 $3 }
+    | Expression5 '-' Expression4
+    { ExpressionBinarySubtract $1 $3 }
+
+Expression6 :: { Expression }
+    : Expression5
+    { $1 }
+    | Expression6 '<<' Expression5
+    { ExpressionBinaryLeftShift $1 $3 }
+    | Expression6 '>>' Expression5
+    { ExpressionBinaryRightShift $1 $3 }
+    | Expression6 '&' Expression5
+    { ExpressionBinaryBitwiseAnd $1 $3 }
+    | Expression6 '|' Expression5
+    { ExpressionBinaryBitwiseOr $1 $3 }
+
+Expression7 :: { Expression }
+    : Expression6
+    { $1 }
+    | Expression7 '<' Expression6
+    { ExpressionBinaryLess $1 $3 }
+    | Expression7 '<=' Expression6
+    { ExpressionBinaryLessEquals $1 $3 }
+    | Expression7 '>' Expression6
+    { ExpressionBinaryGreater $1 $3 }
+    | Expression7 '>=' Expression6
+    { ExpressionBinaryGreaterEquals $1 $3 }
+
+Expression8 :: { Expression }
+    : Expression7
+    { $1 }
+    | Expression8 '=' Expression7
+    { ExpressionBinaryEquals $1 $3 }
+    | Expression8 '==' Expression7
+    { ExpressionBinaryEqualsEquals $1 $3 }
+    | Expression8 '!=' Expression7
+    { ExpressionBinaryNotEquals $1 $3 }
+    | Expression8 '<>' Expression7
+    { ExpressionBinaryLessGreater $1 $3 }
+    | Expression8 LikeType Expression7
+    { ExpressionLike $1 $2 $3 Nothing }
+    | Expression8 LikeType Expression escape Expression7
+    { ExpressionLike $1 $2 $3 (Just $5) }
+    | Expression8 isnull
+    { ExpressionIsnull $1 }
+    | Expression8 notnull
+    { ExpressionNotnull $1 }
+    | Expression8 not null
+    { ExpressionNotNull $1 }
+    | Expression8 is Expression7
+    { ExpressionIs $1 $3 }
+    | Expression8 is not Expression7
+    { ExpressionIsNot $1 $4 }
+    | Expression8 in '(' Select ')'
+    { ExpressionInSelect $1 $4 }
+    | Expression8 not in '(' Select ')'
+    { ExpressionNotInSelect $1 $5 }
+    | Expression8 in '(' ExpressionList ')'
+    { ExpressionInList $1 $4 }
+    | Expression8 not in '(' ExpressionList ')'
+    { ExpressionNotInList $1 $5 }
+    | Expression8 in SinglyQualifiedIdentifier
+    { ExpressionInTable $1 $3 }
+    | Expression8 not in SinglyQualifiedIdentifier
+    { ExpressionNotInTable $1 $4 }
+
+Expression9 :: { Expression }
+    : Expression8
+    { $1 }
+    | Expression9 and Expression8
+    { ExpressionBinaryLogicalAnd $1 $3 }
+
+Expression10 :: { Expression }
+    : Expression9
+    { $1 }
+    | Expression10 or Expression9
+    { ExpressionBinaryLogicalOr $1 $3 }
+
+Expression11 :: { Expression }
+    : Expression10
+    { $1 }
+    | Expression11 between Expression and Expression10
+    { ExpressionBetween $1 $3 $5 }
+    | Expression11 not between Expression and Expression10
+    { ExpressionNotBetween $1 $4 $6 }
+
+Expression :: { Expression }
+    : Expression11
+    { $1 }
 
 ExpressionList :: { [Expression] }
     :
@@ -371,8 +421,14 @@ ExpressionList :: { [Expression] }
 OneOrMoreExpression :: { [Expression] }
     : Expression
     { [$1] }
-    | ExpressionList ',' Expression
+    | OneOrMoreExpression ',' Expression
     { $1 ++ [$3] }
+
+OneOrMoreSetPair :: { [(UnqualifiedIdentifier, Expression)] }
+    : UnqualifiedIdentifier '=' Expression
+    { [($1, $3)] }
+    | OneOrMoreSetPair ',' UnqualifiedIdentifier '=' Expression
+    { $1 ++ [($3, $5)] }
 
 CaseList :: { [(Expression, Expression)] }
     : when Expression then Expression
@@ -440,38 +496,152 @@ MaybeSign :: { MaybeSign }
     | '-'
     { NegativeSign }
 
--- AlterTableBody
--- TODO definition
+AlterTableBody :: { AlterTableBody }
+    : rename to UnqualifiedIdentifier
+    { RenameTo $3 }
+    | add ColumnDefinition
+    { AddColumn False $2 }
+    | add column ColumnDefinition
+    { AddColumn True $3 }
 
--- ColumnDefinition
--- TODO definition
+ColumnDefinition :: { ColumnDefinition }
+    : UnqualifiedIdentifier ColumnConstraintList
+    { ColumnDefinition $1 Nothing $2 }
+    | UnqualifiedIdentifier Type ColumnConstraintList
+    { ColumnDefinition $1 (Just $2) $3 }
 
--- DefaultValue
--- TODO definition
+OneOrMoreColumnDefinition :: { [ColumnDefinition] }
+    : ColumnDefinition
+    { [$1] }
+    | OneOrMoreColumnDefinition ',' ColumnDefinition
+    { $1 ++ [$3] }
 
--- IndexedColumn
--- TODO definition
+DefaultValue :: { DefaultValue }
+    : MaybeSign integer
+    { DefaultValueSignedInteger $1 $2 }
+    | MaybeSign float
+    { DefaultValueSignedFloat $1 $2 }
+    | string
+    { DefaultValueLiteralString $1 }
+    | blob
+    { DefaultValueLiteralBlob $1 }
+    | null
+    { DefaultValueLiteralNull }
+    | currentTime
+    { DefaultValueLiteralCurrentTime }
+    | currentDate
+    { DefaultValueLiteralCurrentDate }
+    | currentTimestamp
+    { DefaultValueLiteralCurrentTimestamp }
+    | '(' Expression ')'
+    { DefaultValueExpression $2 }
 
--- ColumnConstraint
--- TODO definition
+IndexedColumn :: { IndexedColumn }
+    : UnqualifiedIdentifier MaybeCollation MaybeAscDesc
+    { IndexedColumn $1 $2 $3 }
 
--- TableConstraint
--- TODO definition
+OneOrMoreIndexedColumn :: { [IndexedColumn] }
+    : IndexedColumn
+    { [$1] }
+    | OneOrMoreIndexedColumn ',' IndexedColumn
+    { $1 ++ [$3] }
 
--- TriggerTime
--- TODO definition
+ColumnConstraint :: { ColumnConstraint }
+    : constraint UnqualifiedIdentifier primary key MaybeAscDesc MaybeConflictClause
+      MaybeAutoincrement
+    { ColumnPrimaryKey $2 $5 $6 $7 }
+    | constraint UnqualifiedIdentifier not null MaybeConflictClause
+    { ColumnNotNull $2 $5 }
+    | constraint UnqualifiedIdentifier unique MaybeConflictClause
+    { ColumnUnique $2 $4 }
+    | constraint UnqualifiedIdentifier check '(' Expression ')'
+    { ColumnCheck $2 $5 }
+    | constraint UnqualifiedIdentifier default DefaultValue
+    { ColumnDefault $2 $4 }
+    | constraint UnqualifiedIdentifier collate UnqualifiedIdentifier
+    { ColumnCollate $2 $4 }
+    | constraint UnqualifiedIdentifier ForeignKeyClause
+    { ColumnForeignKey $2 $3 }
 
--- TriggerCondition
--- TODO definition
+ColumnConstraintList :: { [ColumnConstraint] }
+    :
+    { [] }
+    | ColumnConstraintList ColumnConstraint
+    { $1 ++ [$2] }
 
--- ModuleArgument
--- TODO definition
+TableConstraint :: { TableConstraint }
+    : constraint UnqualifiedIdentifier primary key '(' OneOrMoreIndexedColumn ')'
+      MaybeConflictClause
+    { TablePrimaryKey $2 (fromJust $ mkOneOrMore $6) $8 }
+    | constraint UnqualifiedIdentifier unique '(' OneOrMoreIndexedColumn ')'
+      MaybeConflictClause
+    { TableUnique $2 (fromJust $ mkOneOrMore $5) $7 }
+    | constraint UnqualifiedIdentifier check '(' Expression ')'
+    { TableCheck $2 $5 }
+    | constraint UnqualifiedIdentifier foreign key '(' OneOrMoreUnqualifiedIdentifier ')'
+      ForeignKeyClause
+    { TableForeignKey $2 (fromJust $ mkOneOrMore $6) $8 }
 
--- TriggerStatement
--- TODO definition
+OneOrMoreTableConstraint :: { [TableConstraint] }
+    : TableConstraint
+    { [$1] }
+    | OneOrMoreTableConstraint ',' TableConstraint
+    { $1 ++ [$3] }
 
--- QualifiedTableName
--- TODO definition
+EitherColumnsAndConstraintsSelect :: { EitherColumnsAndConstraintsSelect }
+    : '(' OneOrMoreColumnDefinition ')'
+    { ColumnsAndConstraints (fromJust $ mkOneOrMore $2) [] }
+    | '(' OneOrMoreColumnDefinition ',' OneOrMoreTableConstraint ')'
+    { ColumnsAndConstraints (fromJust $ mkOneOrMore $2) $4 }
+    | as Select
+    { AsSelect $2 }
+
+TriggerTime :: { TriggerTime }
+    : before
+    { Before }
+    | after
+    { After }
+    | instead of
+    { InsteadOf }
+
+TriggerCondition :: { TriggerCondition }
+    : delete on
+    { DeleteOn }
+    | insert on
+    { InsertOn }
+    | update on
+    { UpdateOn [] }
+    | update of OneOrMoreUnqualifiedIdentifier on
+    { UpdateOn $3 }
+
+-- ModuleArgument :: { ModuleArgument }
+--     :
+--     { }
+-- TODO definition (requires monadic parser)
+
+TriggerStatement :: { TriggerStatement }
+    : Update
+    { TriggerStatement $1 }
+    | Insert
+    { TriggerStatement $1 }
+    | Delete
+    { TriggerStatement $1 }
+    | Select
+    { TriggerStatement $1 }
+
+OneOrMoreTriggerStatement :: { [TriggerStatement] }
+    : TriggerStatement
+    { [$1] }
+    | OneOrMoreTriggerStatement ';' TriggerStatement
+    { $1 ++ [$3] }
+
+QualifiedTableName :: { QualifiedTableName }
+    : SinglyQualifiedIdentifier
+    { TableNoIndexedBy $1 }
+    | SinglyQualifiedIdentifier indexed by UnqualifiedIdentifier
+    { TableIndexedBy $1 $4 }
+    | SinglyQualifiedIdentifier not indexed
+    { TableNotIndexed $1 }
 
 OrderingTerm :: { OrderingTerm }
     : Expression MaybeCollation MaybeAscDesc
@@ -483,20 +653,65 @@ OneOrMoreOrderingTerm :: { [OrderingTerm] }
     | OneOrMoreOrderingTerm ',' OrderingTerm
     { $1 ++ [$3] }
 
--- PragmaValue
--- TODO definition
+PragmaBody :: { PragmaBody }
+    :
+    { EmptyPragmaBody }
+    | '=' PragmaValue
+    { EqualsPragmaBody $2 }
+    | '(' PragmaValue ')'
+    { CallPragmaBody $2 }
 
--- PragmaValue'
--- TODO definition
+PragmaValue :: { PragmaValue }
+    : MaybeSign integer
+    { SignedIntegerPragmaValue $1 $2 }
+    | MaybeSign float
+    { SignedFloatPragmaValue $1 $2 }
+    | UnqualifiedIdentifier
+    { NamePragmaValue $1 }
+    | string
+    { StringPragmaValue $1 }
 
--- InsertHead
--- TODO definition
+InsertHead :: { InsertHead }
+    : insert
+    { InsertNoAlternative }
+    | insert or rollback
+    { InsertOrRollback }
+    | insert or abort
+    { InsertOrAbort }
+    | insert or replace
+    { InsertOrReplace }
+    | insert or fail
+    { InsertOrFail }
+    | insert or ignore
+    { InsertOrIgnore }
+    | replace
+    { Replace }
 
--- InsertBody
--- TODO definition
+InsertBody :: { InsertBody }
+    : values '(' OneOrMoreExpression ')'
+    { InsertValues [] (fromJust $ mkOneOrMore $3) }
+    | '(' OneOrMoreUnqualifiedIdentifier ')' values '(' OneOrMoreExpression ')'
+    { InsertValues $2 (fromJust $ mkOneOrMore $6) }
+    | Select
+    { InsertSelect [] $1 }
+    | '(' OneOrMoreUnqualifiedIdentifier ')' Select
+    { InsertSelect $2 $4 }
+    | default values
+    { InsertDefaultValues }
 
--- UpdateHead
--- TODO definition
+UpdateHead :: { UpdateHead }
+    : update
+    { UpdateNoAlternative }
+    | update or rollback
+    { UpdateOrRollback }
+    | update or abort
+    { UpdateOrAbort }
+    | update or replace
+    { UpdateOrReplace }
+    | update or fail
+    { UpdateOrFail }
+    | update or ignore
+    { UpdateOrIgnore }
 
 Distinctness :: { Distinctness }
     :
@@ -671,126 +886,371 @@ MaybeLimitClause :: { Maybe LimitClause }
     | LimitClause
     { Just $1 }
 
--- WhenClause
--- TODO definition
+WhenClause :: { WhenClause }
+    : when Expression
+    { When $2 }
 
--- ConflictClause
--- TODO definition
+MaybeWhenClause :: { Maybe WhenClause }
+    :
+    { Nothing }
+    | WhenClause
+    { Just $1 }
 
--- ForeignKeyClause
--- TODO definition
+ConflictClause :: { ConflictClause }
+    : on conflict rollback
+    { OnConflictRollback }
+    | on conflict abort
+    { OnConflictAbort }
+    | on conflict fail
+    { OnConflictFail }
+    | on conflict ignore
+    { OnConflictIgnore }
+    | on conflict replace
+    { OnConflictReplace }
 
--- ForeignKeyClauseActionOrMatchPart
--- TODO definition
+MaybeConflictClause :: { Maybe ConflictClause }
+    :
+    { Nothing }
+    | ConflictClause
+    { Just $1 }
 
--- ForeignKeyClauseActionPart
--- TODO definition
+ForeignKeyClause :: { ForeignKeyClause }
+    : references UnqualifiedIdentifier ForeignKeyClauseActionOrMatchPartList
+      MaybeForeignKeyClauseDeferrablePart
+    { References $2 [] $3 $4 }
+    | references UnqualifiedIdentifier '(' OneOrMoreUnqualifiedIdentifier ')'
+      ForeignKeyClauseActionOrMatchPartList MaybeForeignKeyClauseDeferrablePart
+    { References $2 $4 $6 $7 }
 
--- ForeignKeyClauseDeferrablePart
--- TODO definition
+ForeignKeyClauseActionOrMatchPart :: { ForeignKeyClauseActionOrMatchPart }
+    : on delete ForeignKeyClauseActionPart
+    { OnDelete $3 }
+    | on update ForeignKeyClauseActionPart
+    { OnUpdate $3 }
+    | match UnqualifiedIdentifier
+    { ReferencesMatch $2 }
 
--- MaybeInitialDeferralStatus
--- TODO definition
+ForeignKeyClauseActionOrMatchPartList :: { [ForeignKeyClauseActionOrMatchPart] }
+    :
+    { [] }
+    | ForeignKeyClauseActionOrMatchPartList ForeignKeyClauseActionOrMatchPart
+    { $1 ++ [$2] }
 
--- MaybeTransactionType
--- TODO definition
+ForeignKeyClauseActionPart :: { ForeignKeyClauseActionPart }
+    : set null
+    { SetNull }
+    | set default
+    { SetDefault }
+    | cascade
+    { Cascade }
+    | restrict
+    { Restrict }
+    | no action
+    { NoAction }
 
--- StatementList
--- TODO definition
+ForeignKeyClauseDeferrablePart :: { ForeignKeyClauseDeferrablePart }
+    : deferrable MaybeInitialDeferralStatus
+    { Deferrable $2 }
+    | not deferrable MaybeInitialDeferralStatus
+    { NotDeferrable $3 }
 
--- AnyStatement
--- TODO definition
+MaybeForeignKeyClauseDeferrablePart :: { Maybe ForeignKeyClauseDeferrablePart }
+    :
+    { Nothing }
+    | ForeignKeyClauseDeferrablePart
+    { Just $1 }
 
--- Statement
--- TODO definition
+MaybeInitialDeferralStatus :: { MaybeInitialDeferralStatus }
+    :
+    { NoInitialDeferralStatus }
+    | initially deferred
+    { InitiallyDeferred }
+    | initially immediate
+    { InitiallyImmediate }
 
--- Explain
--- TODO definition
+MaybeTransactionType :: { MaybeTransactionType }
+    :
+    { NoTransactionType }
+    | deferred
+    { Deferred }
+    | immediate
+    { Immediate }
+    | exclusive
+    { Exclusive }
 
--- ExplainQueryPlan
--- TODO definition
+StatementList :: { [AnyStatement] }
+    :
+    { [] }
+    | OneOrMoreStatement
+    { $1 }
 
--- AlterTable
--- TODO definition
+OneOrMoreStatement :: { [AnyStatement] }
+    : Statement
+    { [$1] }
+    | OneOrMoreStatement ';' Statement
+    { $1 ++ [$3] }
 
--- Analyze
--- TODO definition
+Statement :: { AnyStatement }
+    : Explain
+    { Statement $1 }
+    | ExplainQueryPlan
+    { Statement $1 }
+    | AlterTable
+    { Statement $1 }
+    | Analyze
+    { Statement $1 }
+    | Attach
+    { Statement $1 }
+    | Begin
+    { Statement $1 }
+    | Commit
+    { Statement $1 }
+    | CreateIndex
+    { Statement $1 }
+    | CreateTable
+    { Statement $1 }
+    | CreateTrigger
+    { Statement $1 }
+    | CreateView
+    { Statement $1 }
+--     | CreateVirtualTable
+--     { Statement $1 }
+-- TODO don't forget to uncomment this
+    | Delete
+    { Statement $1 }
+    | DeleteLimited
+    { Statement $1 }
+    | Detach
+    { Statement $1 }
+    | DropIndex
+    { Statement $1 }
+    | DropTable
+    { Statement $1 }
+    | DropTrigger
+    { Statement $1 }
+    | DropView
+    { Statement $1 }
+    | Insert
+    { Statement $1 }
+    | Pragma
+    { Statement $1 }
+    | Reindex
+    { Statement $1 }
+    | Release
+    { Statement $1 }
+    | Rollback
+    { Statement $1 }
+    | Savepoint
+    { Statement $1 }
+    | Select
+    { Statement $1 }
+    | Update
+    { Statement $1 }
+    | UpdateLimited
+    { Statement $1 }
+    | Vacuum
+    { Statement $1 }
 
--- Attach
--- TODO definition
+ExplainableStatement :: { ExplainableStatement }
+    : AlterTable
+    { ExplainableStatement $1 }
+    | Analyze
+    { ExplainableStatement $1 }
+    | Attach
+    { ExplainableStatement $1 }
+    | Begin
+    { ExplainableStatement $1 }
+    | Commit
+    { ExplainableStatement $1 }
+    | CreateIndex
+    { ExplainableStatement $1 }
+    | CreateTable
+    { ExplainableStatement $1 }
+    | CreateTrigger
+    { ExplainableStatement $1 }
+--     | CreateVirtualTable
+--     { ExplainableStatement $1 }
+-- TODO don't forget to uncomment this
+    | Delete
+    { ExplainableStatement $1 }
+    | DeleteLimited
+    { ExplainableStatement $1 }
+    | Detach
+    { ExplainableStatement $1 }
+    | DropIndex
+    { ExplainableStatement $1 }
+    | DropTable
+    { ExplainableStatement $1 }
+    | DropTrigger
+    { ExplainableStatement $1 }
+    | DropView
+    { ExplainableStatement $1 }
+    | Insert
+    { ExplainableStatement $1 }
+    | Pragma
+    { ExplainableStatement $1 }
+    | Reindex
+    { ExplainableStatement $1 }
+    | Release
+    { ExplainableStatement $1 }
+    | Rollback
+    { ExplainableStatement $1 }
+    | Savepoint
+    { ExplainableStatement $1 }
+    | Select
+    { ExplainableStatement $1 }
+    | Update
+    { ExplainableStatement $1 }
+    | UpdateLimited
+    { ExplainableStatement $1 }
+    | Vacuum
+    { ExplainableStatement $1 }
 
--- Begin
--- TODO definition
+Explain :: { Statement L1 NT NS }
+    : explain ExplainableStatement
+    { Explain $2 }
 
--- Commit
--- TODO definition
+ExplainQueryPlan :: { Statement L1 NT NS }
+    : explain query plan ExplainableStatement
+    { ExplainQueryPlan $4 }
 
--- CreateIndex
--- TODO definition
+AlterTable :: { Statement L0 NT NS }
+    : alter table SinglyQualifiedIdentifier AlterTableBody
+    { AlterTable $3 $4 }
 
--- CreateTable
--- TODO definition
+Analyze :: { Statement L0 NT NS }
+    : analyze SinglyQualifiedIdentifier
+    { Analyze $2 }
 
--- CreateTrigger
--- TODO definition
+Attach :: { Statement L0 NT NS }
+    : attach string as UnqualifiedIdentifier
+    { Attach False $2 $4 }
+    | attach database string as UnqualifiedIdentifier
+    { Attach True $3 $5 }
 
--- CreateView
--- TODO definition
+Begin :: { Statement L0 NT NS }
+    : begin MaybeTransactionType
+    { Begin $2 False }
+    | begin MaybeTransactionType transaction
+    { Begin $2 True }
 
--- CreateVirtualTable
--- TODO definition
+Commit :: { Statement L0 NT NS }
+    : commit
+    { Commit False False }
+    | commit transaction
+    { Commit False True }
+    | end
+    { Commit True False }
+    | end transaction
+    { Commit True True}
 
--- Delete
--- TODO definition
+CreateIndex :: { Statement L0 NT NS }
+    : create MaybeUnique index MaybeIfNotExists SinglyQualifiedIdentifier on
+      UnqualifiedIdentifier '(' OneOrMoreIndexedColumn ')'
+    { CreateIndex $2 $4 $5 $7 (fromJust $ mkOneOrMore $9) }
 
--- DeleteLimited
--- TODO definition
+CreateTable :: { Statement L0 NT NS }
+    : create Permanence table MaybeIfNotExists SinglyQualifiedIdentifier
+      EitherColumnsAndConstraintsSelect
+    { CreateTable $2 $4 $5 $6 }
 
--- Detach
--- TODO definition
+CreateTrigger :: { Statement L0 NT NS }
+    : create Permanence trigger MaybeIfNotExists SinglyQualifiedIdentifier
+      TriggerTime TriggerCondition UnqualifiedIdentifier MaybeForEachRow
+      MaybeWhenClause begin OneOrMoreTriggerStatement ';' end
+    { CreateTrigger $2 $4 $5 $6 $7 $8 $9 $10 (fromJust $ mkOneOrMore $12) }
 
--- DropIndex
--- TODO definition
+CreateView :: { Statement L0 NT NS }
+    : create Permanence view MaybeIfNotExists SinglyQualifiedIdentifier as Select
+    { CreateView $2 $4 $5 $7 }
 
--- DropTable
--- TODO definition
+-- CreateVirtualTable :: { Statement L0 NT NS }
+--     :
+--     { }
+-- TODO definition (requires monadic parser)
 
--- DropTrigger
--- TODO definition
+Delete :: { Statement L0 T NS }
+    : delete from QualifiedTableName MaybeWhereClause
+    { Delete $3 $4 }
 
--- DropView
--- TODO definition
+DeleteLimited :: { Statement L0 NT NS }
+    : delete from QualifiedTableName MaybeWhereClause MaybeOrderClause LimitClause
+    { DeleteLimited $3 $4 $5 $6 }
 
--- Insert
--- TODO definition
+Detach :: { Statement L0 NT NS }
+    : detach UnqualifiedIdentifier
+    { Detach False $2 }
+    | detach database UnqualifiedIdentifier
+    { Detach True $3 }
 
--- Pragma
--- TODO definition
+DropIndex :: { Statement L0 NT NS }
+    : drop index MaybeIfExists SinglyQualifiedIdentifier
+    { DropIndex $3 $4 }
 
--- Reindex
--- TODO definition
+DropTable :: { Statement L0 NT NS }
+    : drop table MaybeIfExists SinglyQualifiedIdentifier
+    { DropTable $3 $4 }
 
--- Release
--- TODO definition
+DropTrigger :: { Statement L0 NT NS }
+    : drop trigger MaybeIfExists SinglyQualifiedIdentifier
+    { DropTrigger $3 $4 }
 
--- Rollback
--- TODO definition
+DropView :: { Statement L0 NT NS }
+    : drop view MaybeIfExists SinglyQualifiedIdentifier
+    { DropView $3 $4 }
 
--- Savepoint
--- TODO definition
+Insert :: { Statement L0 T NS }
+    : InsertHead into SinglyQualifiedIdentifier InsertBody
+    { Insert $1 $3 $4 }
 
-Select :: { Select }
+Pragma :: { Statement L0 NT NS }
+    : pragma SinglyQualifiedIdentifier PragmaBody
+    { Pragma $2 $3 }
+
+Reindex :: { Statement L0 NT NS }
+    : reindex SinglyQualifiedIdentifier
+    { Reindex $2 }
+
+Release :: { Statement L0 NT NS }
+    : release UnqualifiedIdentifier
+    { Release False $2 }
+    | release savepoint UnqualifiedIdentifier
+    { Release True $3 }
+
+Rollback :: { Statement L0 NT NS }
+    : rollback
+    { Rollback False Nothing }
+    | rollback transaction
+    { Rollback True Nothing }
+    | rollback to UnqualifiedIdentifier
+    { Rollback False (Just (False, $3)) }
+    | rollback to savepoint UnqualifiedIdentifier
+    { Rollback False (Just (True, $4)) }
+    | rollback transaction to UnqualifiedIdentifier
+    { Rollback True (Just (False, $4)) }
+    | rollback transaction to savepoint UnqualifiedIdentifier
+    { Rollback True (Just (True, $5)) }
+
+Savepoint :: { Statement L0 NT NS }
+    : savepoint UnqualifiedIdentifier
+    { Savepoint $2 }
+
+Select :: { Statement L0 T S }
     : SelectCore SelectCoreList MaybeOrderClause MaybeLimitClause
     { Select $1 $2 $3 $4 }
 
--- Update
--- TODO definition
+Update :: { Statement L0 T NS }
+    : UpdateHead QualifiedTableName set OneOrMoreSetPair MaybeWhereClause
+    { Update $1 $2 (fromJust $ mkOneOrMore $4) $5 }
 
--- UpdateLimited
--- TODO definition
+UpdateLimited :: { Statement L0 NT NS }
+    : UpdateHead QualifiedTableName set OneOrMoreSetPair MaybeWhereClause
+      MaybeOrderClause LimitClause
+    { UpdateLimited $1 $2 (fromJust $ mkOneOrMore $4) $5 $6 $7 }
 
--- Vacuum
--- TODO definition
+Vacuum :: { Statement L0 NT NS }
+    : vacuum
+    { Vacuum }
 
 UnqualifiedIdentifier :: { UnqualifiedIdentifier }
     : identifier
@@ -822,7 +1282,7 @@ readType :: String -> Type
 readType input = parseType $ lexer input
 
 
-readSelect :: String -> Select
+readSelect :: String -> Statement L0 T S
 readSelect input = parseSelect $ lexer input
 
 

@@ -32,8 +32,9 @@ module Network.FruitTart.Base.SQL.Types (
                                          TriggerStatement(..),
                                          QualifiedTableName(..),
                                          OrderingTerm(..),
+                                         PragmaBody(..),
                                          PragmaValue(..),
-                                         PragmaValue'(..),
+                                         EitherColumnsAndConstraintsSelect(..),
                                          InsertHead(..),
                                          InsertBody(..),
                                          UpdateHead(..),
@@ -63,7 +64,13 @@ module Network.FruitTart.Base.SQL.Types (
                                          MaybeTransactionType(..),
                                          StatementList(..),
                                          AnyStatement(..),
-                                         Select,
+                                         ExplainableStatement(..),
+                                         L0,
+                                         L1,
+                                         NT,
+                                         T,
+                                         NS,
+                                         S,
                                          Statement(..),
                                          UnqualifiedIdentifier(..),
                                          SinglyQualifiedIdentifier(..),
@@ -226,6 +233,7 @@ data Expression = ExpressionLiteralInteger Word64
                 | ExpressionRaiseRollback String
                 | ExpressionRaiseAbort String
                 | ExpressionRaiseFail String
+                | ExpressionParenthesized Expression
                   deriving (Show)
 
 instance ShowTokens Expression where
@@ -471,6 +479,10 @@ instance ShowTokens Expression where
            PunctuationComma,
            LiteralString message,
            PunctuationRightParenthesis]
+    showTokens (ExpressionParenthesized subexpression)
+        = [PunctuationLeftParenthesis]
+          ++ showTokens subexpression
+          ++ [PunctuationRightParenthesis]
 
 
 data MaybeUnique = NoUnique | Unique
@@ -758,24 +770,26 @@ instance ShowTokens OrderingTerm where
         ++ showTokens maybeCollation
         ++ showTokens maybeAscDesc
 
-data PragmaValue = EqualsPragmaValue PragmaValue'
-                 | CallPragmaValue PragmaValue'
-                   deriving (Show)
-instance ShowTokens PragmaValue where
-    showTokens (EqualsPragmaValue pragmaValue')
+data PragmaBody = EmptyPragmaBody
+                | EqualsPragmaBody PragmaValue
+                | CallPragmaBody PragmaValue
+                  deriving (Show)
+instance ShowTokens PragmaBody where
+    showTokens EmptyPragmaBody = []
+    showTokens (EqualsPragmaBody pragmaValue)
         = [PunctuationEquals]
-          ++ showTokens pragmaValue'
-    showTokens (CallPragmaValue pragmaValue')
+          ++ showTokens pragmaValue
+    showTokens (CallPragmaBody pragmaValue)
         = [PunctuationLeftParenthesis]
-          ++ showTokens pragmaValue'
+          ++ showTokens pragmaValue
           ++ [PunctuationRightParenthesis]
 
-data PragmaValue' = SignedIntegerPragmaValue MaybeSign Word64
-                  | SignedFloatPragmaValue MaybeSign NonnegativeDouble
-                  | NamePragmaValue UnqualifiedIdentifier
-                  | StringPragmaValue String
-                    deriving (Show)
-instance ShowTokens PragmaValue' where
+data PragmaValue = SignedIntegerPragmaValue MaybeSign Word64
+                 | SignedFloatPragmaValue MaybeSign NonnegativeDouble
+                 | NamePragmaValue UnqualifiedIdentifier
+                 | StringPragmaValue String
+                   deriving (Show)
+instance ShowTokens PragmaValue where
     showTokens (SignedIntegerPragmaValue maybeSign word)
         = showTokens maybeSign
           ++ [LiteralInteger word]
@@ -786,6 +800,21 @@ instance ShowTokens PragmaValue' where
         = showTokens name
     showTokens (StringPragmaValue string)
         = [LiteralString string]
+
+data EitherColumnsAndConstraintsSelect
+    = ColumnsAndConstraints (OneOrMore ColumnDefinition) [TableConstraint]
+    | AsSelect (Statement L0 T S)
+      deriving Show
+instance ShowTokens EitherColumnsAndConstraintsSelect where
+    showTokens (ColumnsAndConstraints columns constraints)
+        = [PunctuationLeftParenthesis]
+          ++ (intercalate [PunctuationComma]
+                              $ concat [mapOneOrMore showTokens columns,
+                                        map showTokens constraints])
+          ++ [PunctuationRightParenthesis]
+    showTokens (AsSelect select)
+        = [KeywordAs]
+          ++ showTokens select
 
 data InsertHead = InsertNoAlternative
                 | InsertOrRollback
@@ -1148,6 +1177,11 @@ deriving instance Show AnyStatement
 instance ShowTokens AnyStatement where
     showTokens (Statement statement) = showTokens statement
 
+data ExplainableStatement = forall t v . ExplainableStatement (Statement L0 t v)
+deriving instance Show ExplainableStatement
+instance ShowTokens ExplainableStatement where
+    showTokens (ExplainableStatement statement) = showTokens statement
+
 -- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
 data L0
 -- | Used as a GADT parameter to Statement to indicate a type which can not be EXPLAINed.
@@ -1167,14 +1201,12 @@ data NS
 --   SELECT statement.
 data S
 
-type Select = Statement L0 T S
-
 data Statement level triggerable valueReturning where
     Explain
-        :: Statement L0 a1 a2
+        :: ExplainableStatement
         -> Statement L1 NT NS
     ExplainQueryPlan
-        :: Statement L0 a1 a2
+        :: ExplainableStatement
         -> Statement L1 NT NS
     AlterTable
         :: SinglyQualifiedIdentifier
@@ -1207,7 +1239,7 @@ data Statement level triggerable valueReturning where
         :: Permanence
         -> MaybeIfNotExists
         -> SinglyQualifiedIdentifier
-        -> (Either (OneOrMore ColumnDefinition, [TableConstraint]) (Statement L0 T S))
+        -> EitherColumnsAndConstraintsSelect
         -> Statement L0 NT NS
     CreateTrigger
         :: Permanence
@@ -1268,7 +1300,7 @@ data Statement level triggerable valueReturning where
         -> Statement L0 T NS
     Pragma
         :: SinglyQualifiedIdentifier
-        -> PragmaValue
+        -> PragmaBody
         -> Statement L0 NT NS
     Reindex
         :: SinglyQualifiedIdentifier
@@ -1361,16 +1393,7 @@ instance ShowTokens (Statement a b c) where
           ++ [KeywordTable]
           ++ showTokens maybeIfNotExists
           ++ showTokens name
-          ++ (case eitherColumnsAndConstraintsSelect of
-                Left (columns, constraints)
-                    -> [PunctuationLeftParenthesis]
-                       ++ (intercalate [PunctuationComma]
-                                       $ concat [mapOneOrMore showTokens columns,
-                                                 map showTokens constraints])
-                       ++ [PunctuationRightParenthesis]
-                Right select
-                    -> [KeywordAs]
-                       ++ showTokens select)
+          ++ showTokens eitherColumnsAndConstraintsSelect
     showTokens (CreateTrigger permanence maybeIfNotExists name time condition
                               tableName maybeForEachRow maybeWhenClause
                               statements)
@@ -1447,12 +1470,13 @@ instance ShowTokens (Statement a b c) where
           ++ showTokens viewName
     showTokens (Insert insertHead tableName insertBody)
         = showTokens insertHead
+          ++ [KeywordInto]
           ++ showTokens tableName
           ++ showTokens insertBody
-    showTokens (Pragma pragmaName pragmaValue)
+    showTokens (Pragma pragmaName pragmaBody)
         = [KeywordPragma]
           ++ showTokens pragmaName
-          ++ showTokens pragmaValue
+          ++ showTokens pragmaBody
     showTokens (Reindex thingName)
         = [KeywordReindex]
           ++ showTokens thingName
