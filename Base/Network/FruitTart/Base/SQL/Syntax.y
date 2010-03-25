@@ -1,28 +1,23 @@
 {
 {-# LANGUAGE ExistentialQuantification #-}
 module Network.FruitTart.Base.SQL.Syntax (
-					  readStatementList,
- 					  readStatement,
-					  readExpression,
-					  readFromClause,
-					  readWhereClause,
-					  readGroupClause,
-					  readOrderClause,
-					  readLimitClause,
-					  readWhenClause,
-					  readConflictClause,
-					  readForeignKeyClause
+       					  readType,
+       					  readSelect
 					 )
     where
 
 import Data.Char
 import Data.Maybe
+import Data.Word
 import Numeric
 
 import Network.FruitTart.Base.SQL.Types
 
 }
 
+%name parseType Type
+%name parseSelect Select
+{-
 %name parseStatementList StatementList
 %name parseStatement Statement
 %name parseExpression Expression
@@ -34,6 +29,9 @@ import Network.FruitTart.Base.SQL.Types
 %name parseWhenClause WhenClause
 %name parseConflictClause ConflictClause
 %name parseForeignKeyClause ForeignKeyClause
+
+-}
+
 %tokentype { Token }
 %error { parseError }
 
@@ -195,108 +193,637 @@ import Network.FruitTart.Base.SQL.Types
 
 %%
 
-StatementList         :: { StatementList }
-                      : identifier
-                      { StatementList [] }
+Type :: { Type }
+    : UnqualifiedIdentifier
+    { Type $1 Nothing }
+    | UnqualifiedIdentifier '(' MaybeSign EitherNonnegativeDoubleWord64 ')'
+    { Type $1 (Just (($3, $4), Nothing)) }
+    | UnqualifiedIdentifier '(' MaybeSign EitherNonnegativeDoubleWord64 ','
+      MaybeSign EitherNonnegativeDoubleWord64 ')'
+    { Type $1 (Just (($3, $4), Just ($6, $7))) }
 
-Statement             :: { AnyStatement }
-                      : identifier
-                      { Statement $ Vacuum }
+EitherNonnegativeDoubleWord64 :: { Either NonnegativeDouble Word64 }
+    : float
+    { Left $1 }
+    | integer
+    { Right $ 1}
 
-Expression            :: { Expression }
-                      : identifier
-                      { ExpressionLiteralNull }
+LikeType :: { LikeType }
+    : like
+    { Like }
+    | not like
+    { NotLike }
+    | glob
+    { Glob }
+    | not glob
+    { NotGlob }
+    | regexp
+    { Regexp }
+    | not regexp
+    { NotRegexp }
+    | match
+    { Match }
+    | not match
+    { NotMatch }
 
-FromClause            :: { FromClause }
-                      : identifier
-                      { From $ JoinSource
-                                 (TableSource (SinglyQualifiedIdentifier Nothing "table")
-                                              NoAs
-                                              NoIndexedBy)
-                                 [] }
+Expression :: { Expression }
+    : integer
+    { ExpressionLiteralInteger $1 }
+    | float
+    { ExpressionLiteralFloat $1 }
+    | string
+    { ExpressionLiteralString $1 }
+    | blob
+    { ExpressionLiteralBlob $1 }
+    | null
+    { ExpressionLiteralNull }
+    | currentTime
+    { ExpressionLiteralCurrentTime }
+    | currentDate
+    { ExpressionLiteralCurrentDate }
+    | currentTimestamp
+    { ExpressionLiteralCurrentTimestamp }
+    | variable
+    { ExpressionVariable }
+    | variableN
+    { ExpressionVariableN $1 }
+    | variableNamed
+    { ExpressionVariableNamed $1 }
+    | DoublyQualifiedIdentifier
+    { ExpressionIdentifier $1 }
+    | '-' Expression
+    { ExpressionUnaryNegative $2 }
+    | '+' Expression
+    { ExpressionUnaryPositive $2 }
+    | '~' Expression
+    { ExpressionUnaryBitwiseNot $2 }
+    | not Expression		
+    { ExpressionUnaryLogicalNot $2 }
+    | Expression '||' Expression
+    { ExpressionBinaryConcatenate $1 $3 }
+    | Expression '*' Expression
+    { ExpressionBinaryMultiply $1 $3 }
+    | Expression '/' Expression
+    { ExpressionBinaryDivide $1 $3 }
+    | Expression '%' Expression
+    { ExpressionBinaryModulus $1 $3 }
+    | Expression '+' Expression
+    { ExpressionBinaryAdd $1 $3 }
+    | Expression '-' Expression
+    { ExpressionBinarySubtract $1 $3 }
+    | Expression '<<' Expression
+    { ExpressionBinaryLeftShift $1 $3 }
+    | Expression '>>' Expression
+    { ExpressionBinaryRightShift $1 $3 }
+    | Expression '&' Expression
+    { ExpressionBinaryBitwiseAnd $1 $3 }
+    | Expression '|' Expression
+    { ExpressionBinaryBitwiseOr $1 $3 }
+    | Expression '<' Expression
+    { ExpressionBinaryLess $1 $3 }
+    | Expression '<=' Expression
+    { ExpressionBinaryLessEquals $1 $3 }
+    | Expression '>' Expression
+    { ExpressionBinaryGreater $1 $3 }
+    | Expression '>=' Expression
+    { ExpressionBinaryGreaterEquals $1 $3 }
+    | Expression '=' Expression
+    { ExpressionBinaryEquals $1 $3 }
+    | Expression '==' Expression
+    { ExpressionBinaryEqualsEquals $1 $3 }
+    | Expression '!=' Expression
+    { ExpressionBinaryNotEquals $1 $3 }
+    | Expression '<>' Expression
+    { ExpressionBinaryLessGreater $1 $3 }
+    | Expression and Expression
+    { ExpressionBinaryLogicalAnd $1 $3 }
+    | Expression or Expression
+    { ExpressionBinaryLogicalOr $1 $3 }
+    | UnqualifiedIdentifier '(' ExpressionList ')'
+    { ExpressionFunctionCall $1 $3 }
+    | UnqualifiedIdentifier '(' distinct OneOrMoreExpression ')'
+    { ExpressionFunctionCallDistinct $1 (fromJust $ mkOneOrMore $4) }
+    | UnqualifiedIdentifier '(' '*' ')'
+    { ExpressionFunctionCallStar $1 }
+    | cast '(' Expression as Type ')'
+    { ExpressionCast $3 $5 }
+    | Expression collate UnqualifiedIdentifier
+    { ExpressionCollate $1 $3 }
+    | Expression LikeType Expression
+    { ExpressionLike $1 $2 $3 Nothing }
+    | Expression LikeType Expression escape Expression
+    { ExpressionLike $1 $2 $3 (Just $5) }
+    | Expression isnull
+    { ExpressionIsnull $1 }
+    | Expression notnull
+    { ExpressionNotnull $1 }
+    | Expression not null
+    { ExpressionNotNull $1 }
+    | Expression is Expression
+    { ExpressionIs $1 $3 }
+    | Expression is not Expression
+    { ExpressionIsNot $1 $4 }
+    | Expression between Expression and Expression
+    { ExpressionBetween $1 $3 $5 }
+    | Expression not between Expression and Expression
+    { ExpressionNotBetween $1 $4 $6 }
+    | Expression in '(' Select ')'
+    { ExpressionInSelect $1 $4 }
+    | Expression not in '(' Select ')'
+    { ExpressionNotInSelect $1 $5 }
+    | Expression in '(' ExpressionList ')'
+    { ExpressionInList $1 $4 }
+    | Expression not in '(' ExpressionList ')'
+    { ExpressionNotInList $1 $5 }
+    | Expression in SinglyQualifiedIdentifier
+    { ExpressionInTable $1 $3 }
+    | Expression not in SinglyQualifiedIdentifier
+    { ExpressionNotInTable $1 $4 }
+    | '(' Select ')'
+    { ExpressionSubquery $2 }
+    | exists '(' Select ')'
+    { ExpressionExistsSubquery $3 }
+    | not exists '(' Select ')'
+    { ExpressionNotExistsSubquery $4 }
+    | case CaseList end
+    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
+    | case CaseList else Expression end
+    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) (Just $4) }
+    | case Expression CaseList end
+    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) Nothing }
+    | case Expression CaseList else Expression end
+    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) (Just $5) }
+    | raise '(' ignore ')'
+    { ExpressionRaiseIgnore }
+    | raise '(' rollback ',' string ')'
+    { ExpressionRaiseRollback $5 }
+    | raise '(' abort ',' string ')'
+    { ExpressionRaiseAbort $5 }
+    | raise '(' fail ',' string ')'
+    { ExpressionRaiseFail $5 }
 
-WhereClause           :: { WhereClause }
-                      : identifier
-                      { Where $ ExpressionLiteralNull }
+ExpressionList :: { [Expression] }
+    :
+    { [] }
+    | ExpressionList Expression
+    { $1 ++ [$2] }
 
-GroupClause           :: { GroupClause }
-                      : identifier
-                      { GroupBy (fromJust $ mkOneOrMore [OrderingTerm
-                                                          ExpressionLiteralNull
-                                                          NoCollation
-                                                          NoAscDesc])
-                                NoHaving }
+OneOrMoreExpression :: { [Expression] }
+    : Expression
+    { [$1] }
+    | ExpressionList ',' Expression
+    { $1 ++ [$3] }
 
-OrderClause           :: { OrderClause }
-                      : identifier
-                      { OrderBy (fromJust $ mkOneOrMore [OrderingTerm
-                                                          ExpressionLiteralNull
-                                                          NoCollation
-                                                          NoAscDesc]) }
+CaseList :: { [(Expression, Expression)] }
+    : when Expression then Expression
+    { [($2, $4)] }
+    | CaseList when Expression then Expression
+    { $1 ++ [($3, $5)] }
 
-LimitClause           :: { LimitClause }
-                      : identifier
-                      { Limit 1 }
+MaybeUnique :: { MaybeUnique }
+    :
+    { NoUnique }
+    | unique
+    { Unique }
 
-WhenClause            :: { WhenClause }
-                      : identifier
-                      { When $ ExpressionLiteralNull }
+MaybeIfNotExists :: { MaybeIfNotExists }
+    :
+    { NoIfNotExists }
+    | if not exists
+    { IfNotExists }
 
-ConflictClause        :: { ConflictClause }
-                      : identifier
-                      { OnConflictRollback }
+MaybeIfExists :: { MaybeIfExists }
+    :
+    { NoIfExists }
+    | if exists
+    { IfExists }
 
-ForeignKeyClause      :: { ForeignKeyClause }
-                      : identifier
-                      { References (UnqualifiedIdentifier "foreign")
-                                   []
-                                   []
-                                   Nothing }
+MaybeForEachRow :: { MaybeForEachRow }
+    :
+    { NoForEachRow }
+    | for each row
+    { ForEachRow }
+
+Permanence :: { Permanence }
+    :
+    { Permanent }
+    | temp
+    { Temp }
+    | temporary
+    { Temporary }
+
+MaybeCollation :: { MaybeCollation }
+    :
+    { NoCollation }
+    | collate UnqualifiedIdentifier
+    { Collation $2 }
+
+MaybeAscDesc :: { MaybeAscDesc }
+    :
+    { NoAscDesc }
+    | asc
+    { Asc }
+    | desc
+    { Desc }
+
+MaybeAutoincrement :: { MaybeAutoincrement }
+    :
+    { NoAutoincrement }
+    | autoincrement
+    { Autoincrement }
+
+MaybeSign :: { MaybeSign }
+    :
+    { NoSign }
+    | '+'
+    { PositiveSign }
+    | '-'
+    { NegativeSign }
+
+-- AlterTableBody
+-- TODO definition
+
+-- ColumnDefinition
+-- TODO definition
+
+-- DefaultValue
+-- TODO definition
+
+-- IndexedColumn
+-- TODO definition
+
+-- ColumnConstraint
+-- TODO definition
+
+-- TableConstraint
+-- TODO definition
+
+-- TriggerTime
+-- TODO definition
+
+-- TriggerCondition
+-- TODO definition
+
+-- ModuleArgument
+-- TODO definition
+
+-- TriggerStatement
+-- TODO definition
+
+-- QualifiedTableName
+-- TODO definition
+
+OrderingTerm :: { OrderingTerm }
+    : Expression MaybeCollation MaybeAscDesc
+    { OrderingTerm $1 $2 $3 }
+
+OneOrMoreOrderingTerm :: { [OrderingTerm] }
+    : OrderingTerm
+    { [$1] }
+    | OneOrMoreOrderingTerm ',' OrderingTerm
+    { $1 ++ [$3] }
+
+-- PragmaValue
+-- TODO definition
+
+-- PragmaValue'
+-- TODO definition
+
+-- InsertHead
+-- TODO definition
+
+-- InsertBody
+-- TODO definition
+
+-- UpdateHead
+-- TODO definition
+
+Distinctness :: { Distinctness }
+    :
+    { NoDistinctness }
+    | distinct
+    { Distinct }
+    | all
+    { All }
+
+MaybeHaving :: { MaybeHaving }
+    :
+    { NoHaving }
+    | having Expression
+    { Having $2 }
+
+MaybeAs :: { MaybeAs }
+    :
+    { NoAs }
+    | as UnqualifiedIdentifier
+    { As $2 }
+    | UnqualifiedIdentifier
+    { ElidedAs $1 }
+
+CompoundOperator :: { CompoundOperator }
+    : union
+    { Union }
+    | union all
+    { UnionAll }
+    | intersect
+    { Intersect }
+    | except
+    { Except }
+
+SelectCore :: { SelectCore }
+    : select Distinctness OneOrMoreResultColumn MaybeFromClause MaybeWhereClause
+      MaybeGroupClause
+    { SelectCore $2 (fromJust $ mkOneOrMore $3) $4 $5 $6 }
+
+SelectCoreList :: { [(CompoundOperator, SelectCore)] }
+    :
+    { [] }
+    | SelectCoreList CompoundOperator SelectCore
+    { $1 ++ [($2, $3)] }
+
+ResultColumn :: { ResultColumn }
+    : '*'
+    { Star }
+    | UnqualifiedIdentifier '.' '*'
+    { TableStar $1 }
+    | Expression MaybeAs
+    { Result $1 $2 }
+
+OneOrMoreResultColumn :: { [ResultColumn] }
+    : ResultColumn
+    { [$1] }
+    | OneOrMoreResultColumn ',' ResultColumn
+    { $1 ++ [$3] }
+
+JoinSource :: { JoinSource }
+    : SingleSource ListJoins
+    { JoinSource $1 $2 }
+
+ListJoins :: { [(JoinOperation, SingleSource, JoinConstraint)] }
+    :
+    { [] }
+    | ListJoins JoinOperation SingleSource JoinConstraint
+    { $1 ++ [($2, $3, $4)] }
+
+SingleSource :: { SingleSource }
+    : SinglyQualifiedIdentifier MaybeAs MaybeIndexedBy
+    { TableSource $1 $2 $3 }
+    | '(' Select ')' MaybeAs
+    { SelectSource $2 $4 }
+    | '(' JoinSource ')'
+    { SubjoinSource $2 }
+
+JoinOperation :: { JoinOperation }
+    : ','
+    { Comma }
+    | join
+    { Join }
+    | outer join
+    { OuterJoin }
+    | left join
+    { LeftJoin }
+    | left outer join
+    { LeftOuterJoin }
+    | inner join
+    { InnerJoin }
+    | cross join
+    { CrossJoin }
+    | natural join
+    { NaturalJoin }
+    | natural outer join
+    { NaturalOuterJoin }
+    | natural left join
+    { NaturalLeftJoin }
+    | natural left outer join
+    { NaturalLeftOuterJoin }
+    | natural inner join
+    { NaturalInnerJoin }
+    | natural cross join
+    { NaturalCrossJoin }
+
+JoinConstraint :: { JoinConstraint }
+    :
+    { NoConstraint }
+    | on Expression
+    { On $2 }
+    | using '(' OneOrMoreUnqualifiedIdentifier ')'
+    { Using (fromJust $ mkOneOrMore $3) }
+
+MaybeIndexedBy :: { MaybeIndexedBy }
+    :
+    { NoIndexedBy }
+    | indexed by UnqualifiedIdentifier
+    { IndexedBy $3 }
+    | not indexed
+    { NotIndexed }
+
+FromClause :: { FromClause }
+    : from JoinSource
+    { From $2 }
+
+MaybeFromClause :: { Maybe FromClause }
+    :
+    { Nothing }
+    | FromClause
+    { Just $1 }
+
+WhereClause :: { WhereClause }
+    : where Expression
+    { Where $2 }
+
+MaybeWhereClause :: { Maybe WhereClause }
+    :
+    { Nothing }
+    | WhereClause
+    { Just $1 }
+
+GroupClause :: { GroupClause }
+    : group by OneOrMoreOrderingTerm MaybeHaving
+    { GroupBy (fromJust $ mkOneOrMore $3) $4 }
+
+MaybeGroupClause :: { Maybe GroupClause }
+    :
+    { Nothing }
+    | GroupClause
+    { Just $1 }
+
+OrderClause :: { OrderClause }
+    : order by OneOrMoreOrderingTerm
+    { OrderBy (fromJust $ mkOneOrMore $3) }
+
+MaybeOrderClause :: { Maybe OrderClause }
+    :
+    { Nothing }
+    | OrderClause
+    { Just $1 }
+
+LimitClause :: { LimitClause }
+    : limit integer
+    { Limit $2 }
+    | limit integer offset integer
+    { LimitOffset $2 $4 }
+    | limit integer ',' integer
+    { LimitComma $2 $4 }
+
+MaybeLimitClause :: { Maybe LimitClause }
+    :
+    { Nothing }
+    | LimitClause
+    { Just $1 }
+
+-- WhenClause
+-- TODO definition
+
+-- ConflictClause
+-- TODO definition
+
+-- ForeignKeyClause
+-- TODO definition
+
+-- ForeignKeyClauseActionOrMatchPart
+-- TODO definition
+
+-- ForeignKeyClauseActionPart
+-- TODO definition
+
+-- ForeignKeyClauseDeferrablePart
+-- TODO definition
+
+-- MaybeInitialDeferralStatus
+-- TODO definition
+
+-- MaybeTransactionType
+-- TODO definition
+
+-- StatementList
+-- TODO definition
+
+-- AnyStatement
+-- TODO definition
+
+-- Statement
+-- TODO definition
+
+-- Explain
+-- TODO definition
+
+-- ExplainQueryPlan
+-- TODO definition
+
+-- AlterTable
+-- TODO definition
+
+-- Analyze
+-- TODO definition
+
+-- Attach
+-- TODO definition
+
+-- Begin
+-- TODO definition
+
+-- Commit
+-- TODO definition
+
+-- CreateIndex
+-- TODO definition
+
+-- CreateTable
+-- TODO definition
+
+-- CreateTrigger
+-- TODO definition
+
+-- CreateView
+-- TODO definition
+
+-- CreateVirtualTable
+-- TODO definition
+
+-- Delete
+-- TODO definition
+
+-- DeleteLimited
+-- TODO definition
+
+-- Detach
+-- TODO definition
+
+-- DropIndex
+-- TODO definition
+
+-- DropTable
+-- TODO definition
+
+-- DropTrigger
+-- TODO definition
+
+-- DropView
+-- TODO definition
+
+-- Insert
+-- TODO definition
+
+-- Pragma
+-- TODO definition
+
+-- Reindex
+-- TODO definition
+
+-- Release
+-- TODO definition
+
+-- Rollback
+-- TODO definition
+
+-- Savepoint
+-- TODO definition
+
+Select :: { Select }
+    : SelectCore SelectCoreList MaybeOrderClause MaybeLimitClause
+    { Select $1 $2 $3 $4 }
+
+-- Update
+-- TODO definition
+
+-- UpdateLimited
+-- TODO definition
+
+-- Vacuum
+-- TODO definition
+
+UnqualifiedIdentifier :: { UnqualifiedIdentifier }
+    : identifier
+    { UnqualifiedIdentifier $1 }
+
+OneOrMoreUnqualifiedIdentifier :: { [UnqualifiedIdentifier] }
+    : UnqualifiedIdentifier
+    { [$1] }
+    | OneOrMoreUnqualifiedIdentifier ',' UnqualifiedIdentifier
+    { $1 ++ [$3] }
+
+SinglyQualifiedIdentifier :: { SinglyQualifiedIdentifier }
+    : identifier
+    { SinglyQualifiedIdentifier Nothing $1 }
+    | identifier '.' identifier
+    { SinglyQualifiedIdentifier (Just $1) $3 }
+
+DoublyQualifiedIdentifier :: { DoublyQualifiedIdentifier }
+    : identifier
+    { DoublyQualifiedIdentifier Nothing $1 }
+    | identifier '.' identifier
+    { DoublyQualifiedIdentifier (Just ($1, Nothing)) $3 }
+    | identifier '.' identifier '.' identifier
+    { DoublyQualifiedIdentifier (Just ($3, Just $1)) $5 }
 
 {
 
-readStatementList :: String -> StatementList
-readStatementList input = parseStatementList $ lexer input
+readType :: String -> Type
+readType input = parseType $ lexer input
 
 
-readStatement :: String -> AnyStatement
-readStatement input = parseStatement $ lexer input
-
-
-readExpression :: String -> Expression
-readExpression input = parseExpression $ lexer input
-
-
-readFromClause :: String -> FromClause
-readFromClause input = parseFromClause $ lexer input
-
-
-readWhereClause :: String -> WhereClause
-readWhereClause input = parseWhereClause $ lexer input
-
-
-readGroupClause :: String -> GroupClause
-readGroupClause input = parseGroupClause $ lexer input
-
-
-readOrderClause :: String -> OrderClause
-readOrderClause input = parseOrderClause $ lexer input
-
-
-readLimitClause :: String -> LimitClause
-readLimitClause input = parseLimitClause $ lexer input
-
-
-readWhenClause :: String -> WhenClause
-readWhenClause input = parseWhenClause $ lexer input
-
-
-readConflictClause :: String -> ConflictClause
-readConflictClause input = parseConflictClause $ lexer input
-
-
-readForeignKeyClause :: String -> ForeignKeyClause
-readForeignKeyClause input = parseForeignKeyClause $ lexer input
+readSelect :: String -> Select
+readSelect input = parseSelect $ lexer input
 
 
 parseError :: [Token] -> a
