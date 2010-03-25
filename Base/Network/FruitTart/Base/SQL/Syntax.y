@@ -216,6 +216,9 @@ import Network.FruitTart.Base.SQL.Types
 %left collate
 %right '~'
 
+%left SINGLY_QUALIFIED_IDENTIFIER
+%left '.'
+
 %token
         identifier            { Identifier $$ }
         integer               { LiteralInteger $$ }
@@ -1488,7 +1491,7 @@ OneOrMoreUnqualifiedIdentifier :: { [UnqualifiedIdentifier] }
     { $1 ++ [$3] }
 
 SinglyQualifiedIdentifier :: { SinglyQualifiedIdentifier }
-    : UnqualifiedIdentifier
+    : UnqualifiedIdentifier %prec SINGLY_QUALIFIED_IDENTIFIER
     { let UnqualifiedIdentifier properName = $1
       in SinglyQualifiedIdentifier Nothing properName }
     | UnqualifiedIdentifier '.' UnqualifiedIdentifier
