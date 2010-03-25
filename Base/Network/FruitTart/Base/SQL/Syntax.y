@@ -221,6 +221,7 @@ import Network.FruitTart.Base.SQL.Types
 
 %left LOOSER_THAN_DOT
 %left '.'
+%left '('
 
 %token
         identifier            { Identifier $$ }
