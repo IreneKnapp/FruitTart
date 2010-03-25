@@ -1,100 +1,100 @@
 {
 {-# LANGUAGE ExistentialQuantification, Rank2Types #-}
 module Network.FruitTart.Base.SQL.Syntax (
-       					  readType,
-					  readLikeType,
-					  readExpression,
-					  readMaybeUnique,
-					  readMaybeIfNotExists,
-					  readMaybeIfExists,
-					  readMaybeForEachRow,
-					  readPermanence,
-					  readMaybeCollation,
-					  readMaybeAscDesc,
-					  readMaybeAutoincrement,
-					  readMaybeSign,
-					  readAlterTableBody,
-					  readColumnDefinition,
-					  readDefaultValue,
-					  readIndexedColumn,
-					  readColumnConstraint,
-					  readTableConstraint,
-					  readTriggerTime,
-					  readTriggerCondition,
-					  -- TODO remember to uncomment this
-					  -- readModuleArgument,
-					  readTriggerStatement,
-					  readQualifiedTableName,
-					  readOrderingTerm,
-					  readPragmaBody,
-					  readPragmaValue,
-					  readEitherColumnsAndConstraintsSelect,
-					  readInsertHead,
-					  readInsertBody,
-					  readUpdateHead,
-					  readDistinctness,
-					  readMaybeHaving,
-					  readMaybeAs,
-					  readCompoundOperator,
-					  readSelectCore,
-					  readResultColumn,
-					  readJoinSource,
-					  readSingleSource,
-					  readJoinOperation,
-					  readJoinConstraint,
-					  readMaybeIndexedBy,
-					  readFromClause,
-					  readWhereClause,
-					  readGroupClause,
-					  readOrderClause,
-					  readLimitClause,
-					  readWhenClause,
-					  readConflictClause,
-					  readForeignKeyClause,
-					  readForeignKeyClauseActionOrMatchPart,
-					  readForeignKeyClauseActionPart,
-					  readForeignKeyClauseDeferrablePart,
-					  readMaybeInitialDeferralStatus,
-					  readMaybeTransactionType,
-					  readStatementList,
-					  readAnyStatement,
-					  readExplainableStatement,
-       					  readExplain,
-					  readExplainQueryPlan,
-					  readAlterTable,
-					  readAnalyze,
-					  readAttach,
-					  readBegin,
-					  readCommit,
-					  readCreateIndex,
-					  readCreateTable,
-					  readCreateTrigger,
-					  readCreateView,
-					  -- TODO remember to uncomment this
-					  -- readCreateVirtualTable,
-					  readDelete,
-					  readDeleteLimited,
-					  readDeleteOrDeleteLimited,
-					  readDetach,
-					  readDropIndex,
-					  readDropTable,
-					  readDropTrigger,
-					  readDropView,
-					  readInsert,
-					  readPragma,
-					  readReindex,
-					  readRelease,
-					  readRollback,
-					  readSavepoint,
-					  readSelect,
-					  readUpdate,
-					  readUpdateLimited,
-					  readUpdateOrUpdateLimited,
-					  readVacuum,
-					  readUnqualifiedIdentifier,
-					  readSinglyQualifiedIdentifier,
-					  readDoublyQualifiedIdentifier
-					 )
+                                          readType,
+                                          readLikeType,
+                                          readExpression,
+                                          readMaybeUnique,
+                                          readMaybeIfNotExists,
+                                          readMaybeIfExists,
+                                          readMaybeForEachRow,
+                                          readPermanence,
+                                          readMaybeCollation,
+                                          readMaybeAscDesc,
+                                          readMaybeAutoincrement,
+                                          readMaybeSign,
+                                          readAlterTableBody,
+                                          readColumnDefinition,
+                                          readDefaultValue,
+                                          readIndexedColumn,
+                                          readColumnConstraint,
+                                          readTableConstraint,
+                                          readTriggerTime,
+                                          readTriggerCondition,
+                                          -- TODO remember to uncomment this
+                                          -- readModuleArgument,
+                                          readTriggerStatement,
+                                          readQualifiedTableName,
+                                          readOrderingTerm,
+                                          readPragmaBody,
+                                          readPragmaValue,
+                                          readEitherColumnsAndConstraintsSelect,
+                                          readInsertHead,
+                                          readInsertBody,
+                                          readUpdateHead,
+                                          readDistinctness,
+                                          readMaybeHaving,
+                                          readMaybeAs,
+                                          readCompoundOperator,
+                                          readSelectCore,
+                                          readResultColumn,
+                                          readJoinSource,
+                                          readSingleSource,
+                                          readJoinOperation,
+                                          readJoinConstraint,
+                                          readMaybeIndexedBy,
+                                          readFromClause,
+                                          readWhereClause,
+                                          readGroupClause,
+                                          readOrderClause,
+                                          readLimitClause,
+                                          readWhenClause,
+                                          readConflictClause,
+                                          readForeignKeyClause,
+                                          readForeignKeyClauseActionOrMatchPart,
+                                          readForeignKeyClauseActionPart,
+                                          readForeignKeyClauseDeferrablePart,
+                                          readMaybeInitialDeferralStatus,
+                                          readMaybeTransactionType,
+                                          readStatementList,
+                                          readAnyStatement,
+                                          readExplainableStatement,
+                                          readExplain,
+                                          readExplainQueryPlan,
+                                          readAlterTable,
+                                          readAnalyze,
+                                          readAttach,
+                                          readBegin,
+                                          readCommit,
+                                          readCreateIndex,
+                                          readCreateTable,
+                                          readCreateTrigger,
+                                          readCreateView,
+                                          -- TODO remember to uncomment this
+                                          -- readCreateVirtualTable,
+                                          readDelete,
+                                          readDeleteLimited,
+                                          readDeleteOrDeleteLimited,
+                                          readDetach,
+                                          readDropIndex,
+                                          readDropTable,
+                                          readDropTrigger,
+                                          readDropView,
+                                          readInsert,
+                                          readPragma,
+                                          readReindex,
+                                          readRelease,
+                                          readRollback,
+                                          readSavepoint,
+                                          readSelect,
+                                          readUpdate,
+                                          readUpdateLimited,
+                                          readUpdateOrUpdateLimited,
+                                          readVacuum,
+                                          readUnqualifiedIdentifier,
+                                          readSinglyQualifiedIdentifier,
+                                          readDoublyQualifiedIdentifier
+                                         )
     where
 
 import Data.Char
@@ -210,154 +210,154 @@ import Network.FruitTart.Base.SQL.Types
         string                { LiteralString $$ }
         blob                  { LiteralBlob $$ }
         variable              { Variable }
-	variableN             { VariableN $$ }
-	variableNamed         { VariableNamed $$ }
-	moduleArgumentToken   { ModuleArgumentToken $$ }
-	'||'                  { PunctuationBarBar }
-	'*'                   { PunctuationStar }
-	'/'                   { PunctuationSlash }
-	'%'                   { PunctuationPercent }
-	'+'                   { PunctuationPlus }
-	'-'                   { PunctuationMinus }
-	'<<'                  { PunctuationLessLess }
-	'>>'                  { PunctuationGreaterGreater }
-	'&'                   { PunctuationAmpersand }
-	'|'                   { PunctuationBar }
-	'<'                   { PunctuationLess }
-	'<='                  { PunctuationLessEquals }
-	'>'                   { PunctuationGreater }
-	'>='                  { PunctuationGreaterEquals }
-	'='                   { PunctuationEquals }
-	'=='                  { PunctuationEqualsEquals }
-	'!='                  { PunctuationBangEquals }
-	'<>'                  { PunctuationLessGreater }
-	'~'                   { PunctuationTilde }
-	'('                   { PunctuationLeftParenthesis }
-	')'                   { PunctuationRightParenthesis }
-	','                   { PunctuationComma }
-	'.'                   { PunctuationDot }
-	';'                   { PunctuationSemicolon }
-	abort		      { KeywordAbort }
-	action                { KeywordAction }
-	add           	      { KeywordAdd }
-        after   	      { KeywordAfter }
-        all   		      { KeywordAll }
-        alter   	      { KeywordAlter }
-        analyze   	      { KeywordAnalyze }
-        and   		      { KeywordAnd }
-        as   		      { KeywordAs }
-        asc   		      { KeywordAsc }
-        attach   	      { KeywordAttach }
+        variableN             { VariableN $$ }
+        variableNamed         { VariableNamed $$ }
+        moduleArgumentToken   { ModuleArgumentToken $$ }
+        '||'                  { PunctuationBarBar }
+        '*'                   { PunctuationStar }
+        '/'                   { PunctuationSlash }
+        '%'                   { PunctuationPercent }
+        '+'                   { PunctuationPlus }
+        '-'                   { PunctuationMinus }
+        '<<'                  { PunctuationLessLess }
+        '>>'                  { PunctuationGreaterGreater }
+        '&'                   { PunctuationAmpersand }
+        '|'                   { PunctuationBar }
+        '<'                   { PunctuationLess }
+        '<='                  { PunctuationLessEquals }
+        '>'                   { PunctuationGreater }
+        '>='                  { PunctuationGreaterEquals }
+        '='                   { PunctuationEquals }
+        '=='                  { PunctuationEqualsEquals }
+        '!='                  { PunctuationBangEquals }
+        '<>'                  { PunctuationLessGreater }
+        '~'                   { PunctuationTilde }
+        '('                   { PunctuationLeftParenthesis }
+        ')'                   { PunctuationRightParenthesis }
+        ','                   { PunctuationComma }
+        '.'                   { PunctuationDot }
+        ';'                   { PunctuationSemicolon }
+        abort                 { KeywordAbort }
+        action                { KeywordAction }
+        add                   { KeywordAdd }
+        after                 { KeywordAfter }
+        all                   { KeywordAll }
+        alter                 { KeywordAlter }
+        analyze               { KeywordAnalyze }
+        and                   { KeywordAnd }
+        as                    { KeywordAs }
+        asc                   { KeywordAsc }
+        attach                { KeywordAttach }
         autoincrement         { KeywordAutoincrement }
-        before   	      { KeywordBefore }
-        begin   	      { KeywordBegin }
-        between   	      { KeywordBetween }
-        by   		      { KeywordBy }
-        cascade   	      { KeywordCascade }
-        case   		      { KeywordCase }
-        cast   		      { KeywordCast }
-        check   	      { KeywordCheck }
-        collate   	      { KeywordCollate }
-        column   	      { KeywordColumn }
-        commit   	      { KeywordCommit }
-        conflict   	      { KeywordConflict }
-        constraint   	      { KeywordConstraint }
-        create   	      { KeywordCreate }
-        cross   	      { KeywordCross }
-        currentDate   	      { KeywordCurrentDate }
-        currentTime   	      { KeywordCurrentTime }
+        before                { KeywordBefore }
+        begin                 { KeywordBegin }
+        between               { KeywordBetween }
+        by                    { KeywordBy }
+        cascade               { KeywordCascade }
+        case                  { KeywordCase }
+        cast                  { KeywordCast }
+        check                 { KeywordCheck }
+        collate               { KeywordCollate }
+        column                { KeywordColumn }
+        commit                { KeywordCommit }
+        conflict              { KeywordConflict }
+        constraint            { KeywordConstraint }
+        create                { KeywordCreate }
+        cross                 { KeywordCross }
+        currentDate           { KeywordCurrentDate }
+        currentTime           { KeywordCurrentTime }
         currentTimestamp      { KeywordCurrentTimestamp }
-        database   	      { KeywordDatabase }
-        default   	      { KeywordDefault }
-        deferrable   	      { KeywordDeferrable }
-        deferred   	      { KeywordDeferred }
-        delete   	      { KeywordDelete }
-        desc   		      { KeywordDesc }
-        detach   	      { KeywordDetach }
-        distinct   	      { KeywordDistinct }
-        drop   		      { KeywordDrop }
-        each   		      { KeywordEach }
-        else   		      { KeywordElse }
-        end   		      { KeywordEnd }
-        escape   	      { KeywordEscape }
-        except   	      { KeywordExcept }
-        exclusive   	      { KeywordExclusive }
-        exists   	      { KeywordExists }
-        explain   	      { KeywordExplain }
-        fail   		      { KeywordFail }
-        for   		      { KeywordFor }
-        foreign   	      { KeywordForeign }
-        from   		      { KeywordFrom }
-        full   		      { KeywordFull }
-        glob   		      { KeywordGlob }
-        group   	      { KeywordGroup }
-        having   	      { KeywordHaving }
-        if   		      { KeywordIf }
-        ignore   	      { KeywordIgnore }
-        immediate   	      { KeywordImmediate }
-        in   		      { KeywordIn }
-        index   	      { KeywordIndex }
-        indexed   	      { KeywordIndexed }
-        initially   	      { KeywordInitially }
-        inner   	      { KeywordInner }
-        insert   	      { KeywordInsert }
-        instead   	      { KeywordInstead }
-        intersect   	      { KeywordIntersect }
-        into   		      { KeywordInto }
-        is   		      { KeywordIs }
-        isnull   	      { KeywordIsnull }
-        join   		      { KeywordJoin }
-        key   		      { KeywordKey }
-        left   		      { KeywordLeft }
-        like   		      { KeywordLike }
-        limit   	      { KeywordLimit }
-        match   	      { KeywordMatch }
-        natural   	      { KeywordNatural }
-        no   		      { KeywordNo }
-        not   		      { KeywordNot }
-        notnull   	      { KeywordNotnull }
-        null   		      { KeywordNull }
-        of   		      { KeywordOf }
-        offset   	      { KeywordOffset }
-        on   		      { KeywordOn }
-        or   		      { KeywordOr }
-        order   	      { KeywordOrder }
-        outer   	      { KeywordOuter }
-        plan   		      { KeywordPlan }
-        pragma   	      { KeywordPragma }
-        primary   	      { KeywordPrimary }
-        query   	      { KeywordQuery }
-        raise   	      { KeywordRaise }
-        references   	      { KeywordReferences }
-        regexp   	      { KeywordRegexp }
-        reindex   	      { KeywordReindex }
-        release   	      { KeywordRelease }
-        rename   	      { KeywordRename }
-        replace   	      { KeywordReplace }
-        restrict   	      { KeywordRestrict }
-        right   	      { KeywordRight }
-        rollback   	      { KeywordRollback }
-        row   		      { KeywordRow }
-        savepoint   	      { KeywordSavepoint }
-        select   	      { KeywordSelect }
-        set   		      { KeywordSet }
-        table   	      { KeywordTable }
-        temp   		      { KeywordTemp }
-        temporary   	      { KeywordTemporary }
-        then   		      { KeywordThen }
-        to   		      { KeywordTo }
-        transaction   	      { KeywordTransaction }
-        trigger   	      { KeywordTrigger }
-        union   	      { KeywordUnion }
-        unique   	      { KeywordUnique }
-        update   	      { KeywordUpdate }
-        using   	      { KeywordUsing }
-        vacuum   	      { KeywordVacuum }
-        values   	      { KeywordValues }
-        view   		      { KeywordView }
-        virtual   	      { KeywordVirtual }
-        when   		      { KeywordWhen }
-        where   	      { KeywordWhere }
+        database              { KeywordDatabase }
+        default               { KeywordDefault }
+        deferrable            { KeywordDeferrable }
+        deferred              { KeywordDeferred }
+        delete                { KeywordDelete }
+        desc                  { KeywordDesc }
+        detach                { KeywordDetach }
+        distinct              { KeywordDistinct }
+        drop                  { KeywordDrop }
+        each                  { KeywordEach }
+        else                  { KeywordElse }
+        end                   { KeywordEnd }
+        escape                { KeywordEscape }
+        except                { KeywordExcept }
+        exclusive             { KeywordExclusive }
+        exists                { KeywordExists }
+        explain               { KeywordExplain }
+        fail                  { KeywordFail }
+        for                   { KeywordFor }
+        foreign               { KeywordForeign }
+        from                  { KeywordFrom }
+        full                  { KeywordFull }
+        glob                  { KeywordGlob }
+        group                 { KeywordGroup }
+        having                { KeywordHaving }
+        if                    { KeywordIf }
+        ignore                { KeywordIgnore }
+        immediate             { KeywordImmediate }
+        in                    { KeywordIn }
+        index                 { KeywordIndex }
+        indexed               { KeywordIndexed }
+        initially             { KeywordInitially }
+        inner                 { KeywordInner }
+        insert                { KeywordInsert }
+        instead               { KeywordInstead }
+        intersect             { KeywordIntersect }
+        into                  { KeywordInto }
+        is                    { KeywordIs }
+        isnull                { KeywordIsnull }
+        join                  { KeywordJoin }
+        key                   { KeywordKey }
+        left                  { KeywordLeft }
+        like                  { KeywordLike }
+        limit                 { KeywordLimit }
+        match                 { KeywordMatch }
+        natural               { KeywordNatural }
+        no                    { KeywordNo }
+        not                   { KeywordNot }
+        notnull               { KeywordNotnull }
+        null                  { KeywordNull }
+        of                    { KeywordOf }
+        offset                { KeywordOffset }
+        on                    { KeywordOn }
+        or                    { KeywordOr }
+        order                 { KeywordOrder }
+        outer                 { KeywordOuter }
+        plan                  { KeywordPlan }
+        pragma                { KeywordPragma }
+        primary               { KeywordPrimary }
+        query                 { KeywordQuery }
+        raise                 { KeywordRaise }
+        references            { KeywordReferences }
+        regexp                { KeywordRegexp }
+        reindex               { KeywordReindex }
+        release               { KeywordRelease }
+        rename                { KeywordRename }
+        replace               { KeywordReplace }
+        restrict              { KeywordRestrict }
+        right                 { KeywordRight }
+        rollback              { KeywordRollback }
+        row                   { KeywordRow }
+        savepoint             { KeywordSavepoint }
+        select                { KeywordSelect }
+        set                   { KeywordSet }
+        table                 { KeywordTable }
+        temp                  { KeywordTemp }
+        temporary             { KeywordTemporary }
+        then                  { KeywordThen }
+        to                    { KeywordTo }
+        transaction           { KeywordTransaction }
+        trigger               { KeywordTrigger }
+        union                 { KeywordUnion }
+        unique                { KeywordUnique }
+        update                { KeywordUpdate }
+        using                 { KeywordUsing }
+        vacuum                { KeywordVacuum }
+        values                { KeywordValues }
+        view                  { KeywordView }
+        virtual               { KeywordVirtual }
+        when                  { KeywordWhen }
+        where                 { KeywordWhere }
 
 %%
 
@@ -504,7 +504,7 @@ Expression8 :: { Expression }
     | not Expression8
     { case $2 of
         ExpressionExistsSubquery subquery -> ExpressionNotExistsSubquery subquery
-	subexpression -> ExpressionUnaryLogicalNot subexpression }
+        subexpression -> ExpressionUnaryLogicalNot subexpression }
 
 Expression9 :: { Expression }
     : Expression8
@@ -512,7 +512,7 @@ Expression9 :: { Expression }
     | Expression9 is Expression8
     { case $3 of
         ExpressionUnaryLogicalNot subexpression -> ExpressionIsNot $1 subexpression
-	_ -> ExpressionIs $1 $3 }
+        _ -> ExpressionIs $1 $3 }
 
 Expression10 :: { Expression }
     : Expression9
@@ -1475,18 +1475,30 @@ OneOrMoreUnqualifiedIdentifier :: { [UnqualifiedIdentifier] }
     { $1 ++ [$3] }
 
 SinglyQualifiedIdentifier :: { SinglyQualifiedIdentifier }
-    : identifier
-    { SinglyQualifiedIdentifier Nothing $1 }
-    | identifier '.' identifier
-    { SinglyQualifiedIdentifier (Just $1) $3 }
+    : UnqualifiedIdentifier
+    { let UnqualifiedIdentifier properName = $1
+      in SinglyQualifiedIdentifier Nothing properName }
+    | UnqualifiedIdentifier '.' UnqualifiedIdentifier
+    { let { UnqualifiedIdentifier parentName = $1;
+            UnqualifiedIdentifier properName = $3 }
+      in SinglyQualifiedIdentifier (Just parentName) properName }
 
 DoublyQualifiedIdentifier :: { DoublyQualifiedIdentifier }
-    : identifier
-    { DoublyQualifiedIdentifier Nothing $1 }
-    | identifier '.' identifier
-    { DoublyQualifiedIdentifier (Just ($1, Nothing)) $3 }
-    | identifier '.' identifier '.' identifier
-    { DoublyQualifiedIdentifier (Just ($3, Just $1)) $5 }
+    : SinglyQualifiedIdentifier
+    { case $1 of
+        SinglyQualifiedIdentifier Nothing properName
+          -> DoublyQualifiedIdentifier Nothing properName
+        SinglyQualifiedIdentifier (Just parentName) properName
+          -> DoublyQualifiedIdentifier (Just (parentName, Nothing)) properName }
+    | SinglyQualifiedIdentifier '.' identifier
+    { let properName = $3
+      in case $1 of
+           SinglyQualifiedIdentifier Nothing parentName
+             -> DoublyQualifiedIdentifier (Just (parentName, Nothing))
+                                          properName
+           SinglyQualifiedIdentifier (Just grandparentName) parentName
+             -> DoublyQualifiedIdentifier (Just (parentName, Just grandparentName))
+                                          properName }
 
 {
 
