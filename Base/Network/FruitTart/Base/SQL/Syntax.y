@@ -425,20 +425,6 @@ Expression0 :: { Expression }
     { ExpressionFunctionCallDistinct $1 (fromJust $ mkOneOrMore $4) }
     | UnqualifiedIdentifier '(' '*' ')'
     { ExpressionFunctionCallStar $1 }
-    | cast '(' Expression as Type ')'
-    { ExpressionCast $3 $5 }
-    | '(' Select ')'
-    { ExpressionSubquery $2 }
-    | exists '(' Select ')'
-    { ExpressionExistsSubquery $3 }
-    | case CaseList end
-    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
-    | case CaseList else Expression end
-    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) (Just $4) }
-    | case Expression CaseList end
-    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) Nothing }
-    | case Expression CaseList else Expression end
-    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) (Just $5) }
     | raise '(' ignore ')'
     { ExpressionRaiseIgnore }
     | raise '(' rollback ',' string ')'
@@ -453,131 +439,177 @@ Expression0 :: { Expression }
 Expression1 :: { Expression }
     : Expression0
     { $1 }
-    | Expression1 collate UnqualifiedIdentifier
-    { ExpressionCollate $1 $3 }
+    | cast '(' Expression as Type ')'
+    { ExpressionCast $3 $5 }
 
 Expression2 :: { Expression }
     : Expression1
     { $1 }
-    | '-' Expression2
-    { ExpressionUnaryNegative $2 }
-    | '+' Expression2
-    { ExpressionUnaryPositive $2 }
-    | '~' Expression2
-    { ExpressionUnaryBitwiseNot $2 }
-    | not Expression2
-    { case $2 of
-        ExpressionExistsSubquery subquery -> ExpressionNotExistsSubquery subquery
-	subexpression -> ExpressionUnaryLogicalNot subexpression }
+    | Expression2 collate UnqualifiedIdentifier
+    { ExpressionCollate $1 $3 }
 
 Expression3 :: { Expression }
     : Expression2
     { $1 }
-    | Expression3 '||' Expression2
-    { ExpressionBinaryConcatenate $1 $3 }
+    | case CaseList end
+    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) Nothing }
+    | case CaseList else Expression end
+    { ExpressionCase Nothing (fromJust $ mkOneOrMore $2) (Just $4) }
+    | case Expression CaseList end
+    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) Nothing }
+    | case Expression CaseList else Expression end
+    { ExpressionCase (Just $2) (fromJust $ mkOneOrMore $3) (Just $5) }
 
 Expression4 :: { Expression }
     : Expression3
     { $1 }
-    | Expression4 '*' Expression3
-    { ExpressionBinaryMultiply $1 $3 }
-    | Expression4 '/' Expression3
-    { ExpressionBinaryDivide $1 $3 }
-    | Expression4 '%' Expression3
-    { ExpressionBinaryModulus $1 $3 }
+    | exists '(' Select ')'
+    { ExpressionExistsSubquery $3 }
 
 Expression5 :: { Expression }
     : Expression4
     { $1 }
-    | Expression5 '+' Expression4
-    { ExpressionBinaryAdd $1 $3 }
-    | Expression5 '-' Expression4
-    { ExpressionBinarySubtract $1 $3 }
+    | Expression5 in '(' Select ')'
+    { ExpressionInSelect $1 $4 }
+    | Expression5 not in '(' Select ')'
+    { ExpressionNotInSelect $1 $5 }
+    | Expression5 in SinglyQualifiedIdentifier
+    { ExpressionInTable $1 $3 }
+    | Expression5 not in SinglyQualifiedIdentifier
+    { ExpressionNotInTable $1 $4 }
 
 Expression6 :: { Expression }
     : Expression5
     { $1 }
-    | Expression6 '<<' Expression5
-    { ExpressionBinaryLeftShift $1 $3 }
-    | Expression6 '>>' Expression5
-    { ExpressionBinaryRightShift $1 $3 }
-    | Expression6 '&' Expression5
-    { ExpressionBinaryBitwiseAnd $1 $3 }
-    | Expression6 '|' Expression5
-    { ExpressionBinaryBitwiseOr $1 $3 }
+    | '(' Select ')'
+    { ExpressionSubquery $2 }
 
 Expression7 :: { Expression }
     : Expression6
     { $1 }
-    | Expression7 '<' Expression6
-    { ExpressionBinaryLess $1 $3 }
-    | Expression7 '<=' Expression6
-    { ExpressionBinaryLessEquals $1 $3 }
-    | Expression7 '>' Expression6
-    { ExpressionBinaryGreater $1 $3 }
-    | Expression7 '>=' Expression6
-    { ExpressionBinaryGreaterEquals $1 $3 }
+    | Expression7 between Expression17 and Expression6
+    { ExpressionBetween $1 $3 $5 }
+    | Expression7 not between Expression17 and Expression6
+    { ExpressionNotBetween $1 $4 $6 }
 
 Expression8 :: { Expression }
     : Expression7
     { $1 }
-    | Expression8 '=' Expression7
-    { ExpressionBinaryEquals $1 $3 }
-    | Expression8 '==' Expression7
-    { ExpressionBinaryEqualsEquals $1 $3 }
-    | Expression8 '!=' Expression7
-    { ExpressionBinaryNotEquals $1 $3 }
-    | Expression8 '<>' Expression7
-    { ExpressionBinaryLessGreater $1 $3 }
-    | Expression8 LikeType Expression7
-    { ExpressionLike $1 $2 $3 Nothing }
-    | Expression8 LikeType Expression escape Expression7
-    { ExpressionLike $1 $2 $3 (Just $5) }
-    | Expression8 isnull
-    { ExpressionIsnull $1 }
-    | Expression8 notnull
-    { ExpressionNotnull $1 }
-    | Expression8 not null
-    { ExpressionNotNull $1 }
-    | Expression8 is Expression7
-    { ExpressionIs $1 $3 }
-    | Expression8 is not Expression7
-    { ExpressionIsNot $1 $4 }
-    | Expression8 in '(' Select ')'
-    { ExpressionInSelect $1 $4 }
-    | Expression8 not in '(' Select ')'
-    { ExpressionNotInSelect $1 $5 }
-    | Expression8 in '(' ExpressionList ')'
-    { ExpressionInList $1 $4 }
-    | Expression8 not in '(' ExpressionList ')'
-    { ExpressionNotInList $1 $5 }
-    | Expression8 in SinglyQualifiedIdentifier
-    { ExpressionInTable $1 $3 }
-    | Expression8 not in SinglyQualifiedIdentifier
-    { ExpressionNotInTable $1 $4 }
+    | '-' Expression8
+    { ExpressionUnaryNegative $2 }
+    | '+' Expression8
+    { ExpressionUnaryPositive $2 }
+    | '~' Expression8
+    { ExpressionUnaryBitwiseNot $2 }
+    | not Expression8
+    { case $2 of
+        ExpressionExistsSubquery subquery -> ExpressionNotExistsSubquery subquery
+	subexpression -> ExpressionUnaryLogicalNot subexpression }
 
 Expression9 :: { Expression }
     : Expression8
     { $1 }
-    | Expression9 and Expression8
-    { ExpressionBinaryLogicalAnd $1 $3 }
+    | Expression9 is Expression8
+    { ExpressionIs $1 $3 }
+    | Expression9 is not Expression8
+    { ExpressionIsNot $1 $4 }
 
 Expression10 :: { Expression }
     : Expression9
     { $1 }
-    | Expression10 or Expression9
-    { ExpressionBinaryLogicalOr $1 $3 }
+    | Expression10 isnull
+    { ExpressionIsnull $1 }
+    | Expression10 notnull
+    { ExpressionNotnull $1 }
+    | Expression10 not null
+    { ExpressionNotNull $1 }
 
 Expression11 :: { Expression }
     : Expression10
     { $1 }
-    | Expression11 between Expression and Expression10
-    { ExpressionBetween $1 $3 $5 }
-    | Expression11 not between Expression and Expression10
-    { ExpressionNotBetween $1 $4 $6 }
+    | Expression11 LikeType Expression10
+    { ExpressionLike $1 $2 $3 Nothing }
+    | Expression11 LikeType Expression10 escape Expression10
+    { ExpressionLike $1 $2 $3 (Just $5) }
+
+Expression12 :: { Expression }
+    : Expression11
+    { $1 }
+    | Expression12 '||' Expression11
+    { ExpressionBinaryConcatenate $1 $3 }
+
+Expression13 :: { Expression }
+    : Expression12
+    { $1 }
+    | Expression13 '*' Expression12
+    { ExpressionBinaryMultiply $1 $3 }
+    | Expression13 '/' Expression12
+    { ExpressionBinaryDivide $1 $3 }
+    | Expression13 '%' Expression12
+    { ExpressionBinaryModulus $1 $3 }
+
+Expression14 :: { Expression }
+    : Expression13
+    { $1 }
+    | Expression14 '+' Expression13
+    { ExpressionBinaryAdd $1 $3 }
+    | Expression14 '-' Expression13
+    { ExpressionBinarySubtract $1 $3 }
+
+Expression15 :: { Expression }
+    : Expression14
+    { $1 }
+    | Expression15 '<<' Expression14
+    { ExpressionBinaryLeftShift $1 $3 }
+    | Expression15 '>>' Expression14
+    { ExpressionBinaryRightShift $1 $3 }
+    | Expression15 '&' Expression14
+    { ExpressionBinaryBitwiseAnd $1 $3 }
+    | Expression15 '|' Expression14
+    { ExpressionBinaryBitwiseOr $1 $3 }
+
+Expression16 :: { Expression }
+    : Expression15
+    { $1 }
+    | Expression16 '<' Expression15
+    { ExpressionBinaryLess $1 $3 }
+    | Expression16 '<=' Expression15
+    { ExpressionBinaryLessEquals $1 $3 }
+    | Expression16 '>' Expression15
+    { ExpressionBinaryGreater $1 $3 }
+    | Expression16 '>=' Expression15
+    { ExpressionBinaryGreaterEquals $1 $3 }
+
+Expression17 :: { Expression }
+    : Expression16
+    { $1 }
+    | Expression17 '=' Expression16
+    { ExpressionBinaryEquals $1 $3 }
+    | Expression17 '==' Expression16
+    { ExpressionBinaryEqualsEquals $1 $3 }
+    | Expression17 '!=' Expression16
+    { ExpressionBinaryNotEquals $1 $3 }
+    | Expression17 '<>' Expression16
+    { ExpressionBinaryLessGreater $1 $3 }
+    | Expression17 in '(' ExpressionList ')'
+    { ExpressionInList $1 $4 }
+    | Expression17 not in '(' ExpressionList ')'
+    { ExpressionNotInList $1 $5 }
+
+Expression18 :: { Expression }
+    : Expression17
+    { $1 }
+    | Expression18 and Expression17
+    { ExpressionBinaryLogicalAnd $1 $3 }
+
+Expression19 :: { Expression }
+    : Expression18
+    { $1 }
+    | Expression19 or Expression18
+    { ExpressionBinaryLogicalOr $1 $3 }
 
 Expression :: { Expression }
-    : Expression11
+    : Expression19
     { $1 }
 
 ExpressionList :: { [Expression] }
