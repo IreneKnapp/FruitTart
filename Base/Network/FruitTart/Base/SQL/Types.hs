@@ -1947,10 +1947,14 @@ instance Show Token where
         = show firstToken ++ show rest
     showList (firstToken:rest@(PunctuationDot:_)) string
         = show firstToken ++ show rest
+    showList (firstToken:rest@(PunctuationRightParenthesis:_)) string
+        = show firstToken ++ show rest
     showList (PunctuationSemicolon:rest@(_:_)) string
         = show PunctuationSemicolon ++ "\n" ++ show rest
     showList (PunctuationDot:rest@(_:_)) string
         = show PunctuationDot ++ show rest
+    showList (PunctuationLeftParenthesis:rest@(_:_)) string
+        = show PunctuationLeftParenthesis ++ show rest
     showList (firstToken:rest) string
         = show firstToken ++ " " ++ show rest ++ string
 
