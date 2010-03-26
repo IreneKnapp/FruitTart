@@ -107,11 +107,39 @@ import Numeric
 
 import Network.FruitTart.Base.SQL.Types
 
-type ParseError = String
+data ParseError = ParseError {
+      parseErrorMessage :: String,
+      parseErrorLineNumber :: Word64
+    }
+instance Error ParseError where
+    strMsg message = ParseError {
+                            parseErrorMessage = message,
+                            parseErrorLineNumber = 0
+                          }
+instance Show ParseError where
+    show parseError = "Line " ++ (show $ parseErrorLineNumber parseError)
+                      ++ " of SQL: " ++ (parseErrorMessage parseError)
 data ParseState = ParseState {
-      parseStateInput :: String
+      parseStateInput :: String,
+      parseStateLineNumber :: Word64
     }
 type Parse = ErrorT ParseError (State ParseState)
+
+throwParseError :: String -> Parse a
+throwParseError message = do
+  state <- getParseState
+  let lineNumber = parseStateLineNumber state
+      error = ParseError {
+                parseErrorMessage = message,
+                parseErrorLineNumber = lineNumber
+              }
+  throwError error
+
+getParseState :: Parse ParseState
+getParseState = lift get
+
+putParseState :: ParseState -> Parse ()
+putParseState state = lift $ put state
 
 }
 
@@ -777,22 +805,28 @@ OneOrMoreIndexedColumn :: { [IndexedColumn] }
     | OneOrMoreIndexedColumn ',' IndexedColumn
     { $1 ++ [$3] }
 
+MaybeConstraintName :: { Maybe UnqualifiedIdentifier }
+    :
+    { Nothing }
+    | constraint UnqualifiedIdentifier
+    { Just $2 }
+
 ColumnConstraint :: { ColumnConstraint }
-    : constraint UnqualifiedIdentifier primary key MaybeAscDesc MaybeConflictClause
+    : MaybeConstraintName primary key MaybeAscDesc MaybeConflictClause
       MaybeAutoincrement
-    { ColumnPrimaryKey $2 $5 $6 $7 }
-    | constraint UnqualifiedIdentifier not null MaybeConflictClause
-    { ColumnNotNull $2 $5 }
-    | constraint UnqualifiedIdentifier unique MaybeConflictClause
-    { ColumnUnique $2 $4 }
-    | constraint UnqualifiedIdentifier check '(' Expression ')'
-    { ColumnCheck $2 $5 }
-    | constraint UnqualifiedIdentifier default DefaultValue
-    { ColumnDefault $2 $4 }
-    | constraint UnqualifiedIdentifier collate UnqualifiedIdentifier
-    { ColumnCollate $2 $4 }
-    | constraint UnqualifiedIdentifier ForeignKeyClause
-    { ColumnForeignKey $2 $3 }
+    { ColumnPrimaryKey $1 $4 $5 $6 }
+    | MaybeConstraintName not null MaybeConflictClause
+    { ColumnNotNull $1 $4 }
+    | MaybeConstraintName unique MaybeConflictClause
+    { ColumnUnique $1 $3 }
+    | MaybeConstraintName check '(' Expression ')'
+    { ColumnCheck $1 $4 }
+    | MaybeConstraintName default DefaultValue
+    { ColumnDefault $1 $3 }
+    | MaybeConstraintName collate UnqualifiedIdentifier
+    { ColumnCollate $1 $3 }
+    | MaybeConstraintName ForeignKeyClause
+    { ColumnForeignKey $1 $2 }
 
 ColumnConstraintList :: { [ColumnConstraint] }
     :
@@ -801,17 +835,15 @@ ColumnConstraintList :: { [ColumnConstraint] }
     { $1 ++ [$2] }
 
 TableConstraint :: { TableConstraint }
-    : constraint UnqualifiedIdentifier primary key '(' OneOrMoreIndexedColumn ')'
-      MaybeConflictClause
-    { TablePrimaryKey $2 (fromJust $ mkOneOrMore $6) $8 }
-    | constraint UnqualifiedIdentifier unique '(' OneOrMoreIndexedColumn ')'
-      MaybeConflictClause
-    { TableUnique $2 (fromJust $ mkOneOrMore $5) $7 }
-    | constraint UnqualifiedIdentifier check '(' Expression ')'
-    { TableCheck $2 $5 }
-    | constraint UnqualifiedIdentifier foreign key '(' OneOrMoreUnqualifiedIdentifier ')'
+    : MaybeConstraintName primary key '(' OneOrMoreIndexedColumn ')' MaybeConflictClause
+    { TablePrimaryKey $1 (fromJust $ mkOneOrMore $5) $7 }
+    | MaybeConstraintName unique '(' OneOrMoreIndexedColumn ')' MaybeConflictClause
+    { TableUnique $1 (fromJust $ mkOneOrMore $4) $6 }
+    | MaybeConstraintName check '(' Expression ')'
+    { TableCheck $1 $4 }
+    | MaybeConstraintName foreign key '(' OneOrMoreUnqualifiedIdentifier ')'
       ForeignKeyClause
-    { TableForeignKey $2 (fromJust $ mkOneOrMore $6) $8 }
+    { TableForeignKey $1 (fromJust $ mkOneOrMore $5) $7 }
 
 OneOrMoreTableConstraint :: { [TableConstraint] }
     : TableConstraint
@@ -1186,7 +1218,7 @@ ForeignKeyClauseDeferrablePart :: { ForeignKeyClauseDeferrablePart }
     { NotDeferrable $3 }
 
 MaybeForeignKeyClauseDeferrablePart :: { Maybe ForeignKeyClauseDeferrablePart }
-    :
+    : %prec LOOSER_THAN_NOT
     { Nothing }
     | ForeignKeyClauseDeferrablePart
     { Just $1 }
@@ -1915,22 +1947,25 @@ readDoublyQualifiedIdentifier input
 
 
 parseError :: Token -> Parse a
-parseError token = fail $ "SQL-parsing error near " ++ (show $ show token) ++ "."
+parseError token = throwParseError
+                     $ "Parsing error near " ++ (show $ show token) ++ "."
 
 
 runParse :: (Parse a) -> String -> Either ParseError a
 runParse parser input =
     let initialState = ParseState {
-                         parseStateInput = input
+                         parseStateInput = input,
+                         parseStateLineNumber = 1
                        }
     in evalState (runErrorT parser) initialState
 
 
 lexerTakingContinuation :: (Token -> Parse a) -> Parse a
 lexerTakingContinuation continuation = do
-  state <- lift get
+  state <- getParseState
   (token, rest) <- lexer $ parseStateInput state
-  lift $ put state { parseStateInput = rest }
+  state <- getParseState
+  putParseState $ state { parseStateInput = rest }
   continuation token
 
 
@@ -1961,6 +1996,11 @@ lexer ('>':rest) = return (PunctuationGreater, rest)
 lexer ('|':'|':rest) = return (PunctuationBarBar, rest)
 lexer ('|':rest) = return (PunctuationBar, rest)
 lexer ('~':rest) = return (PunctuationTilde, rest)
+lexer ('\n':rest) = do
+  state <- getParseState
+  let lineNumber = parseStateLineNumber state
+  putParseState $ state { parseStateLineNumber = lineNumber + 1 }
+  lexer rest
 lexer all@('x':'\'':_) = readBlobLiteral all
 lexer all@('X':'\'':_) = readBlobLiteral all
 lexer all@('\'':_) = readStringLiteral all
@@ -2095,7 +2135,7 @@ lexer all@(c:_)
                     | keyword == "where" -> return (KeywordWhere, rest)
                     | otherwise -> return (Identifier identifier, rest)
   | isSpace c = lexer $ drop 1 all
-  | otherwise = fail $ "SQL-lexing error: Unexpected character '" ++ [c] ++ "'."
+  | otherwise = throwParseError $ "Unexpected character '" ++ [c] ++ "'."
 
 
 readStringLiteral :: String -> Parse (Token, String)
@@ -2107,9 +2147,8 @@ readStringLiteral input = do
         readString' (c:rest) = do
           (a, b) <- readString' rest
           return ([c] ++ a, b)
-        readString' "" = fail $ "SQL-lexing error: "
-                                ++ "Missing close-single-quote in string "
-                                ++ " or blob literal."
+        readString' "" = throwParseError
+                           $ "Missing close-quote in string or blob literal."
     (string, unparsed) <- readString' $ drop 1 input
     return (LiteralString string, unparsed)
 
@@ -2119,7 +2158,7 @@ readBlobLiteral input = do
     (LiteralString blobAsText, unparsed) <- readStringLiteral $ drop 1 input
     if (all isHexDigit blobAsText) && ((length blobAsText `mod` 2) == 0)
       then return (LiteralBlob $ read ("\"" ++ blobAsText ++ "\""), unparsed)
-      else fail "SQL-lexing error: Invalid blob literal."
+      else throwParseError $ "Invalid blob literal."
 
 
 readNumericLiteral :: String -> Parse (Token, String)
@@ -2168,8 +2207,7 @@ readNumericLiteral input =
                           [(double, _)] = reads tweakedFloatSpan
                       in return (LiteralFloat $ fromJust $ mkNonnegativeDouble double,
                                  restExponent)
-        errorResult = fail $ "SQL-lexing error: Invalid number token "
-                             ++ (show errorSpan)
+        errorResult = throwParseError $ "Invalid number token " ++ (show errorSpan)
     in case (initialDigitSpan,
              dotSpan,
              secondDigitSpan,
