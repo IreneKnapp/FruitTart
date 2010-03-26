@@ -1669,6 +1669,10 @@ instance ShowTokens (Statement a b c) where
 
 data UnqualifiedIdentifier = UnqualifiedIdentifier String
                              deriving (Eq, Show)
+instance Ord UnqualifiedIdentifier where
+    compare (UnqualifiedIdentifier aProper)
+            (UnqualifiedIdentifier bProper)
+        = compare aProper bProper
 instance ShowTokens UnqualifiedIdentifier where
     showTokens (UnqualifiedIdentifier properName)
         = [Identifier properName]
@@ -1677,6 +1681,12 @@ instance ShowTokens UnqualifiedIdentifier where
 data SinglyQualifiedIdentifier
     = SinglyQualifiedIdentifier (Maybe String) String
       deriving (Eq, Show)
+instance Ord SinglyQualifiedIdentifier where
+    compare a b = let tupleForm (SinglyQualifiedIdentifier Nothing proper)
+                          = (Nothing, Just proper)
+                      tupleForm (SinglyQualifiedIdentifier (Just parent) proper)
+                          = (Just parent, Just proper)
+                  in compare (tupleForm a) (tupleForm b)
 instance ShowTokens SinglyQualifiedIdentifier where
     showTokens (SinglyQualifiedIdentifier Nothing properName)
         = [Identifier properName]
@@ -1687,6 +1697,16 @@ instance ShowTokens SinglyQualifiedIdentifier where
 data DoublyQualifiedIdentifier
     = DoublyQualifiedIdentifier (Maybe (String, (Maybe String))) String
       deriving (Eq, Show)
+instance Ord DoublyQualifiedIdentifier where
+    compare a b = let tupleForm (DoublyQualifiedIdentifier Nothing proper)
+                          = (Nothing, Nothing, Just proper)
+                      tupleForm (DoublyQualifiedIdentifier
+                                 (Just (parent, Nothing)) proper)
+                          = (Nothing, Just parent, Just proper)
+                      tupleForm (DoublyQualifiedIdentifier
+                                 (Just (parent, Just grandparent)) proper)
+                          = (Just grandparent, Just parent, Just proper)
+                  in compare (tupleForm a) (tupleForm b)
 instance ShowTokens DoublyQualifiedIdentifier where
     showTokens (DoublyQualifiedIdentifier Nothing properName)
         = [Identifier properName]
