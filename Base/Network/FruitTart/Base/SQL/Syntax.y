@@ -2004,6 +2004,7 @@ lexer ('\n':rest) = do
 lexer all@('x':'\'':_) = readBlobLiteral all
 lexer all@('X':'\'':_) = readBlobLiteral all
 lexer all@('\'':_) = readStringLiteral all
+lexer all@('"':_) = readQuotedIdentifier all
 lexer all@(c:_)
   | isDigit c = readNumericLiteral all
   | isAlpha c = let (identifierOrKeyword, rest) = readIdentifierOrKeyword all
@@ -2159,6 +2160,21 @@ readBlobLiteral input = do
     if (all isHexDigit blobAsText) && ((length blobAsText `mod` 2) == 0)
       then return (LiteralBlob $ read ("\"" ++ blobAsText ++ "\""), unparsed)
       else throwParseError $ "Invalid blob literal."
+
+
+readQuotedIdentifier :: String -> Parse (Token, String)
+readQuotedIdentifier input = do
+    let readString' ('"':('"':rest)) = do
+          (a, b) <- readString' rest
+          return ("\"" ++ a, b)
+        readString' ('"':rest) = return ("", rest)
+        readString' (c:rest) = do
+          (a, b) <- readString' rest
+          return ([c] ++ a, b)
+        readString' "" = throwParseError
+                           $ "Missing close-quote in quoted identifier."
+    (string, unparsed) <- readString' $ drop 1 input
+    return (Identifier string, unparsed)
 
 
 readNumericLiteral :: String -> Parse (Token, String)
