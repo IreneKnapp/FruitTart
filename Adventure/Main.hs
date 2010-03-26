@@ -108,7 +108,7 @@ initDatabase database = do
                  ++ "item INTEGER,\n"
                  ++ "child INTEGER,\n"
                  ++ "name TEXT,\n"
-                 ++ "CONSTRAINT key PRIMARY KEY (parent, item)\n"
+                 ++ "CONSTRAINT parent_item_unique PRIMARY KEY (parent, item)\n"
                  ++ ")")
                  []
   earlyQuery database
