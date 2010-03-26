@@ -29,7 +29,6 @@ module Network.FruitTart.Base.SQL.Types (
                                          TriggerTime(..),
                                          TriggerCondition(..),
                                          ModuleArgument(..),
-                                         TriggerStatement(..),
                                          QualifiedTableName(..),
                                          OrderingTerm(..),
                                          PragmaBody(..),
@@ -64,7 +63,11 @@ module Network.FruitTart.Base.SQL.Types (
                                          MaybeTransactionType(..),
                                          StatementList(..),
                                          AnyStatement(..),
+                                         fromAnyStatement,
                                          ExplainableStatement(..),
+                                         fromExplainableStatement,
+                                         TriggerStatement(..),
+                                         fromTriggerStatement,
                                          L0,
                                          L1,
                                          NT,
@@ -72,6 +75,8 @@ module Network.FruitTart.Base.SQL.Types (
                                          NS,
                                          S,
                                          Statement(..),
+                                         Identifier(..),
+                                         toDoublyQualifiedIdentifier,
                                          UnqualifiedIdentifier(..),
                                          SinglyQualifiedIdentifier(..),
                                          DoublyQualifiedIdentifier(..),
@@ -765,13 +770,6 @@ data ModuleArgument = ModuleArgument String
 instance ShowTokens ModuleArgument where
     showTokens (ModuleArgument string) = [ModuleArgumentToken string]
 
-data TriggerStatement = forall l v . TriggerStatement (Statement l T v)
-instance Eq TriggerStatement where
-    TriggerStatement a == TriggerStatement b = Statement a == Statement b
-deriving instance Show TriggerStatement
-instance ShowTokens TriggerStatement where
-    showTokens (TriggerStatement statement) = showTokens statement
-
 data QualifiedTableName
     = TableNoIndexedBy SinglyQualifiedIdentifier
     | TableIndexedBy SinglyQualifiedIdentifier UnqualifiedIdentifier
@@ -1292,12 +1290,107 @@ deriving instance Show AnyStatement
 instance ShowTokens AnyStatement where
     showTokens (Statement statement) = showTokens statement
 
+class StatementClass a where
+    fromAnyStatement :: AnyStatement -> a
+    fromExplainableStatement :: ExplainableStatement -> a
+    fromTriggerStatement :: TriggerStatement -> a
+    
+instance StatementClass (Statement L1 NT NS) where
+    fromAnyStatement (Statement result@(Explain _)) = result
+    fromAnyStatement (Statement result@(ExplainQueryPlan _)) = result
+    fromAnyStatement _ = undefined
+    fromExplainableStatement _ = undefined
+    fromTriggerStatement _ = undefined
+    
+instance StatementClass (Statement L0 NT NS) where
+    fromAnyStatement (Statement result@(AlterTable _ _)) = result
+    fromAnyStatement (Statement result@(Analyze _)) = result
+    fromAnyStatement (Statement result@(Attach _ _ _)) = result
+    fromAnyStatement (Statement result@(Begin _ _)) = result
+    fromAnyStatement (Statement result@(Commit _ _)) = result
+    fromAnyStatement (Statement result@(CreateIndex _ _ _ _ _)) = result
+    fromAnyStatement (Statement result@(CreateTable _ _ _ _)) = result
+    fromAnyStatement (Statement result@(CreateTrigger _ _ _ _ _ _ _ _ _)) = result
+    fromAnyStatement (Statement result@(CreateView _ _ _ _)) = result
+    fromAnyStatement (Statement result@(CreateVirtualTable _ _ _)) = result
+    fromAnyStatement (Statement result@(DeleteLimited _ _ _ _)) = result
+    fromAnyStatement (Statement result@(Detach _ _)) = result
+    fromAnyStatement (Statement result@(DropIndex _ _)) = result
+    fromAnyStatement (Statement result@(DropTable _ _)) = result
+    fromAnyStatement (Statement result@(DropTrigger _ _)) = result
+    fromAnyStatement (Statement result@(DropView _ _)) = result
+    fromAnyStatement (Statement result@(Pragma _ _)) = result
+    fromAnyStatement (Statement result@(Reindex _)) = result
+    fromAnyStatement (Statement result@(Rollback _ _)) = result
+    fromAnyStatement (Statement result@(Savepoint _)) = result
+    fromAnyStatement (Statement result@(UpdateLimited _ _ _ _ _ _)) = result
+    fromAnyStatement (Statement result@(Vacuum)) = result
+    fromAnyStatement _ = undefined
+    fromExplainableStatement (ExplainableStatement result@(AlterTable _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Analyze _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Attach _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Begin _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Commit _ _)) = result
+    fromExplainableStatement
+      (ExplainableStatement result@(CreateIndex _ _ _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(CreateTable _ _ _ _)) = result
+    fromExplainableStatement
+      (ExplainableStatement result@(CreateTrigger _ _ _ _ _ _ _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(CreateView _ _ _ _)) = result
+    fromExplainableStatement
+      (ExplainableStatement result@(CreateVirtualTable _ _ _)) = result
+    fromExplainableStatement
+      (ExplainableStatement result@(DeleteLimited _ _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Detach _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(DropIndex _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(DropTable _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(DropTrigger _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(DropView _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Pragma _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Reindex _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Rollback _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Savepoint _)) = result
+    fromExplainableStatement
+      (ExplainableStatement result@(UpdateLimited _ _ _ _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Vacuum)) = result
+    fromExplainableStatement _ = undefined
+    fromTriggerStatement _ = undefined
+    
+instance StatementClass (Statement L0 T NS) where
+    fromAnyStatement (Statement result@(Delete _ _)) = result
+    fromAnyStatement (Statement result@(Insert _ _ _)) = result
+    fromAnyStatement (Statement result@(Update _ _ _ _)) = result
+    fromAnyStatement _ = undefined
+    fromExplainableStatement (ExplainableStatement result@(Delete _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Insert _ _ _)) = result
+    fromExplainableStatement (ExplainableStatement result@(Update _ _ _ _)) = result
+    fromExplainableStatement _ = undefined
+    fromTriggerStatement (TriggerStatement result@(Delete _ _)) = result
+    fromTriggerStatement (TriggerStatement result@(Insert _ _ _)) = result
+    fromTriggerStatement (TriggerStatement result@(Update _ _ _ _)) = result
+    fromTriggerStatement _ = undefined
+    
+instance StatementClass (Statement L0 T S) where
+    fromAnyStatement (Statement result@(Select _ _ _ _)) = result
+    fromAnyStatement _ = undefined
+    fromExplainableStatement (ExplainableStatement result@(Select _ _ _ _)) = result
+    fromExplainableStatement _ = undefined
+    fromTriggerStatement (TriggerStatement result@(Select _ _ _ _)) = result
+    fromTriggerStatement _ = undefined
+
 data ExplainableStatement = forall t v . ExplainableStatement (Statement L0 t v)
 instance Eq ExplainableStatement where
     ExplainableStatement a == ExplainableStatement b = Statement a == Statement b
 deriving instance Show ExplainableStatement
 instance ShowTokens ExplainableStatement where
     showTokens (ExplainableStatement statement) = showTokens statement
+
+data TriggerStatement = forall l v . TriggerStatement (Statement l T v)
+instance Eq TriggerStatement where
+    TriggerStatement a == TriggerStatement b = Statement a == Statement b
+deriving instance Show TriggerStatement
+instance ShowTokens TriggerStatement where
+    showTokens (TriggerStatement statement) = showTokens statement
 
 -- | Used as a GADT parameter to Statement to indicate a type which can be EXPLAINed.
 data L0
@@ -1667,6 +1760,26 @@ instance ShowTokens (Statement a b c) where
         = [KeywordVacuum]
 
 
+class Identifier a where
+    identifierProperName :: a -> String
+    identifierParentName :: a -> Maybe String
+    identifierGrandparentName :: a -> Maybe String
+
+
+toDoublyQualifiedIdentifier :: (Identifier a) => a -> DoublyQualifiedIdentifier
+toDoublyQualifiedIdentifier identifier =
+    case (identifierGrandparentName identifier,
+          identifierParentName identifier, 
+          identifierProperName identifier) of
+      (Nothing, Nothing, properName)
+          -> DoublyQualifiedIdentifier Nothing properName
+      (Nothing, Just parentName, properName)
+          -> DoublyQualifiedIdentifier (Just (parentName, Nothing)) properName
+      (Just grandparentName, Just parentName, properName)
+          -> DoublyQualifiedIdentifier (Just (parentName, Just grandparentName))
+                                       properName
+
+
 data UnqualifiedIdentifier = UnqualifiedIdentifier String
                              deriving (Eq, Show)
 instance Ord UnqualifiedIdentifier where
@@ -1676,6 +1789,10 @@ instance Ord UnqualifiedIdentifier where
 instance ShowTokens UnqualifiedIdentifier where
     showTokens (UnqualifiedIdentifier properName)
         = [Identifier properName]
+instance Identifier UnqualifiedIdentifier where
+    identifierProperName (UnqualifiedIdentifier properName) = properName
+    identifierParentName _ = Nothing
+    identifierGrandparentName _ = Nothing
 
 
 data SinglyQualifiedIdentifier
@@ -1692,6 +1809,10 @@ instance ShowTokens SinglyQualifiedIdentifier where
         = [Identifier properName]
     showTokens (SinglyQualifiedIdentifier (Just databaseName) properName)
         = [Identifier databaseName, PunctuationDot, Identifier properName]
+instance Identifier SinglyQualifiedIdentifier where
+    identifierProperName (SinglyQualifiedIdentifier _ properName) = properName
+    identifierParentName (SinglyQualifiedIdentifier maybeParentName _) = maybeParentName
+    identifierGrandparentName _ = Nothing
 
 
 data DoublyQualifiedIdentifier
@@ -1721,6 +1842,15 @@ instance ShowTokens DoublyQualifiedIdentifier where
            Identifier tableName,
            PunctuationDot,
            Identifier properName]
+instance Identifier DoublyQualifiedIdentifier where
+    identifierProperName (DoublyQualifiedIdentifier _ properName) = properName
+    identifierParentName
+      (DoublyQualifiedIdentifier (Just (parentName, _)) _) = Just parentName
+    identifierParentName _ = Nothing
+    identifierGrandparentName
+      (DoublyQualifiedIdentifier (Just (_, maybeGrandparentName)) _)
+          = maybeGrandparentName
+    identifierGrandparentName _ = Nothing
 
 
 data Token = EndOfInputToken
