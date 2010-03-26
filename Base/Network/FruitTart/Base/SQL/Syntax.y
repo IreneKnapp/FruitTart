@@ -1,6 +1,7 @@
 {
 {-# LANGUAGE ExistentialQuantification, Rank2Types #-}
 module Network.FruitTart.Base.SQL.Syntax (
+                                          ParseError,
                                           readType,
                                           readLikeType,
                                           readExpression,
@@ -97,12 +98,20 @@ module Network.FruitTart.Base.SQL.Syntax (
                                          )
     where
 
+import Control.Monad.Error
+import Control.Monad.State
 import Data.Char
 import Data.Maybe
 import Data.Word
 import Numeric
 
 import Network.FruitTart.Base.SQL.Types
+
+type ParseError = String
+data ParseState = ParseState {
+      parseStateInput :: String
+    }
+type Parse = ErrorT ParseError (State ParseState)
 
 }
 
@@ -201,6 +210,8 @@ import Network.FruitTart.Base.SQL.Types
 %name parseDoublyQualifiedIdentifier DoublyQualifiedIdentifier
 
 %tokentype { Token }
+%monad { Parse } { >>= } { return }
+%lexer { lexerTakingContinuation } { EndOfInputToken }
 %error { parseError }
 
 %left or
@@ -1522,572 +1533,596 @@ DoublyQualifiedIdentifier :: { DoublyQualifiedIdentifier }
 
 {
 
-readType :: String -> Type
-readType input = parseType $ lexer input
+readType :: String -> Either ParseError Type
+readType input = runParse parseType input
 
 
-readLikeType :: String -> LikeType
-readLikeType input = parseLikeType $ lexer input
+readLikeType :: String -> Either ParseError LikeType
+readLikeType input = runParse parseLikeType input
 
 
-readExpression :: String -> Expression
-readExpression input = parseExpression $ lexer input
+readExpression :: String -> Either ParseError Expression
+readExpression input = runParse parseExpression input
 
 
-readMaybeUnique :: String -> MaybeUnique
-readMaybeUnique input = parseMaybeUnique $ lexer input
+readMaybeUnique :: String -> Either ParseError MaybeUnique
+readMaybeUnique input = runParse parseMaybeUnique input
 
 
-readMaybeIfNotExists :: String -> MaybeIfNotExists
-readMaybeIfNotExists input = parseMaybeIfNotExists $ lexer input
+readMaybeIfNotExists :: String -> Either ParseError MaybeIfNotExists
+readMaybeIfNotExists input = runParse parseMaybeIfNotExists input
 
 
-readMaybeIfExists :: String -> MaybeIfExists
-readMaybeIfExists input = parseMaybeIfExists $ lexer input
+readMaybeIfExists :: String -> Either ParseError MaybeIfExists
+readMaybeIfExists input = runParse parseMaybeIfExists input
 
 
-readMaybeForEachRow :: String -> MaybeForEachRow
-readMaybeForEachRow input = parseMaybeForEachRow $ lexer input
+readMaybeForEachRow :: String -> Either ParseError MaybeForEachRow
+readMaybeForEachRow input = runParse parseMaybeForEachRow input
 
 
-readPermanence :: String -> Permanence
-readPermanence input = parsePermanence $ lexer input
+readPermanence :: String -> Either ParseError Permanence
+readPermanence input = runParse parsePermanence input
 
 
-readMaybeCollation :: String -> MaybeCollation
-readMaybeCollation input = parseMaybeCollation $ lexer input
+readMaybeCollation :: String -> Either ParseError MaybeCollation
+readMaybeCollation input = runParse parseMaybeCollation input
 
 
-readMaybeAscDesc :: String -> MaybeAscDesc
-readMaybeAscDesc input = parseMaybeAscDesc $ lexer input
+readMaybeAscDesc :: String -> Either ParseError MaybeAscDesc
+readMaybeAscDesc input = runParse parseMaybeAscDesc input
 
 
-readMaybeAutoincrement :: String -> MaybeAutoincrement
-readMaybeAutoincrement input = parseMaybeAutoincrement $ lexer input
+readMaybeAutoincrement :: String -> Either ParseError MaybeAutoincrement
+readMaybeAutoincrement input = runParse parseMaybeAutoincrement input
 
 
-readMaybeSign :: String -> MaybeSign
-readMaybeSign input = parseMaybeSign $ lexer input
+readMaybeSign :: String -> Either ParseError MaybeSign
+readMaybeSign input = runParse parseMaybeSign input
 
 
-readAlterTableBody :: String -> AlterTableBody
-readAlterTableBody input = parseAlterTableBody $ lexer input
+readAlterTableBody :: String -> Either ParseError AlterTableBody
+readAlterTableBody input = runParse parseAlterTableBody input
 
 
-readColumnDefinition :: String -> ColumnDefinition
-readColumnDefinition input = parseColumnDefinition $ lexer input
+readColumnDefinition :: String -> Either ParseError ColumnDefinition
+readColumnDefinition input = runParse parseColumnDefinition input
 
 
-readDefaultValue :: String -> DefaultValue
-readDefaultValue input = parseDefaultValue $ lexer input
+readDefaultValue :: String -> Either ParseError DefaultValue
+readDefaultValue input = runParse parseDefaultValue input
 
 
-readIndexedColumn :: String -> IndexedColumn
-readIndexedColumn input = parseIndexedColumn $ lexer input
+readIndexedColumn :: String -> Either ParseError IndexedColumn
+readIndexedColumn input = runParse parseIndexedColumn input
 
 
-readColumnConstraint :: String -> ColumnConstraint
-readColumnConstraint input = parseColumnConstraint $ lexer input
+readColumnConstraint :: String -> Either ParseError ColumnConstraint
+readColumnConstraint input = runParse parseColumnConstraint input
 
 
-readTableConstraint :: String -> TableConstraint
-readTableConstraint input = parseTableConstraint $ lexer input
+readTableConstraint :: String -> Either ParseError TableConstraint
+readTableConstraint input = runParse parseTableConstraint input
 
 
-readTriggerTime :: String -> TriggerTime
-readTriggerTime input = parseTriggerTime $ lexer input
+readTriggerTime :: String -> Either ParseError TriggerTime
+readTriggerTime input = runParse parseTriggerTime input
 
 
-readTriggerCondition :: String -> TriggerCondition
-readTriggerCondition input = parseTriggerCondition $ lexer input
+readTriggerCondition :: String -> Either ParseError TriggerCondition
+readTriggerCondition input = runParse parseTriggerCondition input
 
 
 {- TODO remember to uncomment this
-readModuleArgument :: String -> ModuleArgument
-readModuleArgument input = parseModuleArgument $ lexer input
+readModuleArgument :: String -> Either ParseError ModuleArgument
+readModuleArgument input = runParse parseModuleArgument input
 -}
 
 
-readTriggerStatement :: String -> TriggerStatement
-readTriggerStatement input = parseTriggerStatement $ lexer input
+readTriggerStatement :: String -> Either ParseError TriggerStatement
+readTriggerStatement input = runParse parseTriggerStatement input
 
 
-readQualifiedTableName :: String -> QualifiedTableName
-readQualifiedTableName input = parseQualifiedTableName $ lexer input
+readQualifiedTableName :: String -> Either ParseError QualifiedTableName
+readQualifiedTableName input = runParse parseQualifiedTableName input
 
 
-readOrderingTerm :: String -> OrderingTerm
-readOrderingTerm input = parseOrderingTerm $ lexer input
+readOrderingTerm :: String -> Either ParseError OrderingTerm
+readOrderingTerm input = runParse parseOrderingTerm input
 
 
-readPragmaBody :: String -> PragmaBody
-readPragmaBody input = parsePragmaBody $ lexer input
+readPragmaBody :: String -> Either ParseError PragmaBody
+readPragmaBody input = runParse parsePragmaBody input
 
 
-readPragmaValue :: String -> PragmaValue
-readPragmaValue input = parsePragmaValue $ lexer input
+readPragmaValue :: String -> Either ParseError PragmaValue
+readPragmaValue input = runParse parsePragmaValue input
 
 
-readEitherColumnsAndConstraintsSelect :: String -> EitherColumnsAndConstraintsSelect
-readEitherColumnsAndConstraintsSelect input = parseEitherColumnsAndConstraintsSelect $ lexer input
+readEitherColumnsAndConstraintsSelect
+    :: String -> Either ParseError EitherColumnsAndConstraintsSelect
+readEitherColumnsAndConstraintsSelect input
+    = runParse parseEitherColumnsAndConstraintsSelect input
 
 
-readInsertHead :: String -> InsertHead
-readInsertHead input = parseInsertHead $ lexer input
+readInsertHead :: String -> Either ParseError InsertHead
+readInsertHead input = runParse parseInsertHead input
 
 
-readInsertBody :: String -> InsertBody
-readInsertBody input = parseInsertBody $ lexer input
+readInsertBody :: String -> Either ParseError InsertBody
+readInsertBody input = runParse parseInsertBody input
 
 
-readUpdateHead :: String -> UpdateHead
-readUpdateHead input = parseUpdateHead $ lexer input
+readUpdateHead :: String -> Either ParseError UpdateHead
+readUpdateHead input = runParse parseUpdateHead input
 
 
-readDistinctness :: String -> Distinctness
-readDistinctness input = parseDistinctness $ lexer input
+readDistinctness :: String -> Either ParseError Distinctness
+readDistinctness input = runParse parseDistinctness input
 
 
-readMaybeHaving :: String -> MaybeHaving
-readMaybeHaving input = parseMaybeHaving $ lexer input
+readMaybeHaving :: String -> Either ParseError MaybeHaving
+readMaybeHaving input = runParse parseMaybeHaving input
 
 
-readMaybeAs :: String -> MaybeAs
-readMaybeAs input = parseMaybeAs $ lexer input
+readMaybeAs :: String -> Either ParseError MaybeAs
+readMaybeAs input = runParse parseMaybeAs input
 
 
-readCompoundOperator :: String -> CompoundOperator
-readCompoundOperator input = parseCompoundOperator $ lexer input
+readCompoundOperator :: String -> Either ParseError CompoundOperator
+readCompoundOperator input = runParse parseCompoundOperator input
 
 
-readSelectCore :: String -> SelectCore
-readSelectCore input = parseSelectCore $ lexer input
+readSelectCore :: String -> Either ParseError SelectCore
+readSelectCore input = runParse parseSelectCore input
 
 
-readResultColumn :: String -> ResultColumn
-readResultColumn input = parseResultColumn $ lexer input
+readResultColumn :: String -> Either ParseError ResultColumn
+readResultColumn input = runParse parseResultColumn input
 
 
-readJoinSource :: String -> JoinSource
-readJoinSource input = parseJoinSource $ lexer input
+readJoinSource :: String -> Either ParseError JoinSource
+readJoinSource input = runParse parseJoinSource input
 
 
-readSingleSource :: String -> SingleSource
-readSingleSource input = parseSingleSource $ lexer input
+readSingleSource :: String -> Either ParseError SingleSource
+readSingleSource input = runParse parseSingleSource input
 
 
-readJoinOperation :: String -> JoinOperation
-readJoinOperation input = parseJoinOperation $ lexer input
+readJoinOperation :: String -> Either ParseError JoinOperation
+readJoinOperation input = runParse parseJoinOperation input
 
 
-readJoinConstraint :: String -> JoinConstraint
-readJoinConstraint input = parseJoinConstraint $ lexer input
+readJoinConstraint :: String -> Either ParseError JoinConstraint
+readJoinConstraint input = runParse parseJoinConstraint input
 
 
-readMaybeIndexedBy :: String -> MaybeIndexedBy
-readMaybeIndexedBy input = parseMaybeIndexedBy $ lexer input
+readMaybeIndexedBy :: String -> Either ParseError MaybeIndexedBy
+readMaybeIndexedBy input = runParse parseMaybeIndexedBy input
 
 
-readFromClause :: String -> FromClause
-readFromClause input = parseFromClause $ lexer input
+readFromClause :: String -> Either ParseError FromClause
+readFromClause input = runParse parseFromClause input
 
 
-readWhereClause :: String -> WhereClause
-readWhereClause input = parseWhereClause $ lexer input
+readWhereClause :: String -> Either ParseError WhereClause
+readWhereClause input = runParse parseWhereClause input
 
 
-readGroupClause :: String -> GroupClause
-readGroupClause input = parseGroupClause $ lexer input
+readGroupClause :: String -> Either ParseError GroupClause
+readGroupClause input = runParse parseGroupClause input
 
 
-readOrderClause :: String -> OrderClause
-readOrderClause input = parseOrderClause $ lexer input
+readOrderClause :: String -> Either ParseError OrderClause
+readOrderClause input = runParse parseOrderClause input
 
 
-readLimitClause :: String -> LimitClause
-readLimitClause input = parseLimitClause $ lexer input
+readLimitClause :: String -> Either ParseError LimitClause
+readLimitClause input = runParse parseLimitClause input
 
 
-readWhenClause :: String -> WhenClause
-readWhenClause input = parseWhenClause $ lexer input
+readWhenClause :: String -> Either ParseError WhenClause
+readWhenClause input = runParse parseWhenClause input
 
 
-readConflictClause :: String -> ConflictClause
-readConflictClause input = parseConflictClause $ lexer input
+readConflictClause :: String -> Either ParseError ConflictClause
+readConflictClause input = runParse parseConflictClause input
 
 
-readForeignKeyClause :: String -> ForeignKeyClause
-readForeignKeyClause input = parseForeignKeyClause $ lexer input
+readForeignKeyClause :: String -> Either ParseError ForeignKeyClause
+readForeignKeyClause input = runParse parseForeignKeyClause input
 
 
-readForeignKeyClauseActionOrMatchPart :: String -> ForeignKeyClauseActionOrMatchPart
-readForeignKeyClauseActionOrMatchPart input = parseForeignKeyClauseActionOrMatchPart $ lexer input
+readForeignKeyClauseActionOrMatchPart
+    :: String -> Either ParseError ForeignKeyClauseActionOrMatchPart
+readForeignKeyClauseActionOrMatchPart input
+    = runParse parseForeignKeyClauseActionOrMatchPart input
 
 
-readForeignKeyClauseActionPart :: String -> ForeignKeyClauseActionPart
-readForeignKeyClauseActionPart input = parseForeignKeyClauseActionPart $ lexer input
+readForeignKeyClauseActionPart
+    :: String -> Either ParseError ForeignKeyClauseActionPart
+readForeignKeyClauseActionPart input
+    = runParse parseForeignKeyClauseActionPart input
 
 
-readForeignKeyClauseDeferrablePart :: String -> ForeignKeyClauseDeferrablePart
-readForeignKeyClauseDeferrablePart input = parseForeignKeyClauseDeferrablePart $ lexer input
+readForeignKeyClauseDeferrablePart
+    :: String -> Either ParseError ForeignKeyClauseDeferrablePart
+readForeignKeyClauseDeferrablePart input
+    = runParse parseForeignKeyClauseDeferrablePart input
 
 
-readMaybeInitialDeferralStatus :: String -> MaybeInitialDeferralStatus
-readMaybeInitialDeferralStatus input = parseMaybeInitialDeferralStatus $ lexer input
+readMaybeInitialDeferralStatus
+    :: String -> Either ParseError MaybeInitialDeferralStatus
+readMaybeInitialDeferralStatus input
+    = runParse parseMaybeInitialDeferralStatus input
 
 
-readMaybeTransactionType :: String -> MaybeTransactionType
-readMaybeTransactionType input = parseMaybeTransactionType $ lexer input
+readMaybeTransactionType :: String -> Either ParseError MaybeTransactionType
+readMaybeTransactionType input = runParse parseMaybeTransactionType input
 
 
-readStatementList :: String -> StatementList
-readStatementList input = parseStatementList $ lexer input
+readStatementList :: String -> Either ParseError StatementList
+readStatementList input = runParse parseStatementList input
 
 
-readAnyStatement :: String -> AnyStatement
-readAnyStatement input = parseAnyStatement $ lexer input
+readAnyStatement :: String -> Either ParseError AnyStatement
+readAnyStatement input = runParse parseAnyStatement input
 
 
-readExplainableStatement :: String -> ExplainableStatement
-readExplainableStatement input = parseExplainableStatement $ lexer input
+readExplainableStatement :: String -> Either ParseError ExplainableStatement
+readExplainableStatement input = runParse parseExplainableStatement input
 
 
-readExplain :: String -> Statement L1 NT NS
-readExplain input = parseExplain $ lexer input
+readExplain :: String -> Either ParseError (Statement L1 NT NS)
+readExplain input = runParse parseExplain input
 
 
-readExplainQueryPlan :: String -> Statement L1 NT NS
-readExplainQueryPlan input = parseExplainQueryPlan $ lexer input
+readExplainQueryPlan :: String -> Either ParseError (Statement L1 NT NS)
+readExplainQueryPlan input = runParse parseExplainQueryPlan input
 
 
-readAlterTable :: String -> Statement L0 NT NS
-readAlterTable input = parseAlterTable $ lexer input
+readAlterTable :: String -> Either ParseError (Statement L0 NT NS)
+readAlterTable input = runParse parseAlterTable input
 
 
-readAnalyze :: String -> Statement L0 NT NS
-readAnalyze input = parseAnalyze $ lexer input
+readAnalyze :: String -> Either ParseError (Statement L0 NT NS)
+readAnalyze input = runParse parseAnalyze input
 
 
-readAttach :: String -> Statement L0 NT NS
-readAttach input = parseAttach $ lexer input
+readAttach :: String -> Either ParseError (Statement L0 NT NS)
+readAttach input = runParse parseAttach input
 
 
-readBegin :: String -> Statement L0 NT NS
-readBegin input = parseBegin $ lexer input
+readBegin :: String -> Either ParseError (Statement L0 NT NS)
+readBegin input = runParse parseBegin input
 
 
-readCommit :: String -> Statement L0 NT NS
-readCommit input = parseCommit $ lexer input
+readCommit :: String -> Either ParseError (Statement L0 NT NS)
+readCommit input = runParse parseCommit input
 
 
-readCreateIndex :: String -> Statement L0 NT NS
-readCreateIndex input = parseCreateIndex $ lexer input
+readCreateIndex :: String -> Either ParseError (Statement L0 NT NS)
+readCreateIndex input = runParse parseCreateIndex input
 
 
-readCreateTable :: String -> Statement L0 NT NS
-readCreateTable input = parseCreateTable $ lexer input
+readCreateTable :: String -> Either ParseError (Statement L0 NT NS)
+readCreateTable input = runParse parseCreateTable input
 
 
-readCreateTrigger :: String -> Statement L0 NT NS
-readCreateTrigger input = parseCreateTrigger $ lexer input
+readCreateTrigger :: String -> Either ParseError (Statement L0 NT NS)
+readCreateTrigger input = runParse parseCreateTrigger input
 
 
-readCreateView :: String -> Statement L0 NT NS
-readCreateView input = parseCreateView $ lexer input
+readCreateView :: String -> Either ParseError (Statement L0 NT NS)
+readCreateView input = runParse parseCreateView input
 
 
 {- TODO remember to uncomment this
-readCreateVirtualTable :: String -> Statement L0 NT NS
-readCreateVirtualTable input = parseCreateVirtualTable $ lexer input
+readCreateVirtualTable :: String -> Either ParseError (Statement L0 NT NS)
+readCreateVirtualTable input = runParse parseCreateVirtualTable input
 -}
 
 
-readDelete :: String -> Statement L0 T NS
-readDelete input = parseDelete $ lexer input
+readDelete :: String -> Either ParseError (Statement L0 T NS)
+readDelete input = runParse parseDelete input
 
 
-readDeleteLimited :: String -> Statement L0 NT NS
-readDeleteLimited input = parseDeleteLimited $ lexer input
+readDeleteLimited :: String -> Either ParseError (Statement L0 NT NS)
+readDeleteLimited input = runParse parseDeleteLimited input
 
 
-readDeleteOrDeleteLimited :: String -> AnyStatement
-readDeleteOrDeleteLimited input = parseDeleteOrDeleteLimited $ lexer input
+readDeleteOrDeleteLimited :: String -> Either ParseError AnyStatement
+readDeleteOrDeleteLimited input = runParse parseDeleteOrDeleteLimited input
 
 
-readDetach :: String -> Statement L0 NT NS
-readDetach input = parseDetach $ lexer input
+readDetach :: String -> Either ParseError (Statement L0 NT NS)
+readDetach input = runParse parseDetach input
 
 
-readDropIndex :: String -> Statement L0 NT NS
-readDropIndex input = parseDropIndex $ lexer input
+readDropIndex :: String -> Either ParseError (Statement L0 NT NS)
+readDropIndex input = runParse parseDropIndex input
 
 
-readDropTable :: String -> Statement L0 NT NS
-readDropTable input = parseDropTable $ lexer input
+readDropTable :: String -> Either ParseError (Statement L0 NT NS)
+readDropTable input = runParse parseDropTable input
 
 
-readDropTrigger :: String -> Statement L0 NT NS
-readDropTrigger input = parseDropTrigger $ lexer input
+readDropTrigger :: String -> Either ParseError (Statement L0 NT NS)
+readDropTrigger input = runParse parseDropTrigger input
 
 
-readDropView :: String -> Statement L0 NT NS
-readDropView input = parseDropView $ lexer input
+readDropView :: String -> Either ParseError (Statement L0 NT NS)
+readDropView input = runParse parseDropView input
 
 
-readInsert :: String -> Statement L0 T NS
-readInsert input = parseInsert $ lexer input
+readInsert :: String -> Either ParseError (Statement L0 T NS)
+readInsert input = runParse parseInsert input
 
 
-readPragma :: String -> Statement L0 NT NS
-readPragma input = parsePragma $ lexer input
+readPragma :: String -> Either ParseError (Statement L0 NT NS)
+readPragma input = runParse parsePragma input
 
 
-readReindex :: String -> Statement L0 NT NS
-readReindex input = parseReindex $ lexer input
+readReindex :: String -> Either ParseError (Statement L0 NT NS)
+readReindex input = runParse parseReindex input
 
 
-readRelease :: String -> Statement L0 NT NS
-readRelease input = parseRelease $ lexer input
+readRelease :: String -> Either ParseError (Statement L0 NT NS)
+readRelease input = runParse parseRelease input
 
 
-readRollback :: String -> Statement L0 NT NS
-readRollback input = parseRollback $ lexer input
+readRollback :: String -> Either ParseError (Statement L0 NT NS)
+readRollback input = runParse parseRollback input
 
 
-readSavepoint :: String -> Statement L0 NT NS
-readSavepoint input = parseSavepoint $ lexer input
+readSavepoint :: String -> Either ParseError (Statement L0 NT NS)
+readSavepoint input = runParse parseSavepoint input
 
 
-readSelect :: String -> Statement L0 T S
-readSelect input = parseSelect $ lexer input
+readSelect :: String -> Either ParseError (Statement L0 T S)
+readSelect input = runParse parseSelect input
 
 
-readUpdate :: String -> Statement L0 T NS
-readUpdate input = parseUpdate $ lexer input
+readUpdate :: String -> Either ParseError (Statement L0 T NS)
+readUpdate input = runParse parseUpdate input
 
 
-readUpdateLimited :: String -> Statement L0 NT NS
-readUpdateLimited input = parseUpdateLimited $ lexer input
+readUpdateLimited :: String -> Either ParseError (Statement L0 NT NS)
+readUpdateLimited input = runParse parseUpdateLimited input
 
 
-readUpdateOrUpdateLimited :: String -> AnyStatement
-readUpdateOrUpdateLimited input = parseUpdateOrUpdateLimited $ lexer input
+readUpdateOrUpdateLimited :: String -> Either ParseError AnyStatement
+readUpdateOrUpdateLimited input = runParse parseUpdateOrUpdateLimited input
 
 
-readVacuum :: String -> Statement L0 NT NS
-readVacuum input = parseVacuum $ lexer input
+readVacuum :: String -> Either ParseError (Statement L0 NT NS)
+readVacuum input = runParse parseVacuum input
 
 
-readUnqualifiedIdentifier :: String -> UnqualifiedIdentifier
-readUnqualifiedIdentifier input = parseUnqualifiedIdentifier $ lexer input
+readUnqualifiedIdentifier :: String -> Either ParseError UnqualifiedIdentifier
+readUnqualifiedIdentifier input = runParse parseUnqualifiedIdentifier input
 
 
-readSinglyQualifiedIdentifier :: String -> SinglyQualifiedIdentifier
-readSinglyQualifiedIdentifier input = parseSinglyQualifiedIdentifier $ lexer input
+readSinglyQualifiedIdentifier
+    :: String -> Either ParseError SinglyQualifiedIdentifier
+readSinglyQualifiedIdentifier input
+    = runParse parseSinglyQualifiedIdentifier input
 
 
-readDoublyQualifiedIdentifier :: String -> DoublyQualifiedIdentifier
-readDoublyQualifiedIdentifier input = parseDoublyQualifiedIdentifier $ lexer input
+readDoublyQualifiedIdentifier :: String -> Either ParseError DoublyQualifiedIdentifier
+readDoublyQualifiedIdentifier input
+    = runParse parseDoublyQualifiedIdentifier input
 
 
-parseError :: [Token] -> a
-parseError _ = error $ "SQL-parsing error."
+parseError :: Token -> Parse a
+parseError token = fail $ "SQL-parsing error near " ++ (show $ show token) ++ "."
 
 
-lexer :: String -> [Token]
-lexer "" = []
-lexer all@('.':c:_) | isDigit c = let (token, rest) = readNumericLiteral all
-                                  in token : lexer rest
-lexer ('!':'=':rest) = PunctuationBangEquals : lexer rest
-lexer ('%':rest) = PunctuationPercent : lexer rest
-lexer ('&':rest) = PunctuationAmpersand : lexer rest
-lexer ('(':rest) = PunctuationLeftParenthesis : lexer rest
-lexer (')':rest) = PunctuationRightParenthesis : lexer rest
-lexer ('*':rest) = PunctuationStar : lexer rest
-lexer ('+':rest) = PunctuationPlus : lexer rest
-lexer (',':rest) = PunctuationComma : lexer rest
-lexer ('-':rest) = PunctuationMinus : lexer rest
-lexer ('.':rest) = PunctuationDot : lexer rest
-lexer ('/':rest) = PunctuationSlash : lexer rest
-lexer (';':rest) = PunctuationSemicolon : lexer rest
-lexer ('<':'<':rest) = PunctuationLessLess : lexer rest
-lexer ('<':'=':rest) = PunctuationLessEquals : lexer rest
-lexer ('<':'>':rest) = PunctuationLessGreater : lexer rest
-lexer ('<':rest) = PunctuationLess : lexer rest
-lexer ('=':'=':rest) = PunctuationEqualsEquals : lexer rest
-lexer ('=':rest) = PunctuationEquals : lexer rest
-lexer ('>':'=':rest) = PunctuationGreaterEquals : lexer rest
-lexer ('>':'>':rest) = PunctuationGreaterGreater : lexer rest
-lexer ('>':rest) = PunctuationGreater : lexer rest
-lexer ('|':'|':rest) = PunctuationBarBar : lexer rest
-lexer ('|':rest) = PunctuationBar : lexer rest
-lexer ('~':rest) = PunctuationTilde : lexer rest
-lexer all@('x':rest) = let (token, rest) = readBlobLiteral all
-                       in token : lexer rest
-lexer all@('X':rest) = let (token, rest) = readBlobLiteral all
-                       in token : lexer rest
-lexer all@('\'':_) = let (token, rest) = readStringLiteral all
-                     in token : lexer rest
+runParse :: (Parse a) -> String -> Either ParseError a
+runParse parser input =
+    let initialState = ParseState {
+                         parseStateInput = input
+                       }
+    in evalState (runErrorT parser) initialState
+
+
+lexerTakingContinuation :: (Token -> Parse a) -> Parse a
+lexerTakingContinuation continuation = do
+  state <- lift get
+  (token, rest) <- lexer $ parseStateInput state
+  lift $ put state { parseStateInput = rest }
+  continuation token
+
+
+lexer :: String -> Parse (Token, String)
+lexer "" = return (EndOfInputToken, "")
+lexer all@('.':c:_) | isDigit c = readNumericLiteral all
+lexer ('!':'=':rest) = return (PunctuationBangEquals, rest)
+lexer ('%':rest) = return (PunctuationPercent, rest)
+lexer ('&':rest) = return (PunctuationAmpersand, rest)
+lexer ('(':rest) = return (PunctuationLeftParenthesis, rest)
+lexer (')':rest) = return (PunctuationRightParenthesis, rest)
+lexer ('*':rest) = return (PunctuationStar, rest)
+lexer ('+':rest) = return (PunctuationPlus, rest)
+lexer (',':rest) = return (PunctuationComma, rest)
+lexer ('-':rest) = return (PunctuationMinus, rest)
+lexer ('.':rest) = return (PunctuationDot, rest)
+lexer ('/':rest) = return (PunctuationSlash, rest)
+lexer (';':rest) = return (PunctuationSemicolon, rest)
+lexer ('<':'<':rest) = return (PunctuationLessLess, rest)
+lexer ('<':'=':rest) = return (PunctuationLessEquals, rest)
+lexer ('<':'>':rest) = return (PunctuationLessGreater, rest)
+lexer ('<':rest) = return (PunctuationLess, rest)
+lexer ('=':'=':rest) = return (PunctuationEqualsEquals, rest)
+lexer ('=':rest) = return (PunctuationEquals, rest)
+lexer ('>':'=':rest) = return (PunctuationGreaterEquals, rest)
+lexer ('>':'>':rest) = return (PunctuationGreaterGreater, rest)
+lexer ('>':rest) = return (PunctuationGreater, rest)
+lexer ('|':'|':rest) = return (PunctuationBarBar, rest)
+lexer ('|':rest) = return (PunctuationBar, rest)
+lexer ('~':rest) = return (PunctuationTilde, rest)
+lexer all@('x':'\'':_) = readBlobLiteral all
+lexer all@('X':'\'':_) = readBlobLiteral all
+lexer all@('\'':_) = readStringLiteral all
 lexer all@(c:_)
-  | isDigit c = let (token, rest) = readNumericLiteral all
-                in token : lexer rest
+  | isDigit c = readNumericLiteral all
   | isAlpha c = let (identifierOrKeyword, rest) = readIdentifierOrKeyword all
                     keyword = map toLower identifierOrKeyword
                     identifier = identifierOrKeyword
                 in case identifierOrKeyword of
-                  _ | keyword == "abort" -> KeywordAbort : lexer rest
-                    | keyword == "action" -> KeywordAction : lexer rest
-                    | keyword == "add" -> KeywordAdd : lexer rest
-                    | keyword == "after" -> KeywordAfter : lexer rest
-                    | keyword == "all" -> KeywordAll : lexer rest
-                    | keyword == "alter" -> KeywordAlter : lexer rest
-                    | keyword == "analyze" -> KeywordAnalyze : lexer rest
-                    | keyword == "and" -> KeywordAnd : lexer rest
-                    | keyword == "as" -> KeywordAs : lexer rest
-                    | keyword == "asc" -> KeywordAsc : lexer rest
-                    | keyword == "attach" -> KeywordAttach : lexer rest
-                    | keyword == "autoincrement" -> KeywordAutoincrement : lexer rest
-                    | keyword == "before" -> KeywordBefore : lexer rest
-                    | keyword == "begin" -> KeywordBegin : lexer rest
-                    | keyword == "between" -> KeywordBetween : lexer rest
-                    | keyword == "by" -> KeywordBy : lexer rest
-                    | keyword == "cascade" -> KeywordCascade : lexer rest
-                    | keyword == "case" -> KeywordCase : lexer rest
-                    | keyword == "cast" -> KeywordCast : lexer rest
-                    | keyword == "check" -> KeywordCheck : lexer rest
-                    | keyword == "collate" -> KeywordCollate : lexer rest
-                    | keyword == "column" -> KeywordColumn : lexer rest
-                    | keyword == "commit" -> KeywordCommit : lexer rest
-                    | keyword == "conflict" -> KeywordConflict : lexer rest
-                    | keyword == "constraint" -> KeywordConstraint : lexer rest
-                    | keyword == "create" -> KeywordCreate : lexer rest
-                    | keyword == "cross" -> KeywordCross : lexer rest
-                    | keyword == "current_date" -> KeywordCurrentDate : lexer rest
-                    | keyword == "current_time" -> KeywordCurrentTime : lexer rest
+                  _ | keyword == "abort" -> return (KeywordAbort, rest)
+                    | keyword == "action" -> return (KeywordAction, rest)
+                    | keyword == "add" -> return (KeywordAdd, rest)
+                    | keyword == "after" -> return (KeywordAfter, rest)
+                    | keyword == "all" -> return (KeywordAll, rest)
+                    | keyword == "alter" -> return (KeywordAlter, rest)
+                    | keyword == "analyze" -> return (KeywordAnalyze, rest)
+                    | keyword == "and" -> return (KeywordAnd, rest)
+                    | keyword == "as" -> return (KeywordAs, rest)
+                    | keyword == "asc" -> return (KeywordAsc, rest)
+                    | keyword == "attach" -> return (KeywordAttach, rest)
+                    | keyword == "autoincrement"
+                        -> return (KeywordAutoincrement, rest)
+                    | keyword == "before" -> return (KeywordBefore, rest)
+                    | keyword == "begin" -> return (KeywordBegin, rest)
+                    | keyword == "between" -> return (KeywordBetween, rest)
+                    | keyword == "by" -> return (KeywordBy, rest)
+                    | keyword == "cascade" -> return (KeywordCascade, rest)
+                    | keyword == "case" -> return (KeywordCase, rest)
+                    | keyword == "cast" -> return (KeywordCast, rest)
+                    | keyword == "check" -> return (KeywordCheck, rest)
+                    | keyword == "collate" -> return (KeywordCollate, rest)
+                    | keyword == "column" -> return (KeywordColumn, rest)
+                    | keyword == "commit" -> return (KeywordCommit, rest)
+                    | keyword == "conflict" -> return (KeywordConflict, rest)
+                    | keyword == "constraint" -> return (KeywordConstraint, rest)
+                    | keyword == "create" -> return (KeywordCreate, rest)
+                    | keyword == "cross" -> return (KeywordCross, rest)
+                    | keyword == "current_date" -> return (KeywordCurrentDate, rest)
+                    | keyword == "current_time" -> return (KeywordCurrentTime, rest)
                     | keyword == "current_timestamp"
-                        -> KeywordCurrentTimestamp : lexer rest
-                    | keyword == "database" -> KeywordDatabase : lexer rest
-                    | keyword == "default" -> KeywordDefault : lexer rest
-                    | keyword == "deferrable" -> KeywordDeferrable : lexer rest
-                    | keyword == "deferred" -> KeywordDeferred : lexer rest
-                    | keyword == "delete" -> KeywordDelete : lexer rest
-                    | keyword == "desc" -> KeywordDesc : lexer rest
-                    | keyword == "detach" -> KeywordDetach : lexer rest
-                    | keyword == "distinct" -> KeywordDistinct : lexer rest
-                    | keyword == "drop" -> KeywordDrop : lexer rest
-                    | keyword == "each" -> KeywordEach : lexer rest
-                    | keyword == "else" -> KeywordElse : lexer rest
-                    | keyword == "end" -> KeywordEnd : lexer rest
-                    | keyword == "escape" -> KeywordEscape : lexer rest
-                    | keyword == "except" -> KeywordExcept : lexer rest
-                    | keyword == "exclusive" -> KeywordExclusive : lexer rest
-                    | keyword == "exists" -> KeywordExists : lexer rest
-                    | keyword == "explain" -> KeywordExplain : lexer rest
-                    | keyword == "fail" -> KeywordFail : lexer rest
-                    | keyword == "for" -> KeywordFor : lexer rest
-                    | keyword == "foreign" -> KeywordForeign : lexer rest
-                    | keyword == "from" -> KeywordFrom : lexer rest
-                    | keyword == "full" -> KeywordFull : lexer rest
-                    | keyword == "glob" -> KeywordGlob : lexer rest
-                    | keyword == "group" -> KeywordGroup : lexer rest
-                    | keyword == "having" -> KeywordHaving : lexer rest
-                    | keyword == "if" -> KeywordIf : lexer rest
-                    | keyword == "ignore" -> KeywordIgnore : lexer rest
-                    | keyword == "immediate" -> KeywordImmediate : lexer rest
-                    | keyword == "in" -> KeywordIn : lexer rest
-                    | keyword == "index" -> KeywordIndex : lexer rest
-                    | keyword == "indexed" -> KeywordIndexed : lexer rest
-                    | keyword == "initially" -> KeywordInitially : lexer rest
-                    | keyword == "inner" -> KeywordInner : lexer rest
-                    | keyword == "insert" -> KeywordInsert : lexer rest
-                    | keyword == "instead" -> KeywordInstead : lexer rest
-                    | keyword == "intersect" -> KeywordIntersect : lexer rest
-                    | keyword == "into" -> KeywordInto : lexer rest
-                    | keyword == "is" -> KeywordIs : lexer rest
-                    | keyword == "isnull" -> KeywordIsnull : lexer rest
-                    | keyword == "join" -> KeywordJoin : lexer rest
-                    | keyword == "key" -> KeywordKey : lexer rest
-                    | keyword == "left" -> KeywordLeft : lexer rest
-                    | keyword == "like" -> KeywordLike : lexer rest
-                    | keyword == "limit" -> KeywordLimit : lexer rest
-                    | keyword == "match" -> KeywordMatch : lexer rest
-                    | keyword == "natural" -> KeywordNatural : lexer rest
-                    | keyword == "no" -> KeywordNo : lexer rest
-                    | keyword == "not" -> KeywordNot : lexer rest
-                    | keyword == "notnull" -> KeywordNotnull : lexer rest
-                    | keyword == "null" -> KeywordNull : lexer rest
-                    | keyword == "of" -> KeywordOf : lexer rest
-                    | keyword == "offset" -> KeywordOffset : lexer rest
-                    | keyword == "on" -> KeywordOn : lexer rest
-                    | keyword == "or" -> KeywordOr : lexer rest
-                    | keyword == "order" -> KeywordOrder : lexer rest
-                    | keyword == "outer" -> KeywordOuter : lexer rest
-                    | keyword == "plan" -> KeywordPlan : lexer rest
-                    | keyword == "pragma" -> KeywordPragma : lexer rest
-                    | keyword == "primary" -> KeywordPrimary : lexer rest
-                    | keyword == "query" -> KeywordQuery : lexer rest
-                    | keyword == "raise" -> KeywordRaise : lexer rest
-                    | keyword == "references" -> KeywordReferences : lexer rest
-                    | keyword == "regexp" -> KeywordRegexp : lexer rest
-                    | keyword == "reindex" -> KeywordReindex : lexer rest
-                    | keyword == "release" -> KeywordRelease : lexer rest
-                    | keyword == "rename" -> KeywordRename : lexer rest
-                    | keyword == "replace" -> KeywordReplace : lexer rest
-                    | keyword == "restrict" -> KeywordRestrict : lexer rest
-                    | keyword == "right" -> KeywordRight : lexer rest
-                    | keyword == "rollback" -> KeywordRollback : lexer rest
-                    | keyword == "row" -> KeywordRow : lexer rest
-                    | keyword == "savepoint" -> KeywordSavepoint : lexer rest
-                    | keyword == "select" -> KeywordSelect : lexer rest
-                    | keyword == "set" -> KeywordSet : lexer rest
-                    | keyword == "table" -> KeywordTable : lexer rest
-                    | keyword == "temp" -> KeywordTemp : lexer rest
-                    | keyword == "temporary" -> KeywordTemporary : lexer rest
-                    | keyword == "then" -> KeywordThen : lexer rest
-                    | keyword == "to" -> KeywordTo : lexer rest
-                    | keyword == "transaction" -> KeywordTransaction : lexer rest
-                    | keyword == "trigger" -> KeywordTrigger : lexer rest
-                    | keyword == "union" -> KeywordUnion : lexer rest
-                    | keyword == "unique" -> KeywordUnique : lexer rest
-                    | keyword == "update" -> KeywordUpdate : lexer rest
-                    | keyword == "using" -> KeywordUsing : lexer rest
-                    | keyword == "vacuum" -> KeywordVacuum : lexer rest
-                    | keyword == "values" -> KeywordValues : lexer rest
-                    | keyword == "view" -> KeywordView : lexer rest
-                    | keyword == "virtual" -> KeywordVirtual : lexer rest
-                    | keyword == "when" -> KeywordWhen : lexer rest
-                    | keyword == "where" -> KeywordWhere : lexer rest
-                    | otherwise -> (Identifier identifier) : lexer rest
+                        -> return (KeywordCurrentTimestamp, rest)
+                    | keyword == "database" -> return (KeywordDatabase, rest)
+                    | keyword == "default" -> return (KeywordDefault, rest)
+                    | keyword == "deferrable" -> return (KeywordDeferrable, rest)
+                    | keyword == "deferred" -> return (KeywordDeferred, rest)
+                    | keyword == "delete" -> return (KeywordDelete, rest)
+                    | keyword == "desc" -> return (KeywordDesc, rest)
+                    | keyword == "detach" -> return (KeywordDetach, rest)
+                    | keyword == "distinct" -> return (KeywordDistinct, rest)
+                    | keyword == "drop" -> return (KeywordDrop, rest)
+                    | keyword == "each" -> return (KeywordEach, rest)
+                    | keyword == "else" -> return (KeywordElse, rest)
+                    | keyword == "end" -> return (KeywordEnd, rest)
+                    | keyword == "escape" -> return (KeywordEscape, rest)
+                    | keyword == "except" -> return (KeywordExcept, rest)
+                    | keyword == "exclusive" -> return (KeywordExclusive, rest)
+                    | keyword == "exists" -> return (KeywordExists, rest)
+                    | keyword == "explain" -> return (KeywordExplain, rest)
+                    | keyword == "fail" -> return (KeywordFail, rest)
+                    | keyword == "for" -> return (KeywordFor, rest)
+                    | keyword == "foreign" -> return (KeywordForeign, rest)
+                    | keyword == "from" -> return (KeywordFrom, rest)
+                    | keyword == "full" -> return (KeywordFull, rest)
+                    | keyword == "glob" -> return (KeywordGlob, rest)
+                    | keyword == "group" -> return (KeywordGroup, rest)
+                    | keyword == "having" -> return (KeywordHaving, rest)
+                    | keyword == "if" -> return (KeywordIf, rest)
+                    | keyword == "ignore" -> return (KeywordIgnore, rest)
+                    | keyword == "immediate" -> return (KeywordImmediate, rest)
+                    | keyword == "in" -> return (KeywordIn, rest)
+                    | keyword == "index" -> return (KeywordIndex, rest)
+                    | keyword == "indexed" -> return (KeywordIndexed, rest)
+                    | keyword == "initially" -> return (KeywordInitially, rest)
+                    | keyword == "inner" -> return (KeywordInner, rest)
+                    | keyword == "insert" -> return (KeywordInsert, rest)
+                    | keyword == "instead" -> return (KeywordInstead, rest)
+                    | keyword == "intersect" -> return (KeywordIntersect, rest)
+                    | keyword == "into" -> return (KeywordInto, rest)
+                    | keyword == "is" -> return (KeywordIs, rest)
+                    | keyword == "isnull" -> return (KeywordIsnull, rest)
+                    | keyword == "join" -> return (KeywordJoin, rest)
+                    | keyword == "key" -> return (KeywordKey, rest)
+                    | keyword == "left" -> return (KeywordLeft, rest)
+                    | keyword == "like" -> return (KeywordLike, rest)
+                    | keyword == "limit" -> return (KeywordLimit, rest)
+                    | keyword == "match" -> return (KeywordMatch, rest)
+                    | keyword == "natural" -> return (KeywordNatural, rest)
+                    | keyword == "no" -> return (KeywordNo, rest)
+                    | keyword == "not" -> return (KeywordNot, rest)
+                    | keyword == "notnull" -> return (KeywordNotnull, rest)
+                    | keyword == "null" -> return (KeywordNull, rest)
+                    | keyword == "of" -> return (KeywordOf, rest)
+                    | keyword == "offset" -> return (KeywordOffset, rest)
+                    | keyword == "on" -> return (KeywordOn, rest)
+                    | keyword == "or" -> return (KeywordOr, rest)
+                    | keyword == "order" -> return (KeywordOrder, rest)
+                    | keyword == "outer" -> return (KeywordOuter, rest)
+                    | keyword == "plan" -> return (KeywordPlan, rest)
+                    | keyword == "pragma" -> return (KeywordPragma, rest)
+                    | keyword == "primary" -> return (KeywordPrimary, rest)
+                    | keyword == "query" -> return (KeywordQuery, rest)
+                    | keyword == "raise" -> return (KeywordRaise, rest)
+                    | keyword == "references" -> return (KeywordReferences, rest)
+                    | keyword == "regexp" -> return (KeywordRegexp, rest)
+                    | keyword == "reindex" -> return (KeywordReindex, rest)
+                    | keyword == "release" -> return (KeywordRelease, rest)
+                    | keyword == "rename" -> return (KeywordRename, rest)
+                    | keyword == "replace" -> return (KeywordReplace, rest)
+                    | keyword == "restrict" -> return (KeywordRestrict, rest)
+                    | keyword == "right" -> return (KeywordRight, rest)
+                    | keyword == "rollback" -> return (KeywordRollback, rest)
+                    | keyword == "row" -> return (KeywordRow, rest)
+                    | keyword == "savepoint" -> return (KeywordSavepoint, rest)
+                    | keyword == "select" -> return (KeywordSelect, rest)
+                    | keyword == "set" -> return (KeywordSet, rest)
+                    | keyword == "table" -> return (KeywordTable, rest)
+                    | keyword == "temp" -> return (KeywordTemp, rest)
+                    | keyword == "temporary" -> return (KeywordTemporary, rest)
+                    | keyword == "then" -> return (KeywordThen, rest)
+                    | keyword == "to" -> return (KeywordTo, rest)
+                    | keyword == "transaction" -> return (KeywordTransaction, rest)
+                    | keyword == "trigger" -> return (KeywordTrigger, rest)
+                    | keyword == "union" -> return (KeywordUnion, rest)
+                    | keyword == "unique" -> return (KeywordUnique, rest)
+                    | keyword == "update" -> return (KeywordUpdate, rest)
+                    | keyword == "using" -> return (KeywordUsing, rest)
+                    | keyword == "vacuum" -> return (KeywordVacuum, rest)
+                    | keyword == "values" -> return (KeywordValues, rest)
+                    | keyword == "view" -> return (KeywordView, rest)
+                    | keyword == "virtual" -> return (KeywordVirtual, rest)
+                    | keyword == "when" -> return (KeywordWhen, rest)
+                    | keyword == "where" -> return (KeywordWhere, rest)
+                    | otherwise -> return (Identifier identifier, rest)
   | isSpace c = lexer $ drop 1 all
-  | otherwise = error $ "SQL-lexing error: Unexpected character '" ++ [c] ++ "'."
+  | otherwise = fail $ "SQL-lexing error: Unexpected character '" ++ [c] ++ "'."
 
 
-readStringLiteral :: String -> (Token, String)
-readStringLiteral input =
-    let readString' ('\'':('\'':rest)) = let (a, b) = readString' rest
-                                         in ("'" ++ a, b)
-        readString' ('\'':rest) = ("", rest)
-        readString' (c:rest) = let (a, b) = readString' rest
-                               in ([c] ++ a, b)
-        readString' "" = error $ "SQL-lexing error: "
-                         ++ "Missing close-single-quote in string or blob literal."
-        (string, unparsed) = readString' $ drop 1 input
-    in (LiteralString string, unparsed)
+readStringLiteral :: String -> Parse (Token, String)
+readStringLiteral input = do
+    let readString' ('\'':('\'':rest)) = do
+          (a, b) <- readString' rest
+          return ("'" ++ a, b)
+        readString' ('\'':rest) = return ("", rest)
+        readString' (c:rest) = do
+          (a, b) <- readString' rest
+          return ([c] ++ a, b)
+        readString' "" = fail $ "SQL-lexing error: "
+                                ++ "Missing close-single-quote in string "
+                                ++ " or blob literal."
+    (string, unparsed) <- readString' $ drop 1 input
+    return (LiteralString string, unparsed)
 
 
-readBlobLiteral :: String -> (Token, String)
-readBlobLiteral input =
-    let (LiteralString blobAsText, unparsed) = case input of
-                                                 ('x':rest) -> readStringLiteral rest
-                                                 ('X':rest) -> readStringLiteral rest
-        bytestring = if (all isHexDigit blobAsText)
-                        && ((length blobAsText `mod` 2) == 0)
-                       then read ("\"" ++ blobAsText ++ "\"")
-                       else error "SQL-lexing error: Invalid blob literal."
-    in (LiteralBlob bytestring, unparsed)
+readBlobLiteral :: String -> Parse (Token, String)
+readBlobLiteral input = do
+    (LiteralString blobAsText, unparsed) <- readStringLiteral $ drop 1 input
+    if (all isHexDigit blobAsText) && ((length blobAsText `mod` 2) == 0)
+      then return (LiteralBlob $ read ("\"" ++ blobAsText ++ "\""), unparsed)
+      else fail "SQL-lexing error: Invalid blob literal."
 
 
-readNumericLiteral :: String -> (Token, String)
+readNumericLiteral :: String -> Parse (Token, String)
 readNumericLiteral input =
     let (initialDigitSpan, restInitialDigitSpan) = span isDigit input
         (dotSpan, secondDigitSpan, restSecondDigitSpan)
@@ -2122,19 +2157,19 @@ readNumericLiteral input =
                 "" -> False
                 (c:_) | (isAlphaNum c) || (elem c "_$") -> True
                       | otherwise -> False
-        (trailingIdentifierSpan, restTrailingIdentifier)
+        (trailingIdentifierSpan, _)
             = span (\c -> (isAlphaNum c) || (elem c "_$")) restExponent
         errorSpan = floatSpan ++ trailingIdentifierSpan
         integerResult = let [(initialDigits, _)] = reads initialDigitSpan
-                        in (LiteralInteger initialDigits, restExponent)
+                        in return (LiteralInteger initialDigits, restExponent)
         floatResult = let tweakedFloatSpan = if not $ isDigit $ head floatSpan
                                                then "0" ++ floatSpan
                                                else floatSpan
                           [(double, _)] = reads tweakedFloatSpan
-                      in (LiteralFloat $ fromJust $ mkNonnegativeDouble double,
-                          restExponent)
-        errorResult = (ErrorToken $ "Invalid number token: " ++ (show errorSpan),
-                       restTrailingIdentifier)
+                      in return (LiteralFloat $ fromJust $ mkNonnegativeDouble double,
+                                 restExponent)
+        errorResult = fail $ "SQL-lexing error: Invalid number token "
+                             ++ (show errorSpan)
     in case (initialDigitSpan,
              dotSpan,
              secondDigitSpan,

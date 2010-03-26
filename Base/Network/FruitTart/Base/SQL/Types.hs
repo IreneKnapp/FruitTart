@@ -1585,7 +1585,7 @@ instance ShowTokens DoublyQualifiedIdentifier where
            Identifier properName]
 
 
-data Token = ErrorToken String
+data Token = EndOfInputToken
            | Identifier String
            | LiteralInteger Word64
            | LiteralFloat NonnegativeDouble
@@ -1743,7 +1743,7 @@ data Token = ErrorToken String
 
 
 instance Show Token where
-    show (ErrorToken string) = error string
+    show EndOfInputToken = "<eof>"
     show (Identifier identifier) =
         let validCharacter c = if isAscii c
                                  then (isAlphaNum c) || (elem c "_$")
