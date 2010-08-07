@@ -12,8 +12,6 @@ import qualified Network.FruitTart.Buglist.Controller.Issues
     as Controller.Issues
 import qualified Network.FruitTart.Buglist.Controller.Users
     as Controller.Users
-import qualified Network.FruitTart.Buglist.Controller.Synchronization
-    as Controller.Synchronization
 import qualified Network.FruitTart.Buglist.View.Navigation
     as View.Navigation
 import Network.FruitTart.Util
@@ -38,8 +36,7 @@ dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
       [("issues", Controller.Issues.actionTable),
-       ("users", Controller.Users.actionTable),
-       ("synchronization", Controller.Synchronization.actionTable)]
+       ("users", Controller.Users.actionTable)]
 
 
 fruitTartSchemaVersion :: Int64
@@ -95,7 +92,6 @@ initDatabase database = do
   earlyQuery database
                  (  "CREATE TABLE buglist_users (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
-                 ++ "right_synchronize INTEGER,\n"
                  ++ "right_admin_users INTEGER,\n"
                  ++ "right_see_emails INTEGER,\n"
                  ++ "right_report_issues INTEGER,\n"
@@ -109,10 +105,10 @@ initDatabase database = do
                  ++ "AFTER INSERT ON users\n"
                  ++ "FOR EACH ROW BEGIN\n"
                  ++ "INSERT INTO buglist_users\n"
-                 ++ "(id, right_synchronize, right_admin_users, right_see_emails,\n"
+                 ++ "(id, right_admin_users, right_see_emails,\n"
                  ++ "right_report_issues, right_modify_issues, right_upload_files,\n"
                  ++ "right_comment_issues)\n"
-                 ++ "VALUES (NEW.id, 0, 0, 0, 1, 0, 0, 1);\n"
+                 ++ "VALUES (NEW.id, 0, 0, 1, 0, 0, 1);\n"
                  ++ "END;")
                  []
   earlyQuery database
@@ -131,14 +127,14 @@ initDatabase database = do
                  []
   earlyQuery database
                  (  "INSERT INTO buglist_users\n"
-                 ++ "(id, right_synchronize, right_admin_users, right_see_emails,\n"
+                 ++ "(id, right_admin_users, right_see_emails,\n"
                  ++ "right_report_issues, right_modify_issues, right_upload_files,\n"
                  ++ "right_comment_issues)\n"
-                 ++ "SELECT id, 0, 0, 0, 1, 0, 0, 1 FROM users")
+                 ++ "SELECT id, 0, 0, 1, 0, 0, 1 FROM users")
                  []
   earlyQuery database
                  (  "UPDATE buglist_users\n"
-                 ++ "SET right_synchronize = 1, right_admin_users = 1,\n"
+                 ++ "SET right_admin_users = 1,\n"
                  ++ "right_see_emails = 1, right_report_issues = 1,\n"
                  ++ "right_modify_issues = 1, right_upload_files = 1,\n"
                  ++ "right_comment_issues = 1\n"
@@ -146,7 +142,7 @@ initDatabase database = do
                  []
   earlyQuery database
                  (  "UPDATE buglist_users\n"
-                 ++ "SET right_synchronize = 0, right_admin_users = 0,\n"
+                 ++ "SET right_admin_users = 0,\n"
                  ++ "right_see_emails = 0, right_report_issues = 1,\n"
                  ++ "right_modify_issues = 0, right_upload_files = 0,\n"
                  ++ "right_comment_issues = 1\n"
@@ -154,7 +150,7 @@ initDatabase database = do
                  []
   earlyQuery database
                  (  "UPDATE buglist_users\n"
-                 ++ "SET right_synchronize = 0, right_admin_users = 0,\n"
+                 ++ "SET right_admin_users = 0,\n"
                  ++ "right_see_emails = 0, right_report_issues = 0,\n"
                  ++ "right_modify_issues = 0, right_upload_files = 0,\n"
                  ++ "right_comment_issues = 0\n"

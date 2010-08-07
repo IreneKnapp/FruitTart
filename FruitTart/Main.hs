@@ -325,17 +325,17 @@ initDatabase database = do
              [SQLBlob $ hashPassword "This password must be changed."]
   earlyQuery database
             (  "INSERT INTO users (id, full_name, email, password_hash, "
-            ++ "right_synchronize, right_admin_users, right_see_emails, "
+            ++ "right_admin_users, right_see_emails, "
             ++ "right_report_issues, right_modify_issues, right_upload_files, "
             ++ "right_comment_issues) "
-            ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0, 0)")
+            ++ "VALUES (2, 'Nobody', 'nobody', NULL, 0, 0, 0, 0, 0, 0)")
             []
   earlyQuery database
             (  "INSERT INTO users (id, full_name, email, password_hash, "
-            ++ "right_synchronize, right_admin_users, right_see_emails, "
+            ++ "right_admin_users, right_see_emails, "
             ++ "right_report_issues, right_modify_issues, right_upload_files, "
             ++ "right_comment_issues) "
-            ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 0, 1, 0, 0, 1)")
+            ++ "VALUES (3, 'Anonymous', 'anonymous', NULL, 0, 0, 1, 0, 0, 1)")
             []
   earlyQuery database
             (  "UPDATE settings "

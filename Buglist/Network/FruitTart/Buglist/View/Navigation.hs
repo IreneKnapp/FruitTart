@@ -1,5 +1,4 @@
 module Network.FruitTart.Buglist.View.Navigation (getSubnavigationBar,
-                                                  getRightSynchronize,
                                                   getRightAdminUsers,
                                                   getRightSeeEmails,
                                                   getRightReportIssues,
@@ -49,17 +48,6 @@ getRightViewIssue issueID = do
   case requiresLogin of
     0 -> return True
     _ -> getRightViewModulesRequiringLogin
-
-
-getRightSynchronize :: FruitTart Bool
-getRightSynchronize = do
-  userID <- getEffectiveUserID
-  [[SQLInteger right]]
-      <- query "SELECT right_synchronize FROM buglist_users WHERE id = ?"
-               [SQLInteger userID]
-  return $ case right of
-             0 -> False
-             _ -> True
 
 
 getRightAdminUsers :: FruitTart Bool
