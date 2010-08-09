@@ -2,7 +2,7 @@ module Network.FruitTart.Base.Templates.Semantics (
                                                    getTemplate,
                                                    fillTemplate,
                                                    eval,
-                                                   baseBindings
+                                                   getBaseBindings
                                                   )
     where
 
@@ -464,8 +464,32 @@ applyFunction function actualParameters = do
       error $ "Call to something not a function."
 
 
-baseBindings :: Map (String, String) TemplateValue
-baseBindings = Map.fromList
+getBaseBindings :: FruitTart (Map (String, String) TemplateValue)
+getBaseBindings = do
+  functionItems <- query "SELECT id, module, name, body FROM functions" []
+  functions
+    <- mapM (\[SQLInteger functionID,
+               SQLText moduleName,
+               SQLText functionName,
+               SQLText functionBody]
+               -> do
+                 let compiledBody = readExpression moduleName functionBody
+                 parameterItems <- query ("SELECT name "
+                                          ++ "FROM function_parameters "
+                                          ++ "WHERE function = ? "
+                                          ++ "ORDER BY item")
+                                         [SQLInteger functionID]
+                 let parameters = map (\[SQLText parameterName]
+                                        -> TemplateParameter (moduleName, parameterName))
+                                      parameterItems
+                 return ((moduleName, functionName),
+                         TemplateLambda parameters Map.empty compiledBody))
+            functionItems
+  return $ Map.union builtinBindings (Map.fromList functions)
+
+
+builtinBindings :: Map (String, String) TemplateValue
+builtinBindings = Map.fromList
                [(("Templates", "parameters"), TemplateList []),
                 (("Templates", "Null"), TemplateNull),
                 (("Templates", "True"), TemplateBool True),

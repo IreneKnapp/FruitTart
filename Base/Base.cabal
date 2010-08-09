@@ -38,7 +38,8 @@ Library
                    Network.FruitTart.Base.View.Login,
                    Network.FruitTart.Base.View.PopupMessage,
                    Network.FruitTart.Base.View.Templates
-  other-modules: Network.FruitTart.Base.Controller.Login,
+  other-modules: Network.FruitTart.Base.Controller.Functions,
+                 Network.FruitTart.Base.Controller.Login,
                  Network.FruitTart.Base.Controller.Templates,
                  Network.FruitTart.Base.Controller.Queries,
                  Network.FruitTart.Base.Templates.Semantics,

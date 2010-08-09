@@ -2,7 +2,7 @@ module Network.FruitTart.Base.Templates.Semantics (
        						   getTemplate,
                                                    fillTemplate,
 						   eval,
-                                                   baseBindings
+                                                   getBaseBindings
                                                   )
     where
 
@@ -29,4 +29,4 @@ fillTemplate :: String
 
 eval :: String -> String -> FruitTart TemplateValue
 
-baseBindings :: Map (String, String) TemplateValue
+getBaseBindings :: FruitTart (Map (String, String) TemplateValue)

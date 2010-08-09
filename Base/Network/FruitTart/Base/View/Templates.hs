@@ -246,5 +246,6 @@ clearBindings :: FruitTart ()
 clearBindings = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))
+  baseBindings <- getBaseBindings
   liftIO $ takeMVar bindingsMVar
   liftIO $ putMVar bindingsMVar baseBindings

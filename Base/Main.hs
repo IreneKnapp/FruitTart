@@ -12,6 +12,7 @@ import Database.SQLite3
 
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
+import qualified Network.FruitTart.Base.Controller.Functions as Controller.Functions
 import qualified Network.FruitTart.Base.Controller.Login as Controller.Login
 import qualified Network.FruitTart.Base.Controller.Templates as Controller.Templates
 import qualified Network.FruitTart.Base.Controller.Queries as Controller.Queries
@@ -35,7 +36,8 @@ fruitTartPlugin = toDyn $ Interface {
 dispatchTable :: ControllerTable
 dispatchTable
     = combineActionTables
-      [("login", Controller.Login.actionTable),
+      [("functions", Controller.Functions.actionTable),
+       ("login", Controller.Login.actionTable),
        ("templates", Controller.Templates.actionTable),
        ("queries", Controller.Queries.actionTable)]
 
@@ -141,6 +143,23 @@ initDatabase database = do
              ++ "type TEXT,\n"
              ++ "name TEXT,\n"
              ++ "CONSTRAINT key PRIMARY KEY (query, item)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE functions (\n"
+             ++ "id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+             ++ "module TEXT,\n"
+             ++ "name TEXT,\n"
+             ++ "body TEXT,\n"
+             ++ "CONSTRAINT key UNIQUE (module, name)\n"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "CREATE TABLE function_parameters (\n"
+             ++ "function INTEGER,\n"
+             ++ "item INTEGER,\n"
+             ++ "name TEXT,\n"
+             ++ "CONSTRAINT key PRIMARY KEY (function, item)\n"
              ++ ")")
              []
   earlyQuery database
