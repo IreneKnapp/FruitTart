@@ -53,7 +53,8 @@ fillTemplate moduleName templateName = do
                         expression <- liftIO $ readExpression database
                                                               moduleName
                                                               body
-                        (result, newBindings) <- evalExpression expression
+                        (result, newBindings)
+                          <- evalExpression TemplateNormalContext expression
                         setBindings newBindings
                         valueToStringAllowingNull result)
                       (\e -> error $ "While processing template "
@@ -69,7 +70,7 @@ eval :: String -> String -> FruitTart TemplateValue
 eval moduleName body = do
   FruitTartState { database = database } <- get
   expression <- liftIO $ readExpression database moduleName body
-  (result, _) <- evalExpression expression
+  (result, _) <- evalExpression TemplateNormalContext expression
   return result
 
 
@@ -137,88 +138,90 @@ valueToMap value = error $ "Template value is not a Map (it's " ++ (show value)
                          ++ ")."
 
 
-evalExpression :: TemplateExpression
+evalExpression :: TemplateContext
+               -> TemplateExpression
                -> FruitTart (TemplateValue, Map (String, String) TemplateValue)
-evalExpression expression = do
+evalExpression context expression = do
     case expression of
       TemplateLiteral value -> returnWithUnchangedBindings value
       TemplateExpressionList subexpressions -> do
-        values <- mapM evalExpression subexpressions >>= return . (map fst)
+        values <- mapM (evalExpression context) subexpressions
+                  >>= return . (map fst)
         returnWithUnchangedBindings $ TemplateList values
       TemplateOperationConcatenate aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         case (aValue, bValue) of
           (TemplateString aString, TemplateString bString)
               -> returnWithUnchangedBindings $ TemplateString $ aString ++ bString
           _ -> error "Cannot concatenate non-Strings."
       TemplateOperationEquals aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateEqual aValue bValue
       TemplateOperationNotEquals aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         result <- templateEqual aValue bValue >>= return . fst
         templateNegate result
       TemplateOperationNot expression -> do
-        value <- evalExpression expression >>= return . fst
+        value <- evalExpression context expression >>= return . fst
         templateNegate value
       TemplateOperationAnd aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateAnd aValue bValue
       TemplateOperationOr aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateOr aValue bValue
       TemplateOperationGreaterEquals aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         result <- templateCompare aValue bValue
         returnWithUnchangedBindings $ TemplateBool $ case result of
                                                        EQ -> True
                                                        GT -> True
                                                        LT -> False
       TemplateOperationGreater aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         result <- templateCompare aValue bValue
         returnWithUnchangedBindings $ TemplateBool $ case result of
                                                        EQ -> False
                                                        GT -> True
                                                        LT -> False
       TemplateOperationLessEquals aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         result <- templateCompare aValue bValue
         returnWithUnchangedBindings $ TemplateBool $ case result of
                                                        EQ -> True
                                                        GT -> False
                                                        LT -> True
       TemplateOperationLess aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         result <- templateCompare aValue bValue
         returnWithUnchangedBindings $ TemplateBool $ case result of
                                                        EQ -> False
                                                        GT -> False
                                                        LT -> True
       TemplateOperationAdd aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateArithmetic aValue bValue (+)
       TemplateOperationSubtract aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateArithmetic aValue bValue (-)
       TemplateOperationMultiply aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateArithmetic aValue bValue (*)
       TemplateOperationDivide aExpression bExpression -> do
-        aValue <- evalExpression aExpression >>= return . fst
-        bValue <- evalExpression bExpression >>= return . fst
+        aValue <- evalExpression context aExpression >>= return . fst
+        bValue <- evalExpression context bExpression >>= return . fst
         templateArithmetic aValue bValue div
       TemplateIfExpression subexpressions -> do
         if length subexpressions /= 3
@@ -227,35 +230,36 @@ evalExpression expression = do
         let condition = head subexpressions
             ifTrue = head $ drop 1 subexpressions
             ifFalse = head $ drop 2 subexpressions
-        result <- evalExpression condition
+        result <- evalExpression context condition
                   >>= valueToBoolean . fst
         if result
-          then evalExpression ifTrue
-          else evalExpression ifFalse
+          then evalExpression context ifTrue
+          else evalExpression context ifFalse
       TemplateCaseExpression subexpressions -> do
         let n = length subexpressions
         if not ((n > 1) && (odd n))
           then error $ "Invalid number of parameters to case()."
           else return ()
-        mainKey <- (evalExpression $ head subexpressions) >>= return . fst
+        mainKey <- (evalExpression context $ head subexpressions)
+                   >>= return . fst
         let case' items = do
               case items of
                 [] -> error $ "No match in case() for " ++ (show mainKey) ++ "."
                 (key:(value:rest)) -> do
                   case key of
                     TemplateVariable (_, "otherwise") ->
-                      evalExpression value
+                      evalExpression context value
                     _ -> do
-                      key <- evalExpression key >>= return . fst
+                      key <- evalExpression context key >>= return . fst
                       if mainKey == key
-                        then evalExpression value
+                        then evalExpression context value
                         else case' rest
         case' $ tail subexpressions
       TemplateCallExpression subexpressions -> do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to call()."
            else return ()
-        subparameters <- (mapM evalExpression $ tail subexpressions)
+        subparameters <- (mapM (evalExpression context) $ tail subexpressions)
                          >>= return . map fst
         oldBindings <- getBindings
         let newBindings = Map.fromList [(("Base", "parameters"),
@@ -272,7 +276,7 @@ evalExpression expression = do
         if length subexpressions < 2
            then error $ "Invalid number of parameters to iterate()."
            else return ()
-        subparameters <- (mapM evalExpression $ drop 2 subexpressions)
+        subparameters <- (mapM (evalExpression context) $ drop 2 subexpressions)
                          >>= return . map fst
         oldBindings <- getBindings
         let newBindings = Map.fromList [(("Base", "parameters"),
@@ -282,7 +286,7 @@ evalExpression expression = do
             <- case head subexpressions of
                  TemplateVariable result -> return result
                  _ -> error $ "First parameter to iterate() is not a variable."
-        rows <- (evalExpression $ head $ drop 1 subexpressions)
+        rows <- (evalExpression context $ head $ drop 1 subexpressions)
                 >>= valueToList . fst
         results <- mapM (\row -> do
                            row' <- valueToMap row
@@ -295,7 +299,7 @@ evalExpression expression = do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to query()."
            else return ()
-        parameters <- (mapM evalExpression $ drop 1 subexpressions)
+        parameters <- (mapM (evalExpression context) $ drop 1 subexpressions)
                       >>= return . map fst
         (moduleName, queryName)
             <- case head subexpressions of
@@ -320,7 +324,7 @@ evalExpression expression = do
         if length subexpressions /= 2
            then error $ "Invalid number of parameters to lookup()."
            else return ()
-        theMap <- (evalExpression $ head $ drop 1 subexpressions)
+        theMap <- (evalExpression context $ head $ drop 1 subexpressions)
                   >>= valueToMap . fst
         (moduleName, queryName)
             <- case head subexpressions of
@@ -342,11 +346,12 @@ evalExpression expression = do
              Nothing -> TemplateBool False
              Just _ -> TemplateBool True
       TemplateFunctionCall functionExpression actualParameterExpressions -> do
-        function <- evalExpression functionExpression
+        function <- evalExpression context functionExpression
                     >>= return . fst
-        actualParameters <- mapM evalExpression actualParameterExpressions
+        actualParameters <- mapM (evalExpression context)
+                                 actualParameterExpressions
                             >>= return . map fst
-        result <- applyFunction function actualParameters
+        result <- applyFunction context function actualParameters
         returnWithUnchangedBindings result
       TemplateLambdaExpression formalParameters body -> do
         bindings <- getBindings
@@ -378,7 +383,7 @@ evalExpression expression = do
             <- case head subexpressions of
                  TemplateVariable result -> return result
                  _ -> error $ "Parameter to bind() is not a variable."
-        value <- (evalExpression $ head $ drop 1 subexpressions)
+        value <- (evalExpression context $ head $ drop 1 subexpressions)
                  >>= return . fst
         oldBindings <- getBindings
         let newBindings = Map.union (Map.fromList [((moduleName, variableName),
@@ -389,15 +394,15 @@ evalExpression expression = do
         if length subexpressions /= 1
           then error $ "Invalid number of parameters to bindmap()."
           else return ()
-        value <- (evalExpression $ head subexpressions)
+        value <- (evalExpression context $ head subexpressions)
                  >>= return . fst
         passedMap <- valueToMap value
         oldBindings <- getBindings
         let newBindings = Map.union passedMap oldBindings
         return $ (TemplateNull, newBindings)
       TemplateSequence expressionA expressionB -> do
-        (_, temporaryBindings) <- evalExpression expressionA
-        letBindings temporaryBindings $ evalExpression expressionB
+        (_, temporaryBindings) <- evalExpression context expressionA
+        letBindings temporaryBindings $ evalExpression context expressionB
 
 
 templateEqual :: TemplateValue
@@ -459,10 +464,11 @@ returnWithUnchangedBindings a = do
   return (a, unchangedBindings)
 
 
-applyFunction :: TemplateValue
+applyFunction :: TemplateContext
+              -> TemplateValue
               -> [TemplateValue]
               -> FruitTart TemplateValue
-applyFunction function actualParameters = do
+applyFunction context function actualParameters = do
   case function of
     TemplateLambda formalParameters capturedBindings body -> do
       if length formalParameters /= length actualParameters
@@ -474,9 +480,9 @@ applyFunction function actualParameters = do
                                                 formalParameters)
                                            actualParameters
           subbindings = Map.union newBindings capturedBindings
-      letBindings subbindings (evalExpression body >>= return . fst)
+      letBindings subbindings (evalExpression context body >>= return . fst)
     TemplateNativeLambda body -> do
-      body actualParameters
+      body context actualParameters
     _ -> do
       error $ "Call to something not a function."
 
@@ -544,16 +550,18 @@ builtinBindings = Map.fromList
                  TemplateNativeLambda tfNewlinesToParagraphs)]
 
 
-tfJust :: [TemplateValue]
+tfJust :: TemplateContext
+       -> [TemplateValue]
        -> FruitTart TemplateValue
-tfJust parameters = do
+tfJust context parameters = do
   requireNParameters parameters 1 "just"
   return $ TemplateMaybe $ Just $ head parameters
 
 
-tfParameter :: [TemplateValue]
+tfParameter :: TemplateContext
+            -> [TemplateValue]
             -> FruitTart TemplateValue
-tfParameter parameters = do
+tfParameter context parameters = do
   requireNParameters parameters 1 "parameters"
   n <- valueToInteger $ head parameters
   bindings <- getBindings
@@ -565,9 +573,10 @@ tfParameter parameters = do
                ++ "for parameter(" ++ (show n) ++ ")."
 
 
-tfIsNothing :: [TemplateValue]
+tfIsNothing :: TemplateContext
+            -> [TemplateValue]
             -> FruitTart TemplateValue
-tfIsNothing parameters = do
+tfIsNothing context parameters = do
   requireNParameters parameters 1 "isNothing"
   value <- return $ head parameters
   return $ case value of
@@ -576,9 +585,10 @@ tfIsNothing parameters = do
              _ -> error $ "Parameter is not a Maybe in isNothing()."
 
 
-tfIsJust :: [TemplateValue]
+tfIsJust :: TemplateContext
+         -> [TemplateValue]
          -> FruitTart TemplateValue
-tfIsJust parameters = do
+tfIsJust context parameters = do
   requireNParameters parameters 1 "isJust"
   value <- return $ head parameters
   return $ case value of
@@ -587,9 +597,10 @@ tfIsJust parameters = do
              _ -> error $ "Parameter is not a Maybe in isJust()."
 
 
-tfFromJust :: [TemplateValue]
+tfFromJust :: TemplateContext
+           -> [TemplateValue]
            -> FruitTart TemplateValue
-tfFromJust parameters = do
+tfFromJust context parameters = do
   requireNParameters parameters 1 "fromJust"
   value <- return $ head parameters
   return $ case value of
@@ -599,17 +610,19 @@ tfFromJust parameters = do
              _ -> error $ "Parameter is not a Maybe in fromJust()."
 
 
-tfStringLength :: [TemplateValue]
+tfStringLength :: TemplateContext
+               -> [TemplateValue]
                -> FruitTart TemplateValue
-tfStringLength parameters = do
+tfStringLength context parameters = do
   requireNParameters parameters 1 "stringLength"
   string <- valueToString $ head parameters
   return $ TemplateInteger $ fromIntegral $ length string
 
 
-tfStringWordCount :: [TemplateValue]
-               -> FruitTart TemplateValue
-tfStringWordCount parameters = do
+tfStringWordCount :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringWordCount context parameters = do
   requireNParameters parameters 1 "stringWordCount"
   string <- valueToString $ head parameters
   let wordCount "" = 0
@@ -620,35 +633,39 @@ tfStringWordCount parameters = do
   return $ TemplateInteger $ fromIntegral $ wordCount string
 
 
-tfNth :: [TemplateValue]
+tfNth :: TemplateContext
+      -> [TemplateValue]
       -> FruitTart TemplateValue
-tfNth parameters = do
+tfNth context parameters = do
   requireNParameters parameters 2 "nth"
   n <- valueToInteger $ head parameters
   list <- valueToList $ head $ drop 1 parameters
   return $ head $ drop (fromIntegral n) list
 
 
-tfLength :: [TemplateValue]
+tfLength :: TemplateContext
+         -> [TemplateValue]
          -> FruitTart TemplateValue
-tfLength parameters = do
+tfLength context parameters = do
   requireNParameters parameters 1 "length"
   list <- valueToList $ head parameters
   return $ TemplateInteger $ fromIntegral $ length list
 
 
-tfConcat :: [TemplateValue]
+tfConcat :: TemplateContext
+         -> [TemplateValue]
          -> FruitTart TemplateValue
-tfConcat parameters = do
+tfConcat context parameters = do
   requireNParameters parameters 1 "concat"
   list <- valueToList $ head parameters
   sublists <- mapM valueToList list
   return $ TemplateList $ concat sublists
 
 
-tfIntercalate :: [TemplateValue]
+tfIntercalate :: TemplateContext
+              -> [TemplateValue]
               -> FruitTart TemplateValue
-tfIntercalate parameters = do
+tfIntercalate context parameters = do
   requireNParameters parameters 2 "intercalate"
   string <- valueToString $ head parameters
   list <- valueToList $ head $ drop 1 parameters
@@ -656,105 +673,116 @@ tfIntercalate parameters = do
   return $ TemplateString $ intercalate string strings
 
 
-tfMap :: [TemplateValue]
+tfMap :: TemplateContext
+      -> [TemplateValue]
       -> FruitTart TemplateValue
-tfMap parameters = do
+tfMap context parameters = do
   requireNParameters parameters 2 "map"
   let function = head parameters
   list <- valueToList $ head $ drop 1 parameters
-  list' <- mapM (\a -> applyFunction function [a]) list
+  list' <- mapM (\a -> applyFunction context function [a]) list
   return $ TemplateList list'
 
 
-tfGroupBy :: [TemplateValue]
+tfGroupBy :: TemplateContext
+          -> [TemplateValue]
           -> FruitTart TemplateValue
-tfGroupBy parameters = do
+tfGroupBy context parameters = do
   requireNParameters parameters 2 "mergeBy"
   let function = head parameters
   list <- valueToList $ head $ drop 1 parameters
   groupedLists <- groupByM (\a b -> do
                               TemplateBool bool
-                                  <- applyFunction function [a, b]
+                                  <- applyFunction context function [a, b]
                               return bool)
                            list
   return $ TemplateList list
 
 
-tfMergeBy :: [TemplateValue]
+tfMergeBy :: TemplateContext
+          -> [TemplateValue]
           -> FruitTart TemplateValue
-tfMergeBy parameters = do
+tfMergeBy context parameters = do
   requireNParameters parameters 2 "mergeBy"
   let function = head parameters
   lists <- (valueToList $ head $ drop 1 parameters)
            >>= mapM valueToList
   mergedLists <- mergeByM (\a b -> do
                              TemplateOrdering ordering
-                                 <- applyFunction function [a, b]
+                                 <- applyFunction context function [a, b]
                              return ordering)
                           lists
   return $ TemplateList mergedLists
 
 
-tfCompareIntegers :: [TemplateValue]
+tfCompareIntegers :: TemplateContext
+                  -> [TemplateValue]
                   -> FruitTart TemplateValue
-tfCompareIntegers parameters = do
+tfCompareIntegers context parameters = do
   requireNParameters parameters 2 "compareIntegers"
   a <- valueToInteger $ head parameters
   b <- valueToInteger $ head $ drop 1 parameters
   return $ TemplateOrdering $ compare a b
 
 
-tfShowInteger :: [TemplateValue]
+tfShowInteger :: TemplateContext
+              -> [TemplateValue]
               -> FruitTart TemplateValue
-tfShowInteger parameters = do
+tfShowInteger context parameters = do
   requireNParameters parameters 1 "showInteger"
   integer <- valueToInteger $ head parameters
   return $ TemplateString $ show integer
 
 
-tfShowBool :: [TemplateValue]
+tfShowBool :: TemplateContext
+           -> [TemplateValue]
            -> FruitTart TemplateValue
-tfShowBool parameters = do
+tfShowBool context parameters = do
   requireNParameters parameters 1 "showBool"
   bool <- valueToBoolean $ head parameters
   return $ TemplateString $ show bool
 
 
-tfByteSizeToString :: [TemplateValue]
+tfByteSizeToString :: TemplateContext
+                   -> [TemplateValue]
                    -> FruitTart TemplateValue
-tfByteSizeToString parameters = do
+tfByteSizeToString context parameters = do
   requireNParameters parameters 1 "byteSizeToString"
   integer <- valueToInteger $ head parameters
   return $ TemplateString $ byteSizeToString integer
 
 
-tfTimestampToString :: [TemplateValue]
+tfTimestampToString :: TemplateContext
+                    -> [TemplateValue]
                     -> FruitTart TemplateValue
-tfTimestampToString parameters = do
+tfTimestampToString context parameters = do
   requireNParameters parameters 1 "timestampToString"
   integer <- valueToInteger $ head parameters
   return $ TemplateString $ timestampToString integer
 
 
-tfEscapeAttribute :: [TemplateValue]
+tfEscapeAttribute :: TemplateContext
+                  -> [TemplateValue]
                   -> FruitTart TemplateValue
-tfEscapeAttribute parameters = do
+tfEscapeAttribute context parameters = do
   requireNParameters parameters 1 "escapeAttribute"
   string <- valueToString $ head parameters
   return $ TemplateString $ escapeAttribute string
 
 
-tfEscapeHTML :: [TemplateValue]
+tfEscapeHTML :: TemplateContext
+             -> [TemplateValue]
              -> FruitTart TemplateValue
-tfEscapeHTML parameters = do
+tfEscapeHTML context parameters = do
   requireNParameters parameters 1 "escapeHTML"
   string <- valueToString $ head parameters
   return $ TemplateString $ escapeHTML string
 
 
-tfNewlinesToParagraphs :: [TemplateValue]
+tfNewlinesToParagraphs :: TemplateContext
+                       -> [TemplateValue]
                        -> FruitTart TemplateValue
-tfNewlinesToParagraphs parameters = do
+tfNewlinesToParagraphs context parameters = do
   requireNParameters parameters 1 "newlinesToParagraphs"
   string <- valueToString $ head parameters
   return $ TemplateString $ newlinesToParagraphs string

@@ -5,6 +5,7 @@ module Network.FruitTart.Base.Templates.Types (
                                                TemplateValue(..),
                                                TemplateParameter(..),
                                                TemplateExpression(..),
+                                               TemplateContext(..),
                                                TemplateToken(..),
                                                Bindable(..),
                                                AnyBindable(..)
@@ -41,7 +42,9 @@ data TemplateValue = TemplateNull
                    | TemplateLambda [TemplateParameter]
                                     (Map (String, String) TemplateValue)
                                     TemplateExpression
-                   | TemplateNativeLambda ([TemplateValue] -> FruitTart TemplateValue)
+                   | TemplateNativeLambda (TemplateContext
+                                           -> [TemplateValue]
+                                           -> FruitTart TemplateValue)
                      deriving (Typeable)
 instance Eq TemplateValue where
     (==) TemplateNull TemplateNull = True
@@ -106,6 +109,10 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateBindMapExpression [TemplateExpression]
                         | TemplateSequence TemplateExpression TemplateExpression
                           deriving (Show)
+
+data TemplateContext = TemplateNormalContext
+                     | TemplateControllerContext
+                       deriving (Show)
 
 data TemplateToken = TokenValue TemplateValue
                    | TokenSymbol String String
