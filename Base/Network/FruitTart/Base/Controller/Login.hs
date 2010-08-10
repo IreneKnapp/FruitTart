@@ -86,21 +86,21 @@ loginPOST = do
 
 doNotLogIn :: Maybe String -> Maybe String -> FruitTart ()
 doNotLogIn maybeWarning maybeEmail = do
-  bind "Templates" "pageTitle" "Log In"
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Base.Login"]
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Base" "pageTitle" "Log In"
+  pageHeadItems <- getTemplate "Base" "pageHeadItems" [TemplateString "Base.Login"]
+  bind "Base" "pageHeadItems" pageHeadItems
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString "/login/login/"]
-  bind "Templates" "navigationBar" navigationBar
+  bind "Base" "navigationBar" navigationBar
   popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
-  unbind "Templates" "loginButton"
+  bind "Base" "popupMessage" popupMessage
+  unbind "Base" "loginButton"
   referrer <- getReferrer
   bind "Base.Login" "referrer" referrer
-  bind "Templates" "maybeWarning" maybeWarning
+  bind "Base" "maybeWarning" maybeWarning
   bind "Base.Login" "maybeEmail" maybeEmail
   pageContent <- getTemplate "Base.Login" "login" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "page" []
   fPutStr page
 
 
@@ -155,21 +155,21 @@ outputAccountPage = do
     Just userID -> do
       sessionID <- getSessionID
       bindNamedQuery "Base.Login" "account" [SQLInteger sessionID]
-      bind "Templates" "pageTitle" "Buglist Account"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "Buglist Account"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Login"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       currentPage <- return "/login/account/"
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bind "Base.Login" "privacyNote" privacyNote
       pageContent <- getTemplate "Base.Login" "account" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 

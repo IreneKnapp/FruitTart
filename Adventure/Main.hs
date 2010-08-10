@@ -58,12 +58,7 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Adventure', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Adventure', 'Templates')")
+             ++ "VALUES ('Adventure', 'Base')")
              []
   earlyQuery database
                  (  "CREATE TABLE adventure_users (\n"

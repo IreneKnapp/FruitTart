@@ -37,23 +37,23 @@ index = do
   case right of
     False -> outputMustLoginPage "/queries/index/"
     True -> do
-      bind "Templates" "pageTitle" "All Queries"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "All Queries"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Queries"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       currentPage <- return $ "/queries/index/"
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQueryMultipleRows "Base.Queries"
                                  "indexRows"
                                  []
       pageContent <- getTemplate "Base.Queries" "index" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -168,22 +168,22 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
       <- getBinding "Base.Queries" "moduleName" >>= return . fromJust
   TemplateString queryName
       <- getBinding "Base.Queries" "queryName" >>= return . fromJust
-  bind "Templates" "pageTitle" $ moduleName ++ "." ++ queryName
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+  bind "Base" "pageTitle" $ moduleName ++ "." ++ queryName
+  pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                [TemplateString "Base.Queries"]
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Base" "pageHeadItems" pageHeadItems
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-  bind "Templates" "navigationBar" navigationBar
+  bind "Base" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
+  bind "Base" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
+  bind "Base" "popupMessage" popupMessage
   bind "Base.Queries" "targetPage" targetPage
-  bind "Templates" "maybeWarning" maybeWarning
+  bind "Base" "maybeWarning" maybeWarning
   bind "Base.Queries" "maybeQueryID" maybeQueryID
   pageContent <- getTemplate "Base.Queries" "query" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "pageNoScript" []
   fPutStr page
 
 
@@ -212,7 +212,7 @@ createPOST = do
                          Nothing -> ""
                          Just body -> body
       items <- getInputItems
-      namedQuery "Queries" "beginExclusiveTransaction" []
+      namedQuery "Base" "beginExclusiveTransaction" []
       [values]
           <- namedQuery "Base.Queries" "queryExists"
                         [SQLText moduleName, SQLText queryName]
@@ -241,11 +241,11 @@ createPOST = do
                                      SQLText itemName])
                  $ zip items [0..]
             else return []
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Query created."
           seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           bind "Base.Queries" "moduleName" moduleName
           bind "Base.Queries" "queryName" queryName
           bind "Base.Queries" "isTemplateExpression" isTemplateExpression
@@ -280,7 +280,7 @@ edit queryID = do
                          Nothing -> ""
                          Just body -> body
       items <- getInputItems
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       [values]
           <- namedQuery "Base.Queries" "queryExistsWithDifferentID"
                         [SQLText moduleName, SQLText queryName, SQLInteger queryID]
@@ -306,11 +306,11 @@ edit queryID = do
                                      SQLText itemName])
                       $ zip items [0..]
             else return []
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Query changed."
           seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           bind "Base.Queries" "moduleName" moduleName
           bind "Base.Queries" "queryName" queryName
           bind "Base.Queries" "isTemplateExpression" isTemplateExpression
@@ -328,21 +328,21 @@ deleteGET queryID = do
   case right of
     False -> outputMustLoginPage currentPage
     True -> do
-      bind "Templates" "pageTitle" "Delete Confirmation"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "Delete Confirmation"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Queries"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQuery "Base.Queries" "queryName" [SQLInteger queryID]
       bind "Base.Queries" "targetPage" targetPage
       pageContent <- getTemplate "Base.Queries" "delete" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -352,10 +352,10 @@ deletePOST queryID = do
   case right of
     False -> outputMustLoginPage "/queries/index/"
     True -> do
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       namedQuery "Base.Queries" "deleteQuery" [SQLInteger queryID]
       namedQuery "Base.Queries" "deleteQueryResults" [SQLInteger queryID]
-      namedQuery "Queries" "commit" []
+      namedQuery "Base" "commit" []
       setPopupMessage $ Just "Query deleted."
       seeOtherRedirect "/queries/index/"
 

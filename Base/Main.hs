@@ -172,52 +172,22 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base', 'Queries')")
+             ++ "VALUES ('Base.Functions', 'Base')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base', 'Templates')")
+             ++ "VALUES ('Base.Login', 'Base')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Functions', 'Queries')")
+             ++ "VALUES ('Base.Queries', 'Base')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Functions', 'Templates')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Login', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Login', 'Templates')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Queries', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Queries', 'Templates')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Templates', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Templates', 'Templates')")
+             ++ "VALUES ('Base.Templates', 'Base')")
              []
   earlyQuery database
              (  "CREATE TABLE stylesheets (\n"

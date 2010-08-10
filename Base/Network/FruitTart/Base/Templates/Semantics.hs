@@ -25,7 +25,7 @@ import Network.FruitTart.Util
 getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
 getTemplate moduleName templateName parameters = do
   oldBindings <- getBindings
-  let newBindings = Map.fromList [(("Templates", "parameters"),
+  let newBindings = Map.fromList [(("Base", "parameters"),
                                    TemplateList parameters)]
       allBindings = Map.union newBindings oldBindings
   letBindings allBindings $ fillTemplate moduleName templateName
@@ -258,7 +258,7 @@ evalExpression expression = do
         subparameters <- (mapM evalExpression $ tail subexpressions)
                          >>= return . map fst
         oldBindings <- getBindings
-        let newBindings = Map.fromList [(("Templates", "parameters"),
+        let newBindings = Map.fromList [(("Base", "parameters"),
                                          TemplateList subparameters)]
             subbindings = Map.union newBindings oldBindings
         (moduleName, templateName)
@@ -275,7 +275,7 @@ evalExpression expression = do
         subparameters <- (mapM evalExpression $ drop 2 subexpressions)
                          >>= return . map fst
         oldBindings <- getBindings
-        let newBindings = Map.fromList [(("Templates", "parameters"),
+        let newBindings = Map.fromList [(("Base", "parameters"),
                                          TemplateList subparameters)]
             globalSubbindings = Map.union newBindings oldBindings
         (moduleName, templateName)
@@ -354,7 +354,7 @@ evalExpression expression = do
       TemplateVariable variableName@(packageName, properName) -> do
         bindings <- getBindings
         case Map.lookup variableName bindings of
-          Nothing -> case Map.lookup ("Templates", properName) bindings of
+          Nothing -> case Map.lookup ("Base", properName) bindings of
                        Nothing -> do
                          maybeValue <- getTopLevelBinding variableName
                          case maybeValue of
@@ -506,41 +506,41 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
 
 builtinBindings :: Map (String, String) TemplateValue
 builtinBindings = Map.fromList
-               [(("Templates", "parameters"), TemplateList []),
-                (("Templates", "Null"), TemplateNull),
-                (("Templates", "True"), TemplateBool True),
-                (("Templates", "False"), TemplateBool False),
-                (("Templates", "Nothing"), TemplateMaybe Nothing),
-                (("Templates", "Just"), TemplateNativeLambda tfJust),
-                (("Templates", "LT"), TemplateOrdering LT),
-                (("Templates", "GT"), TemplateOrdering GT),
-                (("Templates", "EQ"), TemplateOrdering EQ),
-                (("Templates", "parameter"), TemplateNativeLambda tfParameter),
-                (("Templates", "isNothing"), TemplateNativeLambda tfIsNothing),
-                (("Templates", "isJust"), TemplateNativeLambda tfIsJust),
-                (("Templates", "fromJust"), TemplateNativeLambda tfFromJust),
-                (("Templates", "stringLength"), TemplateNativeLambda tfStringLength),
-                (("Templates", "stringWordCount"),
+               [(("Base", "parameters"), TemplateList []),
+                (("Base", "Null"), TemplateNull),
+                (("Base", "True"), TemplateBool True),
+                (("Base", "False"), TemplateBool False),
+                (("Base", "Nothing"), TemplateMaybe Nothing),
+                (("Base", "Just"), TemplateNativeLambda tfJust),
+                (("Base", "LT"), TemplateOrdering LT),
+                (("Base", "GT"), TemplateOrdering GT),
+                (("Base", "EQ"), TemplateOrdering EQ),
+                (("Base", "parameter"), TemplateNativeLambda tfParameter),
+                (("Base", "isNothing"), TemplateNativeLambda tfIsNothing),
+                (("Base", "isJust"), TemplateNativeLambda tfIsJust),
+                (("Base", "fromJust"), TemplateNativeLambda tfFromJust),
+                (("Base", "stringLength"), TemplateNativeLambda tfStringLength),
+                (("Base", "stringWordCount"),
                  TemplateNativeLambda tfStringWordCount),
-                (("Templates", "nth"), TemplateNativeLambda tfNth),
-                (("Templates", "length"), TemplateNativeLambda tfLength),
-                (("Templates", "concat"), TemplateNativeLambda tfConcat),
-                (("Templates", "intercalate"), TemplateNativeLambda tfIntercalate),
-                (("Templates", "map"), TemplateNativeLambda tfMap),
-                (("Templates", "groupBy"), TemplateNativeLambda tfGroupBy),
-                (("Templates", "mergeBy"), TemplateNativeLambda tfMergeBy),
-                (("Templates", "compareIntegers"),
+                (("Base", "nth"), TemplateNativeLambda tfNth),
+                (("Base", "length"), TemplateNativeLambda tfLength),
+                (("Base", "concat"), TemplateNativeLambda tfConcat),
+                (("Base", "intercalate"), TemplateNativeLambda tfIntercalate),
+                (("Base", "map"), TemplateNativeLambda tfMap),
+                (("Base", "groupBy"), TemplateNativeLambda tfGroupBy),
+                (("Base", "mergeBy"), TemplateNativeLambda tfMergeBy),
+                (("Base", "compareIntegers"),
                  TemplateNativeLambda tfCompareIntegers),
-                (("Templates", "showInteger"), TemplateNativeLambda tfShowInteger),
-                (("Templates", "showBool"), TemplateNativeLambda tfShowBool),
-                (("Templates", "byteSizeToString"),
+                (("Base", "showInteger"), TemplateNativeLambda tfShowInteger),
+                (("Base", "showBool"), TemplateNativeLambda tfShowBool),
+                (("Base", "byteSizeToString"),
                  TemplateNativeLambda tfByteSizeToString),
-                (("Templates", "timestampToString"),
+                (("Base", "timestampToString"),
                  TemplateNativeLambda tfTimestampToString),
-                (("Templates", "escapeAttribute"),
+                (("Base", "escapeAttribute"),
                  TemplateNativeLambda tfEscapeAttribute),
-                (("Templates", "escapeHTML"), TemplateNativeLambda tfEscapeHTML),
-                (("Templates", "newlinesToParagraphs"),
+                (("Base", "escapeHTML"), TemplateNativeLambda tfEscapeHTML),
+                (("Base", "newlinesToParagraphs"),
                  TemplateNativeLambda tfNewlinesToParagraphs)]
 
 
@@ -557,7 +557,7 @@ tfParameter parameters = do
   requireNParameters parameters 1 "parameters"
   n <- valueToInteger $ head parameters
   bindings <- getBindings
-  parameters <- (return $ Map.lookup ("Templates", "parameters") bindings)
+  parameters <- (return $ Map.lookup ("Base", "parameters") bindings)
                 >>= valueToList . fromJust
   if n < (fromIntegral $ length parameters)
     then return $ head $ drop (fromIntegral n) parameters

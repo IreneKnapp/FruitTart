@@ -38,23 +38,23 @@ index maybeModule = do
     False -> outputMustLoginPage "/templates/index/"
     True -> do
           case maybeModule of
-            Nothing -> bind "Templates" "pageTitle" "All Templates"
-            Just module' -> bind "Templates" "pageTitle" $ "Templates in " ++ module'
-          pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+            Nothing -> bind "Base" "pageTitle" "All Templates"
+            Just module' -> bind "Base" "pageTitle" $ "Templates in " ++ module'
+          pageHeadItems <- getTemplate "Base" "pageHeadItems"
                            [TemplateString "Base.Templates"]
-          bind "Templates" "pageHeadItems" pageHeadItems
+          bind "Base" "pageHeadItems" pageHeadItems
           currentPage <- return $ "/templates/index/"
           navigationBar
               <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-          bind "Templates" "navigationBar" navigationBar
+          bind "Base" "navigationBar" navigationBar
           loginButton <- getLoginButton currentPage
-          bind "Templates" "loginButton" loginButton
+          bind "Base" "loginButton" loginButton
           popupMessage <- getPopupMessage
-          bind "Templates" "popupMessage" popupMessage
+          bind "Base" "popupMessage" popupMessage
           bindNamedQueryMultipleRows "Base.Templates" "indexRows" []
           pageContent <- getTemplate "Base.Templates" "index" []
-          bind "Templates" "pageContent" pageContent
-          page <- getTemplate "Templates" "page" []
+          bind "Base" "pageContent" pageContent
+          page <- getTemplate "Base" "page" []
           fPutStr page
 
 
@@ -171,16 +171,16 @@ outputTemplatePage
     -> FruitTart ()
 outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                    moduleName templateName bodies = do
-  bind "Templates" "pageTitle" $ moduleName ++ "." ++ templateName
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+  bind "Base" "pageTitle" $ moduleName ++ "." ++ templateName
+  pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                [TemplateString "Base.Templates"]
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Base" "pageHeadItems" pageHeadItems
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-  bind "Templates" "navigationBar" navigationBar
+  bind "Base" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
+  bind "Base" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
+  bind "Base" "popupMessage" popupMessage
   bind "Base.Templates" "bodies"
        $ map (\((itemType, body), index)
                   -> Map.fromList [(("Base.Templates", "itemType"),
@@ -191,13 +191,13 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                                     TemplateInteger index)])
              $ zip bodies [1..]
   bind "Base.Templates" "targetPage" targetPage
-  bind "Templates" "maybeWarning" maybeWarning
+  bind "Base" "maybeWarning" maybeWarning
   bind "Base.Templates" "maybeTemplateID" maybeTemplateID
   bind "Base.Templates" "moduleName" moduleName
   bind "Base.Templates" "templateName" templateName
   pageContent <- getTemplate "Base.Templates" "template" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "pageNoScript" []
   fPutStr page
 
 
@@ -218,7 +218,7 @@ createPOST = do
                       Nothing -> "template"
                       Just templateName -> templateName
       items <- getInputItems
-      namedQuery "Queries" "beginExclusiveTransaction" []
+      namedQuery "Base" "beginExclusiveTransaction" []
       [values]
           <- namedQuery "Base.Templates" "templateExists"
                         [SQLText moduleName, SQLText templateName]
@@ -244,11 +244,11 @@ createPOST = do
                               SQLText itemType,
                               SQLText body])
                $ zip items [0..]
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Template created."
           seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           outputTemplatePage currentPage targetPage
                              (Just "A template by that name already exists.")
                              Nothing moduleName templateName items
@@ -271,7 +271,7 @@ edit templateID = do
                       Nothing -> "template"
                       Just templateName -> templateName
       items <- getInputItems
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       [values]
           <- namedQuery "Base.Templates" "templateExistsWithDifferentID"
                         [SQLText moduleName, SQLText templateName, SQLInteger templateID]
@@ -294,11 +294,11 @@ edit templateID = do
                               SQLText itemType,
                               SQLText body])
                $ zip items [0..]
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Template changed."
           seeOtherRedirect $ "/templates/view/" ++ (show templateID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           outputTemplatePage currentPage targetPage
                              (Just "A template by that name already exists.")
                              (Just templateID)
@@ -313,21 +313,21 @@ deleteGET templateID = do
   case right of
     False -> outputMustLoginPage currentPage
     True -> do
-      bind "Templates" "pageTitle" "Delete Confirmation"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "Delete Confirmation"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Templates"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQuery "Base.Templates" "templateName" [SQLInteger templateID]
       bind "Base.Templates" "targetPage" targetPage
       pageContent <- getTemplate "Base.Templates" "delete" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -337,10 +337,10 @@ deletePOST templateID = do
   case right of
     False -> outputMustLoginPage "/templates/index/"
     True -> do
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       namedQuery "Base.Templates" "deleteTemplate" [SQLInteger templateID]
       namedQuery "Base.Templates" "deleteTemplateItems" [SQLInteger templateID]
-      namedQuery "Queries" "commit" []
+      namedQuery "Base" "commit" []
       setPopupMessage $ Just "Template deleted."
       seeOtherRedirect "/templates/index/"
 

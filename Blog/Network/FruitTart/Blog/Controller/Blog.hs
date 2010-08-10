@@ -31,29 +31,29 @@ index = do
 
 bindDefaults :: String -> String -> FruitTart ()
 bindDefaults pageTitle currentPage = do
-  bind "Templates" "pageTitle" pageTitle
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Blog.Index"]
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Base" "pageTitle" pageTitle
+  pageHeadItems <- getTemplate "Base" "pageHeadItems" [TemplateString "Blog.Index"]
+  bind "Base" "pageHeadItems" pageHeadItems
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-  bind "Templates" "navigationBar" navigationBar
+  bind "Base" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
+  bind "Base" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
-  bind "Templates" "maybeWarning" (Nothing :: Maybe String)
+  bind "Base" "popupMessage" popupMessage
+  bind "Base" "maybeWarning" (Nothing :: Maybe String)
 
 
 outputPage :: String -> String -> FruitTart ()
 outputPage moduleName templateName = do
   pageContent <- getTemplate moduleName templateName []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "page" []
   fPutStr page
 
 
 outputPageNoScript :: String -> String -> FruitTart ()
 outputPageNoScript moduleName templateName = do
   pageContent <- getTemplate moduleName templateName []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "pageNoScript" []
   fPutStr page

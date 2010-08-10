@@ -30,21 +30,21 @@ index = do
   case rightViewModulesRequiringLogin of
     False -> outputMustLoginPage "/users/index/"
     True -> do
-      bind "Templates" "pageTitle" "Buglist Users"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "Buglist Users"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Buglist.Users"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       currentPage <- return "/users/index/"
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQueryMultipleRows "Buglist.Users" "indexRows" []
       pageContent <- getTemplate "Buglist.Users" "index" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -59,24 +59,24 @@ view id = do
       case rows of
         [[SQLText fullName, SQLText email]]
           -> do
-           bind "Templates" "pageTitle" $ escapeHTML fullName
-           pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+           bind "Base" "pageTitle" $ escapeHTML fullName
+           pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                         [TemplateString "Buglist.Users"]
-           bind "Templates" "pageHeadItems" pageHeadItems
+           bind "Base" "pageHeadItems" pageHeadItems
            currentPage <- return $ "/users/view/" ++ (show id) ++ "/"
            navigationBar <- getTemplate "Base" "navigationBar"
                                         [TemplateString currentPage]
-           bind "Templates" "navigationBar" navigationBar
+           bind "Base" "navigationBar" navigationBar
            loginButton <- getLoginButton currentPage
-           bind "Templates" "loginButton" loginButton
+           bind "Base" "loginButton" loginButton
            popupMessage <- getPopupMessage
-           bind "Templates" "popupMessage" popupMessage
+           bind "Base" "popupMessage" popupMessage
            bind "Buglist.Users" "fullName" fullName
            bind "Buglist.Users" "email" email
            bind "Buglist.Users" "userID" id
            bindNamedQuery "Buglist.Users" "userIssueActions" []
            pageContent <- getTemplate "Buglist.Users" "view" []
-           bind "Templates" "pageContent" pageContent
-           page <- getTemplate "Templates" "page" []
+           bind "Base" "pageContent" pageContent
+           page <- getTemplate "Base" "page" []
            fPutStr page
         _ -> errorInvalidID "user"

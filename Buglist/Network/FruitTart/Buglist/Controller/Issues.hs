@@ -132,7 +132,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                 Nothing -> "All Modules"
                                 Just moduleName -> moduleName
   reportName <- return $ reportNamePart1 ++ " in " ++ reportNamePart2
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+  pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/index/"
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
@@ -164,7 +164,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                           ++ currentPathWhichPart
                                           ++ "module:" ++ (show moduleID) ++ "/")])
   let filterItem name link
-          = Map.fromList [(("Templates", "item"),
+          = Map.fromList [(("Base", "item"),
                            TemplateString $ filterItem' name link)]
       filterItem' name link
           = if currentPath == link
@@ -192,12 +192,12 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                                                     ++ currentPathWhichPart
                                                     ++ "module:" ++ (show id) ++ "/"))
                                            modules)
-  bind "Templates" "pageTitle" reportName
-  bind "Templates" "pageHeadItems" pageHeadItems
-  bind "Templates" "navigationBar" navigationBar
-  bind "Templates" "subnavigationBar" subnavigationBar
-  bind "Templates" "loginButton" loginButton
-  bind "Templates" "popupMessage" popupMessage
+  bind "Base" "pageTitle" reportName
+  bind "Base" "pageHeadItems" pageHeadItems
+  bind "Base" "navigationBar" navigationBar
+  bind "Base" "subnavigationBar" subnavigationBar
+  bind "Base" "loginButton" loginButton
+  bind "Base" "popupMessage" popupMessage
   bind "Buglist.Issues" "statusFilterList" statusFilterList
   bind "Buglist.Issues" "modulesFilterList" modulesFilterList
   bindQueryMultipleRows "Buglist.Issues" "rows"
@@ -241,8 +241,8 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                    ([] ++ whereClauseParameters)
   pageContent <- getTemplate "Buglist.Issues" "index" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "page" []
   fPutStr page
 
 
@@ -452,7 +452,7 @@ outputView id comment fullName email maybeWarning = do
        bind "Buglist.Issues" "rows" rows
        bind "Buglist.Issues" "id" id
        bind "Buglist.Issues" "comment" comment
-       bind "Templates" "maybeWarning" maybeWarning
+       bind "Base" "maybeWarning" maybeWarning
        bind "Buglist.Issues" "status" status
        bind "Buglist.Issues" "resolution" resolution
        bind "Buglist.Issues" "module" module'
@@ -465,18 +465,18 @@ outputView id comment fullName email maybeWarning = do
        bind "Buglist.Issues" "summary" summary
        bind "Buglist.Issues" "timestampCreated" timestampCreated
        bind "Buglist.Issues" "timestampModified" timestampModified
-       bind "Templates" "pageTitle"
+       bind "Base" "pageTitle"
             $ "Issue " ++ (show id) ++ ": " ++ (escapeHTML summary)
-       pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+       pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                     [TemplateString "Buglist.Issues"]
-       bind "Templates" "pageHeadItems" pageHeadItems
+       bind "Base" "pageHeadItems" pageHeadItems
        currentPage <- return $ "/issues/view/" ++ (show id) ++ "/"
        navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-       bind "Templates" "navigationBar" navigationBar
+       bind "Base" "navigationBar" navigationBar
        loginButton <- getLoginButton currentPage
-       bind "Templates" "loginButton" loginButton
+       bind "Base" "loginButton" loginButton
        popupMessage <- getPopupMessage
-       bind "Templates" "popupMessage" popupMessage
+       bind "Base" "popupMessage" popupMessage
        statusPopup <- getStatusPopup $ Just statusID
        bind "Buglist.Issues" "statusPopup" statusPopup
        resolutionPopup <- getResolutionPopup $ Just resolutionID
@@ -497,8 +497,8 @@ outputView id comment fullName email maybeWarning = do
        rightEdit <- getRightModifyIssues
        bind "Buglist.Issues" "rightEdit" rightEdit
        pageContent <- getTemplate "Buglist.Issues" "view" []
-       bind "Templates" "pageContent" pageContent
-       page <- getTemplate "Templates" "page" []
+       bind "Base" "pageContent" pageContent
+       page <- getTemplate "Base" "page" []
        fPutStr page
     _ -> errorInvalidID "issue"
 
@@ -683,7 +683,7 @@ createPOST = do
 doNotCreateIssue :: Int64 -> String -> String -> String -> String -> Maybe String
                  -> FruitTart ()
 doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+  pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                [TemplateString "Buglist.Issues"]
   currentPage <- return "/issues/create/"
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
@@ -692,20 +692,20 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   modulePopup <- getModulePopup $ Just moduleID
   userSelectionFormControls <- getUserSelectionFormControls fullName email
   captchaTimestamp <- generateCaptcha
-  bind "Templates" "pageTitle" "Report an Issue"
-  bind "Templates" "pageHeadItems" pageHeadItems
-  bind "Templates" "navigationBar" navigationBar
-  bind "Templates" "loginButton" loginButton
-  bind "Templates" "popupMessage" popupMessage
-  bind "Templates" "maybeWarning" maybeWarning
+  bind "Base" "pageTitle" "Report an Issue"
+  bind "Base" "pageHeadItems" pageHeadItems
+  bind "Base" "navigationBar" navigationBar
+  bind "Base" "loginButton" loginButton
+  bind "Base" "popupMessage" popupMessage
+  bind "Base" "maybeWarning" maybeWarning
   bind "Buglist.Issues" "modulePopup" modulePopup
   bind "Buglist.Issues" "summary" summary
   bind "Buglist.Issues" "comment" comment
   bind "Buglist.Issues" "userSelectionFormControls" userSelectionFormControls
   bind "Buglist.Issues" "captchaTimestamp" captchaTimestamp
   pageContent <- getTemplate "Buglist.Issues" "create" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "page" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "page" []
   fPutStr page
 
 

@@ -58,12 +58,7 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Blog', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Blog', 'Templates')")
+             ++ "VALUES ('Blog', 'Base')")
              []
   earlyQuery database
                  (  "CREATE TABLE blog_posts (\n"

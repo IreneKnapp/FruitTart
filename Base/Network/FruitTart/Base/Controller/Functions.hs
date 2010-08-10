@@ -37,21 +37,21 @@ index = do
   case right of
     False -> outputMustLoginPage "/functions/index/"
     True -> do
-      bind "Templates" "pageTitle" "All Functions"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "All Functions"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Functions"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       currentPage <- return $ "/functions/index/"
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQueryMultipleRows "Base.Functions" "indexRows" []
       pageContent <- getTemplate "Base.Functions" "index" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -153,22 +153,22 @@ outputFunctionPage currentPage targetPage maybeWarning maybeFunctionID = do
       <- getBinding "Base.Functions" "moduleName" >>= return . fromJust
   TemplateString functionName
       <- getBinding "Base.Functions" "functionName" >>= return . fromJust
-  bind "Templates" "pageTitle" $ moduleName ++ "." ++ functionName
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+  bind "Base" "pageTitle" $ moduleName ++ "." ++ functionName
+  pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                [TemplateString "Base.Functions"]
-  bind "Templates" "pageHeadItems" pageHeadItems
+  bind "Base" "pageHeadItems" pageHeadItems
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-  bind "Templates" "navigationBar" navigationBar
+  bind "Base" "navigationBar" navigationBar
   loginButton <- getLoginButton currentPage
-  bind "Templates" "loginButton" loginButton
+  bind "Base" "loginButton" loginButton
   popupMessage <- getPopupMessage
-  bind "Templates" "popupMessage" popupMessage
+  bind "Base" "popupMessage" popupMessage
   bind "Base.Functions" "targetPage" targetPage
-  bind "Templates" "maybeWarning" maybeWarning
+  bind "Base" "maybeWarning" maybeWarning
   bind "Base.Functions" "maybeFunctionID" maybeFunctionID
   pageContent <- getTemplate "Base.Functions" "function" []
-  bind "Templates" "pageContent" pageContent
-  page <- getTemplate "Templates" "pageNoScript" []
+  bind "Base" "pageContent" pageContent
+  page <- getTemplate "Base" "pageNoScript" []
   fPutStr page
 
 
@@ -193,7 +193,7 @@ createPOST = do
                          Nothing -> ""
                          Just body -> body
       parameters <- getInputParameters
-      namedQuery "Queries" "beginExclusiveTransaction" []
+      namedQuery "Base" "beginExclusiveTransaction" []
       [values]
           <- namedQuery "Base.Functions" "functionExists"
                         [SQLText moduleName, SQLText functionName]
@@ -218,11 +218,11 @@ createPOST = do
                                SQLInteger index,
                                SQLText parameterName])
                 $ zip parameters [0..]
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Function created."
           seeOtherRedirect $ "/functions/view/" ++ (show functionID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           bind "Base.Functions" "moduleName" moduleName
           bind "Base.Functions" "functionName" functionName
           bind "Base.Functions" "body" body
@@ -252,7 +252,7 @@ edit functionID = do
                          Nothing -> ""
                          Just body -> body
       parameters <- getInputParameters
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       [values]
           <- namedQuery "Base.Functions" "functionExistsWithDifferentID"
                         [SQLText moduleName, SQLText functionName, SQLInteger functionID]
@@ -274,11 +274,11 @@ edit functionID = do
                                SQLInteger index,
                                SQLText parameterName])
                 $ zip parameters [0..]
-          namedQuery "Queries" "commit" []
+          namedQuery "Base" "commit" []
           setPopupMessage $ Just "Function changed."
           seeOtherRedirect $ "/functions/view/" ++ (show functionID) ++ "/"
         True -> do
-          namedQuery "Queries" "rollback" []
+          namedQuery "Base" "rollback" []
           bind "Base.Functions" "moduleName" moduleName
           bind "Base.Functions" "functionName" functionName
           bind "Base.Functions" "body" body
@@ -295,21 +295,21 @@ deleteGET functionID = do
   case right of
     False -> outputMustLoginPage currentPage
     True -> do
-      bind "Templates" "pageTitle" "Delete Confirmation"
-      pageHeadItems <- getTemplate "Templates" "pageHeadItems"
+      bind "Base" "pageTitle" "Delete Confirmation"
+      pageHeadItems <- getTemplate "Base" "pageHeadItems"
                                    [TemplateString "Base.Functions"]
-      bind "Templates" "pageHeadItems" pageHeadItems
+      bind "Base" "pageHeadItems" pageHeadItems
       navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
-      bind "Templates" "navigationBar" navigationBar
+      bind "Base" "navigationBar" navigationBar
       loginButton <- getLoginButton currentPage
-      bind "Templates" "loginButton" loginButton
+      bind "Base" "loginButton" loginButton
       popupMessage <- getPopupMessage
-      bind "Templates" "popupMessage" popupMessage
+      bind "Base" "popupMessage" popupMessage
       bindNamedQuery "Base.Functions" "functionName" [SQLInteger functionID]
       bind "Base.Functions" "targetPage" targetPage
       pageContent <- getTemplate "Base.Functions" "delete" []
-      bind "Templates" "pageContent" pageContent
-      page <- getTemplate "Templates" "page" []
+      bind "Base" "pageContent" pageContent
+      page <- getTemplate "Base" "page" []
       fPutStr page
 
 
@@ -319,10 +319,10 @@ deletePOST functionID = do
   case right of
     False -> outputMustLoginPage "/functions/index/"
     True -> do
-      namedQuery "Queries" "beginTransaction" []
+      namedQuery "Base" "beginTransaction" []
       namedQuery "Base.Functions" "deleteFunction" [SQLInteger functionID]
       namedQuery "Base.Functions" "deleteFunctionParameters" [SQLInteger functionID]
-      namedQuery "Queries" "commit" []
+      namedQuery "Base" "commit" []
       setPopupMessage $ Just "Function deleted."
       seeOtherRedirect "/functions/index/"
 

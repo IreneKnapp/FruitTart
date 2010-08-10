@@ -63,22 +63,12 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Buglist.Issues', 'Queries')")
+             ++ "VALUES ('Buglist.Issues', 'Base')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Buglist.Issues', 'Templates')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Buglist.Users', 'Queries')")
-             []
-  earlyQuery database
-             (  "INSERT INTO module_imports "
-             ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Buglist.Users', 'Templates')")
+             ++ "VALUES ('Buglist.Users', 'Base')")
              []
   earlyQuery database
                  (  "CREATE TABLE buglist_sessions (\n"
