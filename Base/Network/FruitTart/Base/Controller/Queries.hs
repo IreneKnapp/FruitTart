@@ -179,7 +179,7 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
   bind "Base.Controller.Queries" "targetPage" targetPage
-  bind "Base.Controller.Queries" "maybeWarning" maybeWarning
+  bind "Templates" "maybeWarning" maybeWarning
   bind "Base.Controller.Queries" "maybeQueryID" maybeQueryID
   pageContent <- getTemplate "Base.Controller.Queries" "query" []
   bind "Templates" "pageContent" pageContent

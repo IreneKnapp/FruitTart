@@ -7,10 +7,16 @@ module Network.FruitTart.Base.Templates.Syntax (
     where
 
 import Data.Char
+import Data.Foldable
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 import Numeric
 
+import Database.SQLite3
+import {-# SOURCE #-} Network.FruitTart.Base.Templates.Semantics
 import Network.FruitTart.Base.Templates.Types
+import Network.FruitTart.Util
 
 }
 
@@ -166,73 +172,116 @@ LambdaList1	      : LambdaList1 ',' symbol
 
 {
 
-readExpression :: String -> String -> TemplateExpression
-readExpression defaultPackage input = parser $ lexer defaultPackage input
+readExpression :: Database -> String -> String -> IO TemplateExpression
+readExpression database defaultPackage input = do
+  tokens <- lexer database defaultPackage input
+  return $ parser tokens
 
 
 parseError :: [TemplateToken] -> a
 parseError _ = error $ "Expression-parsing error."
 
 
-lexer :: String -> String -> [TemplateToken]
-lexer _ "" = []
-lexer defaultPackage ('(':rest) = TokenLeftParen : lexer defaultPackage rest
-lexer defaultPackage (')':rest) = TokenRightParen : lexer defaultPackage rest
-lexer defaultPackage ('[':rest) = TokenLeftSquareBracket : lexer defaultPackage rest
-lexer defaultPackage (']':rest) = TokenRightSquareBracket : lexer defaultPackage rest
-lexer defaultPackage ('{':rest) = TokenLeftCurlyBracket : lexer defaultPackage rest
-lexer defaultPackage ('}':rest) = TokenRightCurlyBracket : lexer defaultPackage rest
-lexer defaultPackage ('-':('>':rest)) = TokenMinusGreater : lexer defaultPackage rest
-lexer defaultPackage (';':rest) = TokenSemicolon : lexer defaultPackage rest
-lexer defaultPackage (',':rest) = TokenComma : lexer defaultPackage rest
-lexer defaultPackage ('+':('+':rest)) = TokenPlusPlus : lexer defaultPackage rest
-lexer defaultPackage ('=':('=':rest)) = TokenEqualsEquals : lexer defaultPackage rest
-lexer defaultPackage ('!':('=':rest)) = TokenExclamationEquals : lexer defaultPackage rest
-lexer defaultPackage ('!':rest) = TokenExclamation : lexer defaultPackage rest
-lexer defaultPackage ('&':('&':rest)) = TokenAmpersandAmpersand
-                                        : lexer defaultPackage rest
-lexer defaultPackage ('|':('|':rest)) = TokenBarBar : lexer defaultPackage rest
-lexer defaultPackage ('>':('=':rest)) = TokenGreaterEquals : lexer defaultPackage rest
-lexer defaultPackage ('>':rest) = TokenGreater : lexer defaultPackage rest
-lexer defaultPackage ('<':('=':rest)) = TokenLessEquals : lexer defaultPackage rest
-lexer defaultPackage ('<':rest) = TokenLess : lexer defaultPackage rest
-lexer defaultPackage ('+':rest) = TokenPlus : lexer defaultPackage rest
-lexer defaultPackage ('-':rest) = TokenMinus : lexer defaultPackage rest
-lexer defaultPackage ('*':rest) = TokenStar : lexer defaultPackage rest
-lexer defaultPackage ('/':rest) = TokenSlash : lexer defaultPackage rest
-lexer defaultPackage all@('"':_) = let (string, rest) = readString all
-                                   in (TokenValue $ TemplateString string)
-                                      : lexer defaultPackage rest
-lexer defaultPackage all@(c:_)
-  | isDigit c = let [(result, rest)] = readDec all
-                in (TokenValue $ TemplateInteger result) : lexer defaultPackage rest
-  | isAlpha c = let (maybePackage, symbol, rest) = readSymbol all
-                in case maybePackage of
-                     Nothing -> case symbol of
-                       _ | symbol == "if" -> TokenIf
-                                             : lexer defaultPackage rest
-                         | symbol == "case" -> TokenCase
-                                               : lexer defaultPackage rest
-                         | symbol == "call" -> TokenCall
-                                               : lexer defaultPackage rest
-                         | symbol == "iterate" -> TokenIterate
-                                                  : lexer defaultPackage rest
-                         | symbol == "query" -> TokenQuery
-                                                : lexer defaultPackage rest
-                         | symbol == "lookup" -> TokenLookup
-                                                 : lexer defaultPackage rest
-                         | symbol == "bound" -> TokenBound
-                                                : lexer defaultPackage rest
-                         | symbol == "bind" -> TokenBind
-                                               : lexer defaultPackage rest
-                         | symbol == "bindmap" -> TokenBindMap
-                                               : lexer defaultPackage rest
-                         | otherwise -> (TokenSymbol defaultPackage symbol)
-                                        : lexer defaultPackage rest
-                     Just package -> (TokenSymbol package symbol)
-                                     : lexer defaultPackage rest
-  | isSpace c = lexer defaultPackage $ drop 1 all
-  | otherwise = error $ "Expression-lexing error: Unexpected character '" ++ [c] ++ "'."
+lexer :: Database -> String -> String -> IO [TemplateToken]
+lexer _ _ "" = return []
+lexer database defaultPackage ('(':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenLeftParen : restTokens
+lexer database defaultPackage (')':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenRightParen : restTokens
+lexer database defaultPackage ('[':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenLeftSquareBracket : restTokens
+lexer database defaultPackage (']':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenRightSquareBracket : restTokens
+lexer database defaultPackage ('{':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenLeftCurlyBracket : restTokens
+lexer database defaultPackage ('}':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenRightCurlyBracket : restTokens
+lexer database defaultPackage ('-':('>':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenMinusGreater : restTokens
+lexer database defaultPackage (';':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenSemicolon : restTokens
+lexer database defaultPackage (',':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenComma : restTokens
+lexer database defaultPackage ('+':('+':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenPlusPlus : restTokens
+lexer database defaultPackage ('=':('=':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenEqualsEquals : restTokens
+lexer database defaultPackage ('!':('=':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenExclamationEquals : restTokens
+lexer database defaultPackage ('!':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenExclamation : restTokens
+lexer database defaultPackage ('&':('&':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenAmpersandAmpersand : restTokens
+lexer database defaultPackage ('|':('|':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenBarBar : restTokens
+lexer database defaultPackage ('>':('=':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenGreaterEquals : restTokens
+lexer database defaultPackage ('>':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenGreater : restTokens
+lexer database defaultPackage ('<':('=':rest)) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenLessEquals : restTokens
+lexer database defaultPackage ('<':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenLess : restTokens
+lexer database defaultPackage ('+':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenPlus : restTokens
+lexer database defaultPackage ('-':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenMinus : restTokens
+lexer database defaultPackage ('*':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenStar : restTokens
+lexer database defaultPackage ('/':rest) = do
+  restTokens <- lexer database defaultPackage rest
+  return $ TokenSlash : restTokens
+lexer database defaultPackage all@('"':_) = do
+  let (string, rest) = readString all
+  restTokens <- lexer database defaultPackage rest
+  return $ (TokenValue $ TemplateString string) : restTokens
+lexer database defaultPackage all@(c:_)
+  | isDigit c = do
+    let [(result, rest)] = readDec all
+    restTokens <- lexer database defaultPackage rest
+    return $ (TokenValue $ TemplateInteger result) : restTokens
+  | isAlpha c = do
+    let (maybePackage, symbol, rest) = readSymbol all
+    token <- case maybePackage of
+      Nothing -> case symbol of
+                   _ | symbol == "if" -> return TokenIf
+                     | symbol == "case" -> return TokenCase
+                     | symbol == "call" -> return TokenCall
+                     | symbol == "iterate" -> return TokenIterate
+                     | symbol == "query" -> return TokenQuery
+                     | symbol == "lookup" -> return TokenLookup
+                     | symbol == "bound" -> return TokenBound
+                     | symbol == "bind" -> return TokenBind
+                     | symbol == "bindmap" -> return TokenBindMap
+                     | otherwise -> intern database defaultPackage symbol
+      Just package -> intern database package symbol
+    restTokens <- lexer database defaultPackage rest
+    return $ token : restTokens
+  | isSpace c = lexer database defaultPackage $ drop 1 all
+  | otherwise = error $ "Expression-lexing error: Unexpected character '"
+                        ++ [c] ++ "'."
 
 
 readString :: String -> (String, String)
@@ -271,5 +320,94 @@ symbolTokenPackage (TokenSymbol result _) = result
 
 symbolTokenName :: TemplateToken -> String
 symbolTokenName (TokenSymbol _ result) = result
+
+
+intern :: Database -> String -> String -> IO TemplateToken
+intern database moduleName properName = do
+  importedModules
+    <- earlyQuery database
+                  (  "SELECT imported_module FROM module_imports "
+                  ++ "WHERE importing_module = ?")
+                  [SQLText moduleName]
+  maybeDefiningModule
+    <- foldlM (\maybeDefiningModule importedModule -> do
+                 case maybeDefiningModule of
+                   Just _ -> return maybeDefiningModule
+                   Nothing -> do
+                     foundHere <- getSymbolExists database
+                                                  (importedModule, properName)
+                     return $ if foundHere
+                                then Just importedModule
+                                else Nothing)
+              Nothing
+              $ moduleName
+                : map (\[SQLText importedModule] -> importedModule)
+                      importedModules
+  case maybeDefiningModule of
+    Just definingModule -> return $ TokenSymbol definingModule properName
+    Nothing -> return $ TokenSymbol moduleName properName
+
+
+getSymbolExists :: Database -> (String, String) -> IO Bool
+getSymbolExists database variableName = do
+  let builtinExists' = builtinExists variableName
+  if builtinExists'
+    then return True
+    else do
+      functionExists <- getFunctionExists database variableName
+      if functionExists
+        then return True
+        else do
+          templateExists <- getTemplateExists database variableName
+          if templateExists
+            then return True
+            else do
+              queryExists <- getQueryExists database variableName
+              if queryExists
+                then return True
+                else return False
+
+
+builtinExists :: (String, String) -> Bool
+builtinExists variableName =
+  case Map.lookup variableName builtinBindings of
+    Just _ -> True
+    Nothing -> False
+
+
+getFunctionExists :: Database -> (String, String) -> IO Bool
+getFunctionExists database (moduleName, properName) = do
+  [[SQLInteger result]] <- earlyQuery database
+                                      (  "SELECT count(*) "
+                                      ++ "FROM functions "
+                                      ++ "WHERE module = ? AND name = ?")
+                                      [SQLText moduleName, SQLText properName]
+  return $ case result of
+             0 -> False
+             _ -> True
+
+
+getTemplateExists :: Database -> (String, String) -> IO Bool
+getTemplateExists database (moduleName, properName) = do
+  [[SQLInteger result]] <- earlyQuery database
+                                      (  "SELECT count(*) "
+                                      ++ "FROM templates "
+                                      ++ "WHERE module = ? AND name = ?")
+                                      [SQLText moduleName, SQLText properName]
+  return $ case result of
+             0 -> False
+             _ -> True
+
+
+getQueryExists :: Database -> (String, String) -> IO Bool
+getQueryExists database (moduleName, properName) = do
+  [[SQLInteger result]] <- earlyQuery database
+                                      (  "SELECT count(*) "
+                                      ++ "FROM queries "
+                                      ++ "WHERE module = ? AND name = ?")
+                                      [SQLText moduleName, SQLText properName]
+  return $ case result of
+             0 -> False
+             _ -> True
 
 }

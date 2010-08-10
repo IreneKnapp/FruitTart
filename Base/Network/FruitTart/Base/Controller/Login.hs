@@ -96,7 +96,7 @@ doNotLogIn maybeWarning maybeEmail = do
   unbind "Templates" "loginButton"
   referrer <- getReferrer
   bind "Base.Controller.Login" "referrer" referrer
-  bind "Base.Controller.Login" "maybeWarning" maybeWarning
+  bind "Templates" "maybeWarning" maybeWarning
   bind "Base.Controller.Login" "maybeEmail" maybeEmail
   pageContent <- getTemplate "Base.Controller.Login" "login" []
   bind "Templates" "pageContent" pageContent

@@ -56,6 +56,16 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Adventure.Controller.Adventure', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Adventure.Controller.Adventure', 'Templates')")
+             []
+  earlyQuery database
                  (  "CREATE TABLE adventure_users (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "right_edit INTEGER\n"

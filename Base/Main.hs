@@ -163,6 +163,63 @@ initDatabase database = do
              ++ ")")
              []
   earlyQuery database
+             (  "CREATE TABLE module_imports ("
+             ++ "importing_module TEXT,"
+             ++ "imported_module TEXT,"
+             ++ "CONSTRAINT key UNIQUE (importing_module, imported_module)"
+             ++ ")")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base', 'Templates')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Functions', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Functions', 'Templates')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Login', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Login', 'Templates')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Queries', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Queries', 'Templates')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Templates', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Base.Controller.Templates', 'Templates')")
+             []
+  earlyQuery database
              (  "CREATE TABLE stylesheets (\n"
              ++ "name TEXT,\n"
              ++ "priority INTEGER,\n"

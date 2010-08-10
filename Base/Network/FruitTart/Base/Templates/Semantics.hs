@@ -2,7 +2,7 @@ module Network.FruitTart.Base.Templates.Semantics (
                                                    getTemplate,
                                                    fillTemplate,
                                                    eval,
-                                                   getBaseBindings
+                                                   builtinBindings
                                                   )
     where
 
@@ -49,8 +49,11 @@ fillTemplate moduleName templateName = do
            "content" -> return body
            "expression" ->
                fCatch (do
-                        (result, newBindings) <- evalExpression
-                                                 $ readExpression moduleName body
+                        FruitTartState { database = database } <- get
+                        expression <- liftIO $ readExpression database
+                                                              moduleName
+                                                              body
+                        (result, newBindings) <- evalExpression expression
                         setBindings newBindings
                         valueToStringAllowingNull result)
                       (\e -> error $ "While processing template "
@@ -64,7 +67,10 @@ fillTemplate moduleName templateName = do
 
 eval :: String -> String -> FruitTart TemplateValue
 eval moduleName body = do
-  (evalExpression $ readExpression moduleName body) >>= return . fst
+  FruitTartState { database = database } <- get
+  expression <- liftIO $ readExpression database moduleName body
+  (result, _) <- evalExpression expression
+  return result
 
 
 letBindings :: Map (String, String) TemplateValue -> FruitTart a -> FruitTart a
@@ -349,8 +355,19 @@ evalExpression expression = do
         bindings <- getBindings
         case Map.lookup variableName bindings of
           Nothing -> case Map.lookup ("Templates", properName) bindings of
-                       Nothing -> error $ "Undefined variable " ++ packageName
-                                        ++ "." ++ properName ++ "."
+                       Nothing -> do
+                         maybeValue <- getTopLevelBinding variableName
+                         case maybeValue of
+                           Just value -> do
+                             oldBindings <- getBindings
+                             let newBindings
+                                   = Map.union (Map.fromList
+                                                     [(variableName, value)])
+                                               oldBindings
+                             return $ (value, newBindings)
+                           Nothing -> error $ "Undefined variable "
+                                              ++ packageName ++ "."
+                                              ++ properName ++ "."
                        Just value -> returnWithUnchangedBindings value
           Just value -> returnWithUnchangedBindings value
       TemplateBindExpression subexpressions -> do
@@ -464,28 +481,27 @@ applyFunction function actualParameters = do
       error $ "Call to something not a function."
 
 
-getBaseBindings :: FruitTart (Map (String, String) TemplateValue)
-getBaseBindings = do
-  functionItems <- query "SELECT id, module, name, body FROM functions" []
-  functions
-    <- mapM (\[SQLInteger functionID,
-               SQLText moduleName,
-               SQLText functionName,
-               SQLText functionBody]
-               -> do
-                 let compiledBody = readExpression moduleName functionBody
-                 parameterItems <- query ("SELECT name "
-                                          ++ "FROM function_parameters "
-                                          ++ "WHERE function = ? "
-                                          ++ "ORDER BY item")
-                                         [SQLInteger functionID]
-                 let parameters = map (\[SQLText parameterName]
-                                        -> TemplateParameter (moduleName, parameterName))
-                                      parameterItems
-                 return ((moduleName, functionName),
-                         TemplateLambda parameters Map.empty compiledBody))
-            functionItems
-  return $ Map.union builtinBindings (Map.fromList functions)
+getTopLevelBinding :: (String, String) -> FruitTart (Maybe TemplateValue)
+getTopLevelBinding variableName@(moduleName, functionName) = do
+  case Map.lookup variableName builtinBindings of
+    Just result -> return $ Just result
+    Nothing -> do
+      found <- query "SELECT id, body FROM functions WHERE module = ? AND name = ?"
+                     [SQLText moduleName, SQLText functionName]
+      case found of
+        [[SQLInteger functionID, SQLText functionBody]] -> do
+          FruitTartState { database = database } <- get
+          compiledBody <- liftIO $ readExpression database moduleName functionBody
+          parameterItems <- query ("SELECT name "
+                                   ++ "FROM function_parameters "
+                                   ++ "WHERE function = ? "
+                                   ++ "ORDER BY item")
+                                  [SQLInteger functionID]
+          let parameters = map (\[SQLText parameterName]
+                                 -> TemplateParameter (moduleName, parameterName))
+                               parameterItems
+          return $ Just $ TemplateLambda parameters Map.empty compiledBody
+        _ -> return Nothing
 
 
 builtinBindings :: Map (String, String) TemplateValue

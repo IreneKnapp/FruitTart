@@ -2,7 +2,7 @@ module Network.FruitTart.Base.Templates.Semantics (
        						   getTemplate,
                                                    fillTemplate,
 						   eval,
-                                                   getBaseBindings
+						   builtinBindings
                                                   )
     where
 
@@ -16,7 +16,6 @@ import Data.Maybe
 import Prelude hiding (catch)
 
 import Network.FruitTart.Base
-import Network.FruitTart.Base.Templates.Syntax
 import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
@@ -29,4 +28,4 @@ fillTemplate :: String
 
 eval :: String -> String -> FruitTart TemplateValue
 
-getBaseBindings :: FruitTart (Map (String, String) TemplateValue)
+builtinBindings :: Map (String, String) TemplateValue

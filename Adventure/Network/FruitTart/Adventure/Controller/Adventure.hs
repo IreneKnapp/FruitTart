@@ -138,7 +138,7 @@ editNodePOST nodeID = do
            bind "Adventure.Controller.Adventure" "body" body
            bind "Adventure.Controller.Adventure" "options" options
            bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
-           bind "Adventure.Controller.Adventure" "maybeWarning"
+           bind "Templates" "maybeWarning"
                 $ Just "There is already a node by that name."
            outputPage "Adventure.Controller.Adventure" "editNode"
          else do
@@ -186,7 +186,7 @@ createNodePOST = do
            bind "Adventure.Controller.Adventure" "body" body
            bind "Adventure.Controller.Adventure" "options" options
            bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
-           bind "Adventure.Controller.Adventure" "maybeWarning"
+           bind "Templates" "maybeWarning"
                 $ Just "There is already a node by that name."
            outputPage "Adventure.Controller.Adventure" "editNode"
          else do
@@ -222,7 +222,7 @@ bindDefaults pageTitle currentPage = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bind "Adventure.Controller.Adventure" "maybeWarning" (Nothing :: Maybe String)
+  bind "Templates" "maybeWarning" (Nothing :: Maybe String)
 
 
 outputPage :: String -> String -> FruitTart ()

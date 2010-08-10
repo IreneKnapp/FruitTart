@@ -61,6 +61,26 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Buglist.Controller.Issues', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Buglist.Controller.Issues', 'Templates')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Buglist.Controller.Users', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Buglist.Controller.Users', 'Templates')")
+             []
+  earlyQuery database
                  (  "CREATE TABLE buglist_sessions (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "issue_index_filter_which TEXT,\n"

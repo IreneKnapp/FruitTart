@@ -452,7 +452,7 @@ outputView id comment fullName email maybeWarning = do
        bind "Buglist.Controller.Issues" "rows" rows
        bind "Buglist.Controller.Issues" "id" id
        bind "Buglist.Controller.Issues" "comment" comment
-       bind "Buglist.Controller.Issues" "maybeWarning" maybeWarning
+       bind "Templates" "maybeWarning" maybeWarning
        bind "Buglist.Controller.Issues" "status" status
        bind "Buglist.Controller.Issues" "resolution" resolution
        bind "Buglist.Controller.Issues" "module" module'
@@ -697,7 +697,7 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   bind "Templates" "navigationBar" navigationBar
   bind "Templates" "loginButton" loginButton
   bind "Templates" "popupMessage" popupMessage
-  bind "Buglist.Controller.Issues" "maybeWarning" maybeWarning
+  bind "Templates" "maybeWarning" maybeWarning
   bind "Buglist.Controller.Issues" "modulePopup" modulePopup
   bind "Buglist.Controller.Issues" "summary" summary
   bind "Buglist.Controller.Issues" "comment" comment

@@ -166,7 +166,7 @@ outputFunctionPage currentPage targetPage maybeWarning maybeFunctionID = do
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
   bind "Base.Controller.Functions" "targetPage" targetPage
-  bind "Base.Controller.Functions" "maybeWarning" maybeWarning
+  bind "Templates" "maybeWarning" maybeWarning
   bind "Base.Controller.Functions" "maybeFunctionID" maybeFunctionID
   pageContent <- getTemplate "Base.Controller.Functions" "function" []
   bind "Templates" "pageContent" pageContent
@@ -332,11 +332,7 @@ deletePOST functionID = do
 getInputParameters :: FruitTart [String]
 getInputParameters
     = let getInputParameter index = do
-            maybeParameter <- getInput $ "parameter" ++ (show index)
-            parameter <- case maybeParameter of
-                          Nothing -> return ""
-                          Just parameter -> return parameter
-            return $ Just parameter
+            getInput $ "parameter" ++ (show index)
           getInputParametersFrom index = do
             maybeParameter <- getInputParameter index
             case maybeParameter of

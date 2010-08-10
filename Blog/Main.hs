@@ -56,6 +56,16 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Blog.Controller.Blog', 'Queries')")
+             []
+  earlyQuery database
+             (  "INSERT INTO module_imports "
+             ++ "(importing_module, imported_module) "
+             ++ "VALUES ('Blog.Controller.Blog', 'Templates')")
+             []
+  earlyQuery database
                  (  "CREATE TABLE blog_posts (\n"
                  ++ "id INTEGER PRIMARY KEY,\n"
                  ++ "author INTEGER,\n"

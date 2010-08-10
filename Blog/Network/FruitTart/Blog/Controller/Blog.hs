@@ -40,7 +40,7 @@ bindDefaults pageTitle currentPage = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bind "Blog.Controller.Blog" "maybeWarning" (Nothing :: Maybe String)
+  bind "Templates" "maybeWarning" (Nothing :: Maybe String)
 
 
 outputPage :: String -> String -> FruitTart ()

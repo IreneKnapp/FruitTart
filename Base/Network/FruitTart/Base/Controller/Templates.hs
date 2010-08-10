@@ -191,7 +191,7 @@ outputTemplatePage currentPage targetPage maybeWarning maybeTemplateID
                                     TemplateInteger index)])
              $ zip bodies [1..]
   bind "Base.Controller.Templates" "targetPage" targetPage
-  bind "Base.Controller.Templates" "maybeWarning" maybeWarning
+  bind "Templates" "maybeWarning" maybeWarning
   bind "Base.Controller.Templates" "maybeTemplateID" maybeTemplateID
   bind "Base.Controller.Templates" "moduleName" moduleName
   bind "Base.Controller.Templates" "templateName" templateName
