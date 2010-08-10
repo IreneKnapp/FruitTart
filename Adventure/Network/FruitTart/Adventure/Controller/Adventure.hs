@@ -37,7 +37,7 @@ actionTable
 index :: FruitTart ()
 index = do
   bindDefaults "Adventure!" "/adventure/index/"
-  outputPage "Adventure.Controller.Adventure" "index"
+  outputPage "Adventure" "index"
 
 
 editIndex :: FruitTart ()
@@ -47,9 +47,9 @@ editIndex = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Adventure Editor" "/adventure/edit-index/"
-      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "nodes" []
-      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "variables" []
-      outputPage "Adventure.Controller.Adventure" "editIndex"
+      bindNamedQueryMultipleRows "Adventure" "nodes" []
+      bindNamedQueryMultipleRows "Adventure" "variables" []
+      outputPage "Adventure" "editIndex"
 
 
 editNodeGET :: Int64 -> FruitTart ()
@@ -58,17 +58,17 @@ editNodeGET nodeID = do
   case right of
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
-      bind "Adventure.Controller.Adventure" "id" nodeID
-      bindNamedQuery "Adventure.Controller.Adventure" "nodeDetails" [SQLInteger nodeID]
-      name <- getBinding "Adventure.Controller.Adventure" "name" >>= return . fromJust
+      bind "Adventure" "id" nodeID
+      bindNamedQuery "Adventure" "nodeDetails" [SQLInteger nodeID]
+      name <- getBinding "Adventure" "name" >>= return . fromJust
       name <- return $ case name of
                          TemplateString string -> string
-      bindNamedQueryMultipleRows "Adventure.Controller.Adventure" "options"
+      bindNamedQueryMultipleRows "Adventure" "options"
                                  [SQLInteger nodeID]
       currentPage <- return $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
       bindDefaults ("Edit Node " ++ name) currentPage
-      bind "Adventure.Controller.Adventure" "targetPage" currentPage
-      outputPage "Adventure.Controller.Adventure" "editNode"
+      bind "Adventure" "targetPage" currentPage
+      outputPage "Adventure" "editNode"
 
 
 editVariableGET :: String -> FruitTart ()
@@ -79,9 +79,9 @@ editVariableGET variableName = do
     True -> do
       bindDefaults ("Edit Variable " ++ variableName)
                    ("/adventure/edit-variable/" ++ variableName ++ "/")
-      bindNamedQuery "Adventure.Controller.Adventure" "variableDetails"
+      bindNamedQuery "Adventure" "variableDetails"
                      [SQLText variableName]
-      outputPageNoScript "Adventure.Controller.Adventure" "editVariable"
+      outputPageNoScript "Adventure" "editVariable"
 
 
 createNodeGET :: FruitTart ()
@@ -91,12 +91,11 @@ createNodeGET = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Create Node" "/adventure/create-node/"
-      bind "Adventure.Controller.Adventure" "name" "New Node"
-      bind "Adventure.Controller.Adventure" "body" ""
-      bind "Adventure.Controller.Adventure" "options" ([] :: [Map (String, String)
-                                                                  TemplateValue])
-      bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
-      outputPage "Adventure.Controller.Adventure" "editNode"
+      bind "Adventure" "name" "New Node"
+      bind "Adventure" "body" ""
+      bind "Adventure" "options" ([] :: [Map (String, String) TemplateValue])
+      bind "Adventure" "targetPage" "/adventure/create-node/"
+      outputPage "Adventure" "editNode"
 
 
 createVariableGET :: FruitTart ()
@@ -106,7 +105,7 @@ createVariableGET = do
     False -> seeOtherRedirect "/adventure/index/"
     True -> do
       bindDefaults "Create Variable" "/adventure/create-variable/"
-      outputPage "Adventure.Controller.Adventure" "editVariable"
+      outputPage "Adventure" "editVariable"
 
 
 editNodePOST :: Int64 -> FruitTart ()
@@ -124,25 +123,25 @@ editNodePOST nodeID = do
                          Nothing -> ""
                          Just body -> fromCRLF body
       options <- getOptionInputs
-      [values] <- namedQuery "Adventure.Controller.Adventure" "nodeExistsWithDifferentID"
+      [values] <- namedQuery "Adventure" "nodeExistsWithDifferentID"
                              [SQLText name, SQLInteger nodeID]
       exists <- return $ fromJust
-                       $ Map.lookup ("Adventure.Controller.Adventure", "exists")
+                       $ Map.lookup ("Adventure", "exists")
                                     values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       if exists
          then do
            bindDefaults "Create Node" "/adventure/create-node/"
-           bind "Adventure.Controller.Adventure" "name" name
-           bind "Adventure.Controller.Adventure" "body" body
-           bind "Adventure.Controller.Adventure" "options" options
-           bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
+           bind "Adventure" "name" name
+           bind "Adventure" "body" body
+           bind "Adventure" "options" options
+           bind "Adventure" "targetPage" "/adventure/create-node/"
            bind "Templates" "maybeWarning"
                 $ Just "There is already a node by that name."
-           outputPage "Adventure.Controller.Adventure" "editNode"
+           outputPage "Adventure" "editNode"
          else do
-           namedQuery "Adventure.Controller.Adventure" "updateNode"
+           namedQuery "Adventure" "updateNode"
                       [SQLText name, SQLText body, SQLInteger nodeID]
            setPopupMessage $ Just "Node modified."
            seeOtherRedirect $ "/adventure/edit-node/" ++ (show nodeID) ++ "/"
@@ -172,28 +171,28 @@ createNodePOST = do
                          Nothing -> ""
                          Just body -> fromCRLF body
       options <- getOptionInputs
-      [values] <- namedQuery "Adventure.Controller.Adventure" "nodeExists"
+      [values] <- namedQuery "Adventure" "nodeExists"
                              [SQLText name]
       exists <- return $ fromJust
-                       $ Map.lookup ("Adventure.Controller.Adventure", "exists")
+                       $ Map.lookup ("Adventure", "exists")
                                     values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       if exists
          then do
            bindDefaults "Create Node" "/adventure/create-node/"
-           bind "Adventure.Controller.Adventure" "name" name
-           bind "Adventure.Controller.Adventure" "body" body
-           bind "Adventure.Controller.Adventure" "options" options
-           bind "Adventure.Controller.Adventure" "targetPage" "/adventure/create-node/"
+           bind "Adventure" "name" name
+           bind "Adventure" "body" body
+           bind "Adventure" "options" options
+           bind "Adventure" "targetPage" "/adventure/create-node/"
            bind "Templates" "maybeWarning"
                 $ Just "There is already a node by that name."
-           outputPage "Adventure.Controller.Adventure" "editNode"
+           outputPage "Adventure" "editNode"
          else do
-           namedQuery "Adventure.Controller.Adventure" "insertNode"
+           namedQuery "Adventure" "insertNode"
                       [SQLText name, SQLText body]
-           [values] <- namedQuery "Adventure.Controller.Adventure" "nodeJustInserted" []
-           nodeID <- return $ fromJust $ Map.lookup ("Adventure.Controller.Adventure",
+           [values] <- namedQuery "Adventure" "nodeJustInserted" []
+           nodeID <- return $ fromJust $ Map.lookup ("Adventure",
                                                      "nodeID")
                                                     values
            nodeID <- return $ case nodeID of
@@ -244,9 +243,9 @@ outputPageNoScript moduleName templateName = do
 getRightEdit :: FruitTart Bool
 getRightEdit = do
   userID <- getEffectiveUserID
-  [values] <- namedQuery "Adventure.Controller.Adventure" "getRights"
+  [values] <- namedQuery "Adventure" "getRights"
                          [SQLInteger userID]
-  right <- return $ fromJust $ Map.lookup ("Adventure.Controller.Adventure", "rightEdit")
+  right <- return $ fromJust $ Map.lookup ("Adventure", "rightEdit")
                                           values
   right <- return $ case right of
                       TemplateBool bool -> bool

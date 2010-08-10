@@ -41,8 +41,8 @@ index = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bindNamedQueryMultipleRows "Buglist.Controller.Users" "indexRows" []
-      pageContent <- getTemplate "Buglist.Controller.Users" "index" []
+      bindNamedQueryMultipleRows "Buglist.Users" "indexRows" []
+      pageContent <- getTemplate "Buglist.Users" "index" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -71,11 +71,11 @@ view id = do
            bind "Templates" "loginButton" loginButton
            popupMessage <- getPopupMessage
            bind "Templates" "popupMessage" popupMessage
-           bind "Buglist.Controller.Users" "fullName" fullName
-           bind "Buglist.Controller.Users" "email" email
-           bind "Buglist.Controller.Users" "userID" id
-           bindNamedQuery "Buglist.Controller.Users" "userIssueActions" []
-           pageContent <- getTemplate "Buglist.Controller.Users" "view" []
+           bind "Buglist.Users" "fullName" fullName
+           bind "Buglist.Users" "email" email
+           bind "Buglist.Users" "userID" id
+           bindNamedQuery "Buglist.Users" "userIssueActions" []
+           pageContent <- getTemplate "Buglist.Users" "view" []
            bind "Templates" "pageContent" pageContent
            page <- getTemplate "Templates" "page" []
            fPutStr page

@@ -48,10 +48,8 @@ index = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bindNamedQueryMultipleRows "Base.Controller.Functions"
-                                 "indexRows"
-                                 []
-      pageContent <- getTemplate "Base.Controller.Functions" "index" []
+      bindNamedQueryMultipleRows "Base.Functions" "indexRows" []
+      pageContent <- getTemplate "Base.Functions" "index" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -66,29 +64,29 @@ view functionID = do
     False -> outputMustLoginPage currentPage
     True -> do
       maybeNames
-          <- namedQuery "Base.Controller.Functions" "functionDetails"
+          <- namedQuery "Base.Functions" "functionDetails"
                         [SQLInteger functionID]
       case maybeNames of
         [values] -> do
-          moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          moduleName <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                         "moduleName")
                                                        values
           moduleName <- return $ case moduleName of
                                    TemplateString string -> string
-          functionName <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          functionName <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                           "functionName")
                                                          values
           functionName <- return $ case functionName of
                                   TemplateString string -> string
-          body <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          body <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                   "body")
                                                  values
           body <- return $ case body of
                              TemplateString body -> body
-          bind "Base.Controller.Functions" "moduleName" moduleName
-          bind "Base.Controller.Functions" "functionName" functionName
-          bind "Base.Controller.Functions" "body" body
-          bindNamedQueryMultipleRows "Base.Controller.Functions"
+          bind "Base.Functions" "moduleName" moduleName
+          bind "Base.Functions" "functionName" functionName
+          bind "Base.Functions" "body" body
+          bindNamedQueryMultipleRows "Base.Functions"
                                      "parameters"
                                      [SQLInteger functionID]
           outputFunctionPage currentPage targetPage Nothing (Just functionID)
@@ -104,29 +102,29 @@ copy functionID = do
     False -> outputMustLoginPage currentPage
     True -> do
       maybeNames
-          <- namedQuery "Base.Controller.Functions" "functionDetails"
+          <- namedQuery "Base.Functions" "functionDetails"
                         [SQLInteger functionID]
       case maybeNames of
         [values] -> do
-          moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          moduleName <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                         "moduleName")
                                                        values
           moduleName <- return $ case moduleName of
                                    TemplateString string -> string
-          functionName <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          functionName <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                           "functionName")
                                                          values
           functionName <- return $ case functionName of
                                   TemplateString string -> string
-          body <- return $ fromJust $ Map.lookup ("Base.Controller.Functions",
+          body <- return $ fromJust $ Map.lookup ("Base.Functions",
                                                   "body")
                                                  values
           body <- return $ case body of
                              TemplateString body -> body
-          bind "Base.Controller.Functions" "moduleName" moduleName
-          bind "Base.Controller.Functions" "functionName" functionName
-          bind "Base.Controller.Function" "body" body
-          bindNamedQueryMultipleRows "Base.Controller.Function"
+          bind "Base.Functions" "moduleName" moduleName
+          bind "Base.Functions" "functionName" functionName
+          bind "Base.Function" "body" body
+          bindNamedQueryMultipleRows "Base.Function"
                                      "parameters"
                                      [SQLInteger functionID]
           outputFunctionPage currentPage targetPage Nothing Nothing
@@ -141,10 +139,10 @@ createGET = do
   case right of
     False -> outputMustLoginPage currentPage
     True -> do
-      bind "Base.Controller.Functions" "moduleName" "Module"
-      bind "Base.Controller.Functions" "functionName" "function"
-      bind "Base.Controller.Functions" "body" ""
-      bind "Base.Controller.Functions" "parameters" ([] :: [String])
+      bind "Base.Functions" "moduleName" "Module"
+      bind "Base.Functions" "functionName" "function"
+      bind "Base.Functions" "body" ""
+      bind "Base.Functions" "parameters" ([] :: [String])
       outputFunctionPage currentPage targetPage Nothing Nothing
 
 
@@ -152,9 +150,9 @@ outputFunctionPage
     :: String -> String -> (Maybe String) -> (Maybe Int64) -> FruitTart ()
 outputFunctionPage currentPage targetPage maybeWarning maybeFunctionID = do
   TemplateString moduleName
-      <- getBinding "Base.Controller.Functions" "moduleName" >>= return . fromJust
+      <- getBinding "Base.Functions" "moduleName" >>= return . fromJust
   TemplateString functionName
-      <- getBinding "Base.Controller.Functions" "functionName" >>= return . fromJust
+      <- getBinding "Base.Functions" "functionName" >>= return . fromJust
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ functionName
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Base.Functions"]
@@ -165,10 +163,10 @@ outputFunctionPage currentPage targetPage maybeWarning maybeFunctionID = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bind "Base.Controller.Functions" "targetPage" targetPage
+  bind "Base.Functions" "targetPage" targetPage
   bind "Templates" "maybeWarning" maybeWarning
-  bind "Base.Controller.Functions" "maybeFunctionID" maybeFunctionID
-  pageContent <- getTemplate "Base.Controller.Functions" "function" []
+  bind "Base.Functions" "maybeFunctionID" maybeFunctionID
+  pageContent <- getTemplate "Base.Functions" "function" []
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript" []
   fPutStr page
@@ -197,25 +195,25 @@ createPOST = do
       parameters <- getInputParameters
       namedQuery "Queries" "beginExclusiveTransaction" []
       [values]
-          <- namedQuery "Base.Controller.Functions" "functionExists"
+          <- namedQuery "Base.Functions" "functionExists"
                         [SQLText moduleName, SQLText functionName]
-      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Functions", "exists")
+      exists <- return $ fromJust $ Map.lookup ("Base.Functions", "exists")
                                                values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       case exists of
         False -> do
-          namedQuery "Base.Controller.Functions" "insertFunction"
+          namedQuery "Base.Functions" "insertFunction"
                      [SQLText moduleName,
                       SQLText functionName,
                       SQLText body]
-          [values] <- namedQuery "Base.Controller.Functions" "functionJustInserted" []
-          functionID <- return $ fromJust $ Map.lookup ("Base.Controller.Functions", "functionID")
+          [values] <- namedQuery "Base.Functions" "functionJustInserted" []
+          functionID <- return $ fromJust $ Map.lookup ("Base.Functions", "functionID")
                                                     values
           functionID <- return $ case functionID of
                                 TemplateInteger integer -> integer
           mapM_ (\(parameterName, index) -> do
-                   namedQuery "Base.Controller.Functions" "insertFunctionParameter"
+                   namedQuery "Base.Functions" "insertFunctionParameter"
                               [SQLInteger functionID,
                                SQLInteger index,
                                SQLText parameterName])
@@ -225,9 +223,9 @@ createPOST = do
           seeOtherRedirect $ "/functions/view/" ++ (show functionID) ++ "/"
         True -> do
           namedQuery "Queries" "rollback" []
-          bind "Base.Controller.Functions" "moduleName" moduleName
-          bind "Base.Controller.Functions" "functionName" functionName
-          bind "Base.Controller.Functions" "body" body
+          bind "Base.Functions" "moduleName" moduleName
+          bind "Base.Functions" "functionName" functionName
+          bind "Base.Functions" "body" body
           outputFunctionPage currentPage targetPage
                           (Just "A function by that name already exists.")
                           Nothing
@@ -256,22 +254,22 @@ edit functionID = do
       parameters <- getInputParameters
       namedQuery "Queries" "beginTransaction" []
       [values]
-          <- namedQuery "Base.Controller.Functions" "functionExistsWithDifferentID"
+          <- namedQuery "Base.Functions" "functionExistsWithDifferentID"
                         [SQLText moduleName, SQLText functionName, SQLInteger functionID]
-      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Functions", "exists")
+      exists <- return $ fromJust $ Map.lookup ("Base.Functions", "exists")
                                                values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       case exists of
         False -> do
-          namedQuery "Base.Controller.Functions" "updateFunction"
+          namedQuery "Base.Functions" "updateFunction"
                      [SQLText moduleName,
                       SQLText functionName,
                       SQLText body,
                       SQLInteger functionID]
-          namedQuery "Base.Controller.Functions" "deleteFunctionParameters" [SQLInteger functionID]
+          namedQuery "Base.Functions" "deleteFunctionParameters" [SQLInteger functionID]
           mapM_ (\(parameterName, index) -> do
-                   namedQuery "Base.Controller.Functions" "insertFunctionParameter"
+                   namedQuery "Base.Functions" "insertFunctionParameter"
                               [SQLInteger functionID,
                                SQLInteger index,
                                SQLText parameterName])
@@ -281,9 +279,9 @@ edit functionID = do
           seeOtherRedirect $ "/functions/view/" ++ (show functionID) ++ "/"
         True -> do
           namedQuery "Queries" "rollback" []
-          bind "Base.Controller.Functions" "moduleName" moduleName
-          bind "Base.Controller.Functions" "functionName" functionName
-          bind "Base.Controller.Functions" "body" body
+          bind "Base.Functions" "moduleName" moduleName
+          bind "Base.Functions" "functionName" functionName
+          bind "Base.Functions" "body" body
           outputFunctionPage currentPage targetPage
                           (Just "A function by that name already exists.")
                           (Just functionID)
@@ -307,9 +305,9 @@ deleteGET functionID = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bindNamedQuery "Base.Controller.Functions" "functionName" [SQLInteger functionID]
-      bind "Base.Controller.Functions" "targetPage" targetPage
-      pageContent <- getTemplate "Base.Controller.Functions" "delete" []
+      bindNamedQuery "Base.Functions" "functionName" [SQLInteger functionID]
+      bind "Base.Functions" "targetPage" targetPage
+      pageContent <- getTemplate "Base.Functions" "delete" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -322,8 +320,8 @@ deletePOST functionID = do
     False -> outputMustLoginPage "/functions/index/"
     True -> do
       namedQuery "Queries" "beginTransaction" []
-      namedQuery "Base.Controller.Functions" "deleteFunction" [SQLInteger functionID]
-      namedQuery "Base.Controller.Functions" "deleteFunctionParameters" [SQLInteger functionID]
+      namedQuery "Base.Functions" "deleteFunction" [SQLInteger functionID]
+      namedQuery "Base.Functions" "deleteFunctionParameters" [SQLInteger functionID]
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Function deleted."
       seeOtherRedirect "/functions/index/"

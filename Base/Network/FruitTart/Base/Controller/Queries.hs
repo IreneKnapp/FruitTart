@@ -48,10 +48,10 @@ index = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bindNamedQueryMultipleRows "Base.Controller.Queries"
+      bindNamedQueryMultipleRows "Base.Queries"
                                  "indexRows"
                                  []
-      pageContent <- getTemplate "Base.Controller.Queries" "index" []
+      pageContent <- getTemplate "Base.Queries" "index" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -66,35 +66,35 @@ view queryID = do
     False -> outputMustLoginPage currentPage
     True -> do
       maybeNames
-          <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
+          <- namedQuery "Base.Queries" "queryDetails" [SQLInteger queryID]
       case maybeNames of
         [values] -> do
-          moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          moduleName <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                         "moduleName")
                                                        values
           moduleName <- return $ case moduleName of
                                    TemplateString string -> string
-          queryName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          queryName <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                        "queryName")
                                                        values
           queryName <- return $ case queryName of
                                   TemplateString string -> string
           isTemplateExpression <- return $ fromJust $ Map.lookup
-                                  ("Base.Controller.Queries",
+                                  ("Base.Queries",
                                    "isTemplateExpression")
                                   values
           isTemplateExpression <- return $ case isTemplateExpression of
                                              TemplateBool bool -> bool
-          body <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          body <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                   "body")
                                                  values
           body <- return $ case body of
                              TemplateString body -> body
-          bind "Base.Controller.Queries" "moduleName" moduleName
-          bind "Base.Controller.Queries" "queryName" queryName
-          bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
-          bind "Base.Controller.Queries" "body" body
-          bindNamedQueryMultipleRows "Base.Controller.Queries"
+          bind "Base.Queries" "moduleName" moduleName
+          bind "Base.Queries" "queryName" queryName
+          bind "Base.Queries" "isTemplateExpression" isTemplateExpression
+          bind "Base.Queries" "body" body
+          bindNamedQueryMultipleRows "Base.Queries"
                                      "results"
                                      [SQLInteger queryID]
           outputQueryPage currentPage targetPage Nothing (Just queryID)
@@ -110,35 +110,35 @@ copy queryID = do
     False -> outputMustLoginPage currentPage
     True -> do
       maybeNames
-          <- namedQuery "Base.Controller.Queries" "queryDetails" [SQLInteger queryID]
+          <- namedQuery "Base.Queries" "queryDetails" [SQLInteger queryID]
       case maybeNames of
         [values] -> do
-          moduleName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          moduleName <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                         "moduleName")
                                                        values
           moduleName <- return $ case moduleName of
                                    TemplateString string -> string
-          queryName <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          queryName <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                        "queryName")
                                                        values
           queryName <- return $ case queryName of
                                   TemplateString string -> string
           isTemplateExpression <- return $ fromJust $ Map.lookup
-                                  ("Base.Controller.Queries",
+                                  ("Base.Queries",
                                    "isTemplateExpression")
                                   values
           isTemplateExpression <- return $ case isTemplateExpression of
                                              TemplateBool bool -> bool
-          body <- return $ fromJust $ Map.lookup ("Base.Controller.Queries",
+          body <- return $ fromJust $ Map.lookup ("Base.Queries",
                                                   "body")
                                                  values
           body <- return $ case body of
                              TemplateString body -> body
-          bind "Base.Controller.Queries" "moduleName" moduleName
-          bind "Base.Controller.Queries" "queryName" queryName
-          bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
-          bind "Base.Controller.Queries" "body" body
-          bindNamedQueryMultipleRows "Base.Controller.Queries"
+          bind "Base.Queries" "moduleName" moduleName
+          bind "Base.Queries" "queryName" queryName
+          bind "Base.Queries" "isTemplateExpression" isTemplateExpression
+          bind "Base.Queries" "body" body
+          bindNamedQueryMultipleRows "Base.Queries"
                                      "results"
                                      [SQLInteger queryID]
           outputQueryPage currentPage targetPage Nothing Nothing
@@ -153,11 +153,11 @@ createGET = do
   case right of
     False -> outputMustLoginPage currentPage
     True -> do
-      bind "Base.Controller.Queries" "moduleName" "Module"
-      bind "Base.Controller.Queries" "queryName" "query"
-      bind "Base.Controller.Queries" "isTemplateExpression" False
-      bind "Base.Controller.Queries" "body" ""
-      bind "Base.Controller.Queries" "results" ([] :: [String])
+      bind "Base.Queries" "moduleName" "Module"
+      bind "Base.Queries" "queryName" "query"
+      bind "Base.Queries" "isTemplateExpression" False
+      bind "Base.Queries" "body" ""
+      bind "Base.Queries" "results" ([] :: [String])
       outputQueryPage currentPage targetPage Nothing Nothing
 
 
@@ -165,9 +165,9 @@ outputQueryPage
     :: String -> String -> (Maybe String) -> (Maybe Int64) -> FruitTart ()
 outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   TemplateString moduleName
-      <- getBinding "Base.Controller.Queries" "moduleName" >>= return . fromJust
+      <- getBinding "Base.Queries" "moduleName" >>= return . fromJust
   TemplateString queryName
-      <- getBinding "Base.Controller.Queries" "queryName" >>= return . fromJust
+      <- getBinding "Base.Queries" "queryName" >>= return . fromJust
   bind "Templates" "pageTitle" $ moduleName ++ "." ++ queryName
   pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                [TemplateString "Base.Queries"]
@@ -178,10 +178,10 @@ outputQueryPage currentPage targetPage maybeWarning maybeQueryID = do
   bind "Templates" "loginButton" loginButton
   popupMessage <- getPopupMessage
   bind "Templates" "popupMessage" popupMessage
-  bind "Base.Controller.Queries" "targetPage" targetPage
+  bind "Base.Queries" "targetPage" targetPage
   bind "Templates" "maybeWarning" maybeWarning
-  bind "Base.Controller.Queries" "maybeQueryID" maybeQueryID
-  pageContent <- getTemplate "Base.Controller.Queries" "query" []
+  bind "Base.Queries" "maybeQueryID" maybeQueryID
+  pageContent <- getTemplate "Base.Queries" "query" []
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "pageNoScript" []
   fPutStr page
@@ -214,27 +214,27 @@ createPOST = do
       items <- getInputItems
       namedQuery "Queries" "beginExclusiveTransaction" []
       [values]
-          <- namedQuery "Base.Controller.Queries" "queryExists"
+          <- namedQuery "Base.Queries" "queryExists"
                         [SQLText moduleName, SQLText queryName]
-      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "exists")
+      exists <- return $ fromJust $ Map.lookup ("Base.Queries", "exists")
                                                values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       case exists of
         False -> do
-          namedQuery "Base.Controller.Queries" "insertQuery"
+          namedQuery "Base.Queries" "insertQuery"
                      [SQLText moduleName,
                       SQLText queryName,
                       SQLInteger $ if isTemplateExpression then 1 else 0,
                       SQLText body]
-          [values] <- namedQuery "Base.Controller.Queries" "queryJustInserted" []
-          queryID <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "queryID")
+          [values] <- namedQuery "Base.Queries" "queryJustInserted" []
+          queryID <- return $ fromJust $ Map.lookup ("Base.Queries", "queryID")
                                                     values
           queryID <- return $ case queryID of
                                 TemplateInteger integer -> integer
           if not isTemplateExpression
             then mapM (\((itemType, itemName), index) -> do
-                         namedQuery "Base.Controller.Queries" "insertQueryResult"
+                         namedQuery "Base.Queries" "insertQueryResult"
                                     [SQLInteger queryID,
                                      SQLInteger index,
                                      SQLText itemType,
@@ -246,10 +246,10 @@ createPOST = do
           seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
         True -> do
           namedQuery "Queries" "rollback" []
-          bind "Base.Controller.Queries" "moduleName" moduleName
-          bind "Base.Controller.Queries" "queryName" queryName
-          bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
-          bind "Base.Controller.Queries" "body" body
+          bind "Base.Queries" "moduleName" moduleName
+          bind "Base.Queries" "queryName" queryName
+          bind "Base.Queries" "isTemplateExpression" isTemplateExpression
+          bind "Base.Queries" "body" body
           outputQueryPage currentPage targetPage
                           (Just "A query by that name already exists.")
                           Nothing
@@ -282,24 +282,24 @@ edit queryID = do
       items <- getInputItems
       namedQuery "Queries" "beginTransaction" []
       [values]
-          <- namedQuery "Base.Controller.Queries" "queryExistsWithDifferentID"
+          <- namedQuery "Base.Queries" "queryExistsWithDifferentID"
                         [SQLText moduleName, SQLText queryName, SQLInteger queryID]
-      exists <- return $ fromJust $ Map.lookup ("Base.Controller.Queries", "exists")
+      exists <- return $ fromJust $ Map.lookup ("Base.Queries", "exists")
                                                values
       exists <- return $ case exists of
                            TemplateBool bool -> bool
       case exists of
         False -> do
-          namedQuery "Base.Controller.Queries" "updateQuery"
+          namedQuery "Base.Queries" "updateQuery"
                      [SQLText moduleName,
                       SQLText queryName,
                       SQLInteger $ if isTemplateExpression then 1 else 0,
                       SQLText body,
                       SQLInteger queryID]
-          namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
+          namedQuery "Base.Queries" "deleteQueryResults" [SQLInteger queryID]
           if not isTemplateExpression
             then mapM (\((itemType, itemName), index) -> do
-                         namedQuery "Base.Controller.Queries" "insertQueryResult"
+                         namedQuery "Base.Queries" "insertQueryResult"
                                     [SQLInteger queryID,
                                      SQLInteger index,
                                      SQLText itemType,
@@ -311,10 +311,10 @@ edit queryID = do
           seeOtherRedirect $ "/queries/view/" ++ (show queryID) ++ "/"
         True -> do
           namedQuery "Queries" "rollback" []
-          bind "Base.Controller.Queries" "moduleName" moduleName
-          bind "Base.Controller.Queries" "queryName" queryName
-          bind "Base.Controller.Queries" "isTemplateExpression" isTemplateExpression
-          bind "Base.Controller.Queries" "body" body
+          bind "Base.Queries" "moduleName" moduleName
+          bind "Base.Queries" "queryName" queryName
+          bind "Base.Queries" "isTemplateExpression" isTemplateExpression
+          bind "Base.Queries" "body" body
           outputQueryPage currentPage targetPage
                           (Just "A query by that name already exists.")
                           (Just queryID)
@@ -338,9 +338,9 @@ deleteGET queryID = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bindNamedQuery "Base.Controller.Queries" "queryName" [SQLInteger queryID]
-      bind "Base.Controller.Queries" "targetPage" targetPage
-      pageContent <- getTemplate "Base.Controller.Queries" "delete" []
+      bindNamedQuery "Base.Queries" "queryName" [SQLInteger queryID]
+      bind "Base.Queries" "targetPage" targetPage
+      pageContent <- getTemplate "Base.Queries" "delete" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -353,8 +353,8 @@ deletePOST queryID = do
     False -> outputMustLoginPage "/queries/index/"
     True -> do
       namedQuery "Queries" "beginTransaction" []
-      namedQuery "Base.Controller.Queries" "deleteQuery" [SQLInteger queryID]
-      namedQuery "Base.Controller.Queries" "deleteQueryResults" [SQLInteger queryID]
+      namedQuery "Base.Queries" "deleteQuery" [SQLInteger queryID]
+      namedQuery "Base.Queries" "deleteQueryResults" [SQLInteger queryID]
       namedQuery "Queries" "commit" []
       setPopupMessage $ Just "Query deleted."
       seeOtherRedirect "/queries/index/"

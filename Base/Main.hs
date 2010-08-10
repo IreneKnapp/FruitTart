@@ -182,42 +182,42 @@ initDatabase database = do
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Functions', 'Queries')")
+             ++ "VALUES ('Base.Functions', 'Queries')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Functions', 'Templates')")
+             ++ "VALUES ('Base.Functions', 'Templates')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Login', 'Queries')")
+             ++ "VALUES ('Base.Login', 'Queries')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Login', 'Templates')")
+             ++ "VALUES ('Base.Login', 'Templates')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Queries', 'Queries')")
+             ++ "VALUES ('Base.Queries', 'Queries')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Queries', 'Templates')")
+             ++ "VALUES ('Base.Queries', 'Templates')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Templates', 'Queries')")
+             ++ "VALUES ('Base.Templates', 'Queries')")
              []
   earlyQuery database
              (  "INSERT INTO module_imports "
              ++ "(importing_module, imported_module) "
-             ++ "VALUES ('Base.Controller.Templates', 'Templates')")
+             ++ "VALUES ('Base.Templates', 'Templates')")
              []
   earlyQuery database
              (  "CREATE TABLE stylesheets (\n"

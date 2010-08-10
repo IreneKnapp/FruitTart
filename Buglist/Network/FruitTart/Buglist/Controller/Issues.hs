@@ -198,9 +198,9 @@ index maybeWhich maybeEitherModuleNameModuleID = do
   bind "Templates" "subnavigationBar" subnavigationBar
   bind "Templates" "loginButton" loginButton
   bind "Templates" "popupMessage" popupMessage
-  bind "Buglist.Controller.Issues" "statusFilterList" statusFilterList
-  bind "Buglist.Controller.Issues" "modulesFilterList" modulesFilterList
-  bindQueryMultipleRows "Buglist.Controller.Issues" "rows"
+  bind "Buglist.Issues" "statusFilterList" statusFilterList
+  bind "Buglist.Issues" "modulesFilterList" modulesFilterList
+  bindQueryMultipleRows "Buglist.Issues" "rows"
                    [("id", TInt),
                     ("status", TString),
                     ("resolution", TString),
@@ -240,7 +240,7 @@ index maybeWhich maybeEitherModuleNameModuleID = do
                    ++ whereClause ++ " "
                    ++ "ORDER BY issues.priority ASC, issues.timestamp_modified DESC")
                    ([] ++ whereClauseParameters)
-  pageContent <- getTemplate "Buglist.Controller.Issues" "index" []
+  pageContent <- getTemplate "Buglist.Issues" "index" []
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page" []
   fPutStr page
@@ -369,7 +369,7 @@ outputView id comment fullName email maybeWarning = do
                          ++ "ORDER BY user_issue_changes.timestamp")
                         [SQLInteger $ fromIntegral id]
                    >>= return . map
-                                (convertRowToBindings "Buglist.Controller.Issues"
+                                (convertRowToBindings "Buglist.Issues"
                                                       [("timestamp", TInt),
                                                        ("fullName", TString),
                                                        ("email", TString),
@@ -412,7 +412,7 @@ outputView id comment fullName email maybeWarning = do
                           ++ "ORDER BY user_issue_comments.timestamp")
                          [SQLInteger $ fromIntegral id]
                    >>= return . map
-                                (convertRowToBindings "Buglist.Controller.Issues"
+                                (convertRowToBindings "Buglist.Issues"
                                                       [("timestamp", TInt),
                                                        ("fullName", TString),
                                                        ("email", TString),
@@ -434,7 +434,7 @@ outputView id comment fullName email maybeWarning = do
                        ++ "ORDER BY user_issue_attachments.timestamp")
                       [SQLInteger $ fromIntegral id]
                 >>= return . map
-                             (convertRowToBindings "Buglist.Controller.Issues"
+                             (convertRowToBindings "Buglist.Issues"
                                                    [("timestamp", TInt),
                                                     ("fullName", TString),
                                                     ("email", TString),
@@ -442,29 +442,29 @@ outputView id comment fullName email maybeWarning = do
                                                     ("filename", TString),
                                                     ("size", TInt)])
        rows <- return $ mergeBy (\bindingsA bindingsB ->
-                                  let key = ("Buglist.Controller.Issues", "timestamp")
+                                  let key = ("Buglist.Issues", "timestamp")
                                       TemplateInteger a
                                           = fromJust $ Map.lookup key bindingsA
                                       TemplateInteger b
                                           = fromJust $ Map.lookup key bindingsB
                                   in compare a b)
                                 [changes, comments, files]
-       bind "Buglist.Controller.Issues" "rows" rows
-       bind "Buglist.Controller.Issues" "id" id
-       bind "Buglist.Controller.Issues" "comment" comment
+       bind "Buglist.Issues" "rows" rows
+       bind "Buglist.Issues" "id" id
+       bind "Buglist.Issues" "comment" comment
        bind "Templates" "maybeWarning" maybeWarning
-       bind "Buglist.Controller.Issues" "status" status
-       bind "Buglist.Controller.Issues" "resolution" resolution
-       bind "Buglist.Controller.Issues" "module" module'
-       bind "Buglist.Controller.Issues" "severity" severity
-       bind "Buglist.Controller.Issues" "priority" priority
-       bind "Buglist.Controller.Issues" "assigneeFullName" assigneeFullName
-       bind "Buglist.Controller.Issues" "assigneeEmail" assigneeEmail
-       bind "Buglist.Controller.Issues" "reporterFullName" reporterFullName
-       bind "Buglist.Controller.Issues" "reporterEmail" reporterEmail
-       bind "Buglist.Controller.Issues" "summary" summary
-       bind "Buglist.Controller.Issues" "timestampCreated" timestampCreated
-       bind "Buglist.Controller.Issues" "timestampModified" timestampModified
+       bind "Buglist.Issues" "status" status
+       bind "Buglist.Issues" "resolution" resolution
+       bind "Buglist.Issues" "module" module'
+       bind "Buglist.Issues" "severity" severity
+       bind "Buglist.Issues" "priority" priority
+       bind "Buglist.Issues" "assigneeFullName" assigneeFullName
+       bind "Buglist.Issues" "assigneeEmail" assigneeEmail
+       bind "Buglist.Issues" "reporterFullName" reporterFullName
+       bind "Buglist.Issues" "reporterEmail" reporterEmail
+       bind "Buglist.Issues" "summary" summary
+       bind "Buglist.Issues" "timestampCreated" timestampCreated
+       bind "Buglist.Issues" "timestampModified" timestampModified
        bind "Templates" "pageTitle"
             $ "Issue " ++ (show id) ++ ": " ++ (escapeHTML summary)
        pageHeadItems <- getTemplate "Templates" "pageHeadItems"
@@ -478,25 +478,25 @@ outputView id comment fullName email maybeWarning = do
        popupMessage <- getPopupMessage
        bind "Templates" "popupMessage" popupMessage
        statusPopup <- getStatusPopup $ Just statusID
-       bind "Buglist.Controller.Issues" "statusPopup" statusPopup
+       bind "Buglist.Issues" "statusPopup" statusPopup
        resolutionPopup <- getResolutionPopup $ Just resolutionID
-       bind "Buglist.Controller.Issues" "resolutionPopup" resolutionPopup
+       bind "Buglist.Issues" "resolutionPopup" resolutionPopup
        modulePopup <- getModulePopup $ Just moduleID
-       bind "Buglist.Controller.Issues" "modulePopup" modulePopup
+       bind "Buglist.Issues" "modulePopup" modulePopup
        severityPopup <- getSeverityPopup $ Just severityID
-       bind "Buglist.Controller.Issues" "severityPopup" severityPopup
+       bind "Buglist.Issues" "severityPopup" severityPopup
        priorityPopup <- getPriorityPopup $ Just priorityID
-       bind "Buglist.Controller.Issues" "priorityPopup" priorityPopup
+       bind "Buglist.Issues" "priorityPopup" priorityPopup
        userSelectionFormControls <- getUserSelectionFormControls fullName email
-       bind "Buglist.Controller.Issues" "userSelectionFormControls"
+       bind "Buglist.Issues" "userSelectionFormControls"
             userSelectionFormControls
        captchaTimestamp <- generateCaptcha
-       bind "Buglist.Controller.Issues" "captchaTimestamp" captchaTimestamp
+       bind "Buglist.Issues" "captchaTimestamp" captchaTimestamp
        rightComment <- getRightCommentIssues
-       bind "Buglist.Controller.Issues" "rightComment" rightComment
+       bind "Buglist.Issues" "rightComment" rightComment
        rightEdit <- getRightModifyIssues
-       bind "Buglist.Controller.Issues" "rightEdit" rightEdit
-       pageContent <- getTemplate "Buglist.Controller.Issues" "view" []
+       bind "Buglist.Issues" "rightEdit" rightEdit
+       pageContent <- getTemplate "Buglist.Issues" "view" []
        bind "Templates" "pageContent" pageContent
        page <- getTemplate "Templates" "page" []
        fPutStr page
@@ -698,12 +698,12 @@ doNotCreateIssue moduleID summary comment fullName email maybeWarning = do
   bind "Templates" "loginButton" loginButton
   bind "Templates" "popupMessage" popupMessage
   bind "Templates" "maybeWarning" maybeWarning
-  bind "Buglist.Controller.Issues" "modulePopup" modulePopup
-  bind "Buglist.Controller.Issues" "summary" summary
-  bind "Buglist.Controller.Issues" "comment" comment
-  bind "Buglist.Controller.Issues" "userSelectionFormControls" userSelectionFormControls
-  bind "Buglist.Controller.Issues" "captchaTimestamp" captchaTimestamp
-  pageContent <- getTemplate "Buglist.Controller.Issues" "create" []
+  bind "Buglist.Issues" "modulePopup" modulePopup
+  bind "Buglist.Issues" "summary" summary
+  bind "Buglist.Issues" "comment" comment
+  bind "Buglist.Issues" "userSelectionFormControls" userSelectionFormControls
+  bind "Buglist.Issues" "captchaTimestamp" captchaTimestamp
+  pageContent <- getTemplate "Buglist.Issues" "create" []
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page" []
   fPutStr page

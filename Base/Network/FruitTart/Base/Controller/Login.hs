@@ -37,11 +37,11 @@ loginGET = do
     Nothing -> do
              sessionID <- getSessionID
              queryResult
-                 <- namedQuery "Base.Controller.Login" "recentUser"
+                 <- namedQuery "Base.Login" "recentUser"
                                [SQLInteger sessionID]
              maybeRecentUserEmail
                  <- return $ fromJust
-                           $ Map.lookup ("Base.Controller.Login", "maybeEmail")
+                           $ Map.lookup ("Base.Login", "maybeEmail")
                                         $ head queryResult
              maybeRecentUserEmail
                  <- return $ case maybeRecentUserEmail of
@@ -63,12 +63,12 @@ loginPOST = do
   password <- return $ case maybePassword of
                          Just password -> password
                          Nothing -> ""
-  maybeUserIDRows <- namedQuery "Base.Controller.Login" "userByEmail" [SQLText email]
+  maybeUserIDRows <- namedQuery "Base.Login" "userByEmail" [SQLText email]
   case maybeUserIDRows of
     [] -> doNotLogIn (Just "Incorrect information.")
                      maybeEmail
     [values] -> do
-      userID <- return $ fromJust $ Map.lookup ("Base.Controller.Login", "userID")
+      userID <- return $ fromJust $ Map.lookup ("Base.Login", "userID")
                                                values
       userID <- return $ case userID of
                            TemplateInteger integer -> integer
@@ -76,7 +76,7 @@ loginPOST = do
       case valid of
         True -> do
           sessionID <- getSessionID
-          namedQuery "Base.Controller.Login" "logIn"
+          namedQuery "Base.Login" "logIn"
                      [SQLInteger userID, SQLInteger userID, SQLInteger sessionID]
           referrer <- getReferrer
           seeOtherRedirect referrer
@@ -95,10 +95,10 @@ doNotLogIn maybeWarning maybeEmail = do
   bind "Templates" "popupMessage" popupMessage
   unbind "Templates" "loginButton"
   referrer <- getReferrer
-  bind "Base.Controller.Login" "referrer" referrer
+  bind "Base.Login" "referrer" referrer
   bind "Templates" "maybeWarning" maybeWarning
-  bind "Base.Controller.Login" "maybeEmail" maybeEmail
-  pageContent <- getTemplate "Base.Controller.Login" "login" []
+  bind "Base.Login" "maybeEmail" maybeEmail
+  pageContent <- getTemplate "Base.Login" "login" []
   bind "Templates" "pageContent" pageContent
   page <- getTemplate "Templates" "page" []
   fPutStr page
@@ -107,7 +107,7 @@ doNotLogIn maybeWarning maybeEmail = do
 logout :: FruitTart ()
 logout = do
   sessionID <- getSessionID
-  namedQuery "Base.Controller.Login" "logOut" [SQLInteger sessionID]
+  namedQuery "Base.Login" "logOut" [SQLInteger sessionID]
   referrer <- getReferrer
   seeOtherRedirect referrer
 
@@ -139,7 +139,7 @@ accountPOST = do
       url <- return $ case maybeURL of
                         Just url -> fromCRLF url
                         Nothing -> ""
-      namedQuery "Base.Controller.Login" "accountUpdate"
+      namedQuery "Base.Login" "accountUpdate"
                  [SQLText fullName, SQLText email, SQLText url, SQLInteger userID]
       setPopupMessage $ Just "Edited details."
       outputAccountPage
@@ -154,7 +154,7 @@ outputAccountPage = do
       seeOtherRedirect defaultPage
     Just userID -> do
       sessionID <- getSessionID
-      bindNamedQuery "Base.Controller.Login" "account" [SQLInteger sessionID]
+      bindNamedQuery "Base.Login" "account" [SQLInteger sessionID]
       bind "Templates" "pageTitle" "Buglist Account"
       pageHeadItems <- getTemplate "Templates" "pageHeadItems"
                                    [TemplateString "Base.Login"]
@@ -166,8 +166,8 @@ outputAccountPage = do
       bind "Templates" "loginButton" loginButton
       popupMessage <- getPopupMessage
       bind "Templates" "popupMessage" popupMessage
-      bind "Base.Controller.Login" "privacyNote" privacyNote
-      pageContent <- getTemplate "Base.Controller.Login" "account" []
+      bind "Base.Login" "privacyNote" privacyNote
+      pageContent <- getTemplate "Base.Login" "account" []
       bind "Templates" "pageContent" pageContent
       page <- getTemplate "Templates" "page" []
       fPutStr page
@@ -202,7 +202,7 @@ passwordPOST = do
                                 && (newPassword1 /= "")
       if performChange
          then do
-           namedQuery "Base.Controller.Login" "accountUpdatePassword"
+           namedQuery "Base.Login" "accountUpdatePassword"
                       [SQLBlob $ hashPassword newPassword1,
                        SQLInteger userID]
            setPopupMessage $ Just "Password changed."

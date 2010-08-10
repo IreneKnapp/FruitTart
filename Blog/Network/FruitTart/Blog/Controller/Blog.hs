@@ -25,8 +25,8 @@ actionTable
 index :: FruitTart ()
 index = do
   bindDefaults "CS Thoughts" "/blog/index/"
-  bindNamedQueryMultipleRows "Blog.Controller.Blog" "indexEntries" []
-  outputPage "Blog.Controller.Blog" "index"
+  bindNamedQueryMultipleRows "Blog.Blog" "indexEntries" []
+  outputPage "Blog.Blog" "index"
 
 
 bindDefaults :: String -> String -> FruitTart ()
