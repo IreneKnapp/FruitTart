@@ -123,8 +123,8 @@ copy functionID = do
                              TemplateString body -> body
           bind "Base.Functions" "moduleName" moduleName
           bind "Base.Functions" "functionName" functionName
-          bind "Base.Function" "body" body
-          bindNamedQueryMultipleRows "Base.Function"
+          bind "Base.Functions" "body" body
+          bindNamedQueryMultipleRows "Base.Functions"
                                      "parameters"
                                      [SQLInteger functionID]
           outputFunctionPage currentPage targetPage Nothing Nothing
