@@ -122,8 +122,7 @@ parseURL url =
         parameters = if length pathComponents >= 2
                      then tail $ tail pathComponents
                      else []
-        urlParameters = map (map toLower)
-                        $ filter ((/=) "")
+        urlParameters = filter ((/=) "")
                         $ filter (notElem ':') parameters
         namedParameters = map (\parameter -> case break ((==) ':') parameter of
                                                (name, _:value)
@@ -137,8 +136,7 @@ canonicalURL controllerName actionName urlParameters namedParameters =
     let basePart = "/"
                    ++ (map toLower controllerName) ++ "/"
                    ++ (map toLower actionName) ++ "/"
-        urlParametersPart = concat $ map (\parameter ->
-                                              concat [map toLower parameter, "/"])
+        urlParametersPart = concat $ map (\parameter -> concat [parameter, "/"])
                             urlParameters
         namedParametersPart = concat $ map (\(key, value) ->
                                                 concat [map toLower key,
