@@ -330,18 +330,26 @@ intern database moduleName properName = do
                   ++ "WHERE importing_module = ?")
                   [SQLText moduleName]
   maybeDefiningModule
-    <- foldlM (\maybeDefiningModule importedModule -> do
+    <- foldlM (\maybeDefiningModule (importedModule, allowInternal) -> do
                  case maybeDefiningModule of
                    Just _ -> return maybeDefiningModule
                    Nothing -> do
                      foundHere <- getSymbolExists database
                                                   (importedModule, properName)
-                     return $ if foundHere
+                     visible
+                       <- if foundHere
+                            then if allowInternal
+                              then return True
+                              else getSymbolExported database
+                                                     (importedModule,
+                                                      properName)
+                            else return False
+                     return $ if visible
                                 then Just importedModule
                                 else Nothing)
               Nothing
-              $ moduleName
-                : map (\[SQLText importedModule] -> importedModule)
+              $ (moduleName, True)
+                : map (\[SQLText importedModule] -> (importedModule, False))
                       importedModules
   case maybeDefiningModule of
     Just definingModule -> return $ TokenSymbol definingModule properName
@@ -366,6 +374,18 @@ getSymbolExists database variableName = do
               if queryExists
                 then return True
                 else return False
+
+
+getSymbolExported :: Database -> (String, String) -> IO Bool
+getSymbolExported database (moduleName, properName) = do
+  [[SQLInteger count]]
+    <- earlyQuery database
+                  (  "SELECT count(*) FROM module_exports "
+                  ++ "WHERE module = ? AND symbol = ?")
+                  [SQLText moduleName, SQLText properName]
+  return $ case count of
+             0 -> False
+             _ -> True
 
 
 builtinExists :: (String, String) -> Bool
