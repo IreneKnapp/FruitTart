@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, TypeSynonymInstances,
-             FlexibleInstances, OverlappingInstances #-}
+{-# LANGUAGE GADTs, EmptyDataDecls #-}
 module Network.FruitTart.Base.Templates.Types (
                                                TemplateValueType(..),
                                                TemplateValue(..),
@@ -7,8 +6,6 @@ module Network.FruitTart.Base.Templates.Types (
                                                TemplateExpression(..),
                                                TemplateContext(..),
                                                TemplateToken(..),
-                                               Bindable(..),
-                                               AnyBindable(..)
                                               )
     where
 
@@ -26,52 +23,33 @@ data TemplateValueType = TBool
                        | TString
                        | TMaybeInt
                        | TMaybeString
-                         deriving (Typeable);
 
 data TemplateParameter = TemplateParameter (String, String)
-                         deriving (Show)
 
-data TemplateValue = TemplateNull
-                   | TemplateBool Bool
-                   | TemplateInteger Int64
-                   | TemplateString String
-                   | TemplateList [TemplateValue]
-                   | TemplateMaybe (Maybe TemplateValue)
-                   | TemplateOrdering Ordering
-                   | TemplateMap (Map (String, String) TemplateValue)
-                   | TemplateLambda [TemplateParameter]
-                                    (Map (String, String) TemplateValue)
-                                    TemplateExpression
-                   | TemplateNativeLambda (TemplateContext
-                                           -> [TemplateValue]
-                                           -> FruitTart TemplateValue)
-                     deriving (Typeable)
-instance Eq TemplateValue where
-    (==) TemplateNull TemplateNull = True
-    (==) (TemplateBool a) (TemplateBool b) = (==) a b
-    (==) (TemplateInteger a) (TemplateInteger b) = (==) a b
-    (==) (TemplateString a) (TemplateString b) = (==) a b
-    (==) (TemplateList a) (TemplateList b) = (==) a b
-    (==) (TemplateMaybe a) (TemplateMaybe b) = (==) a b
-    (==) (TemplateOrdering a) (TemplateOrdering b) = (==) a b
-    (==) _ _ = False
-instance Show TemplateValue where
-    show TemplateNull = "TemplateNull"
-    show (TemplateBool a) = "TemplateBool " ++ (show a)
-    show (TemplateInteger a) = "TemplateInteger " ++ (show a)
-    show (TemplateString a) = "TemplateString " ++ (show a)
-    show (TemplateList a) = "TemplateList " ++ (show a)
-    show (TemplateMaybe a) = "TemplateMaybe " ++ (show a)
-    show (TemplateOrdering a) = "TemplateOrdering " ++ (show a)
-    show (TemplateMap a) = "TemplateMap <" ++ (show $ length $ Map.keys a) ++ " keys>"
-    show (TemplateLambda a _ _) = "TemplateLambda <"
-                                  ++ (intercalate ", "
-                                                  $ map (\(TemplateParameter b) -> show b)
-                                                        a)
-                                  ++ ">"
-    show (TemplateNativeLambda _) = "TemplateNativeLambda <...>"
+data TemplateLambdaType
 
-data TemplateExpression = TemplateLiteral TemplateValue
+data TemplateValue t where
+  TemplateNull :: TemplateValue ()
+  TemplateBool :: Bool -> TemplateValue Bool
+  TemplateInteger :: Int64 -> TemplateValue Int64
+  TemplateCharacter :: Char -> TemplateValue Char
+  TemplateString :: String -> TemplateValue String
+  TemplateList :: [a] -> TemplateValue [a]
+  TemplateMaybe :: (Maybe (TemplateValue a)) -> TemplateValue (Maybe a)
+  TemplateOrdering :: Ordering -> TemplateValue Ordering
+  TemplateMap :: Map (String, String) (TemplateValue a)
+              -> TemplateValue (Map (String, String) a)
+  TemplateLambda :: [TemplateParameter]
+                 -> Map (String, String) (TemplateValue a)
+                 -> TemplateExpression
+                 -> TemplateValue TemplateLambdaType
+  TemplateNativeLambda :: (TemplateContext
+                           -> [TemplateValue a]
+                           -> FruitTart (TemplateValue b))
+                       -> TemplateValue TemplateLambdaType
+
+data TemplateExpression = TemplateStringLiteral (TemplateValue String)
+                        | TemplateIntegerLiteral (TemplateValue Int64)
                         | TemplateExpressionList [TemplateExpression]
                         | TemplateOperationConcatenate TemplateExpression
                                                        TemplateExpression
@@ -108,13 +86,12 @@ data TemplateExpression = TemplateLiteral TemplateValue
                         | TemplateBindExpression [TemplateExpression]
                         | TemplateBindMapExpression [TemplateExpression]
                         | TemplateSequence TemplateExpression TemplateExpression
-                          deriving (Show)
 
 data TemplateContext = TemplateNormalContext
                      | TemplateControllerContext
-                       deriving (Show)
 
-data TemplateToken = TokenValue TemplateValue
+data TemplateToken = TokenStringValue (TemplateValue String)
+                   | TokenIntegerValue (TemplateValue Int64)
                    | TokenSymbol String String
                    | TokenIf
                    | TokenCase
@@ -148,18 +125,3 @@ data TemplateToken = TokenValue TemplateValue
                    | TokenMinus
                    | TokenStar
                    | TokenSlash
-
-class Bindable a where
-    toTemplate :: a -> TemplateValue
-data AnyBindable = forall a . Bindable a => AnyBindable a deriving (Typeable)
-instance Bindable TemplateValue where
-    toTemplate value = value
-instance Bindable Bool where
-    toTemplate bool = TemplateBool bool
-instance Bindable Int64 where
-    toTemplate int = TemplateInteger int
-instance (Bindable a) => Bindable (Maybe a) where
-    toTemplate Nothing = TemplateMaybe Nothing
-    toTemplate (Just value) = TemplateMaybe $ Just $ toTemplate value
-instance (Bindable a) => Bindable [a] where
-    toTemplate values = TemplateList $ map toTemplate values

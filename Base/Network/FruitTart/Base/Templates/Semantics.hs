@@ -22,7 +22,7 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 
-getTemplate :: String -> String -> [TemplateValue] -> FruitTart String
+getTemplate :: String -> String -> [TemplateValue a] -> FruitTart String
 getTemplate moduleName templateName parameters = do
   oldBindings <- getBindings
   let newBindings = Map.fromList [(("Base", "parameters"),
@@ -66,7 +66,7 @@ fillTemplate moduleName templateName = do
        >>= return . concat
 
 
-eval :: String -> String -> FruitTart TemplateValue
+eval :: String -> String -> FruitTart (TemplateValue a)
 eval moduleName body = do
   FruitTartState { database = database } <- get
   expression <- liftIO $ readExpression database moduleName body
@@ -143,7 +143,8 @@ evalExpression :: TemplateContext
                -> FruitTart (TemplateValue, Map (String, String) TemplateValue)
 evalExpression context expression = do
     case expression of
-      TemplateLiteral value -> returnWithUnchangedBindings value
+      TemplateStringLiteral value -> returnWithUnchangedBindings value
+      TemplateIntegerLiteral value -> returnWithUnchangedBindings value
       TemplateExpressionList subexpressions -> do
         values <- mapM (evalExpression context) subexpressions
                   >>= return . (map fst)
@@ -412,13 +413,15 @@ templateEqual (TemplateBool a) (TemplateBool b)
     = returnWithUnchangedBindings $ TemplateBool $ a == b
 templateEqual (TemplateInteger a) (TemplateInteger b)
     = returnWithUnchangedBindings $ TemplateBool $ a == b
+templateEqual (TemplateCharacter a) (TemplateCharacter b)
+    = returnWithUnchangedBindings $ TemplateBool $ a == b
 templateEqual (TemplateString a) (TemplateString b)
     = returnWithUnchangedBindings $ TemplateBool $ a == b
 templateEqual (TemplateOrdering a) (TemplateOrdering b)
     = returnWithUnchangedBindings $ TemplateBool $ a == b
 templateEqual _ _
     = error $ "Template values in comparison are not the same type or "
-            ++ "are not Booleans, Integers, Strings, or Orderings."
+            ++ "are not Booleans, Integers, Characters, Strings, or Orderings."
 
 
 templateNegate :: TemplateValue
@@ -446,7 +449,9 @@ templateOr _ _ = error "Template values in logical operation are not both Boolea
 
 templateCompare :: TemplateValue -> TemplateValue -> FruitTart Ordering
 templateCompare (TemplateInteger a) (TemplateInteger b) = return $ compare a b
-templateCompare _ _ = error "Template values in comparison are not both Integers."
+templateCompare (TemplateCharacter a) (TemplateCharacter b) = return $ compare a b
+templateCompare _ _ = error $  "Template values in comparison are not the same type or "
+                      ++ " are not Integers or Characters."
 
 
 templateArithmetic :: TemplateValue
@@ -510,7 +515,7 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
         _ -> return Nothing
 
 
-builtinBindings :: Map (String, String) TemplateValue
+builtinBindings :: Map (String, String) (TemplateValue a)
 builtinBindings = Map.fromList
                [(("Base", "parameters"), TemplateList []),
                 (("Base", "Null"), TemplateNull),
@@ -525,14 +530,8 @@ builtinBindings = Map.fromList
                 (("Base", "isNothing"), TemplateNativeLambda tfIsNothing),
                 (("Base", "isJust"), TemplateNativeLambda tfIsJust),
                 (("Base", "fromJust"), TemplateNativeLambda tfFromJust),
-                (("Base", "stringLength"), TemplateNativeLambda tfStringLength),
                 (("Base", "stringWordCount"),
                  TemplateNativeLambda tfStringWordCount),
-                (("Base", "nth"), TemplateNativeLambda tfNth),
-                (("Base", "length"), TemplateNativeLambda tfLength),
-                (("Base", "concat"), TemplateNativeLambda tfConcat),
-                (("Base", "intercalate"), TemplateNativeLambda tfIntercalate),
-                (("Base", "map"), TemplateNativeLambda tfMap),
                 (("Base", "groupBy"), TemplateNativeLambda tfGroupBy),
                 (("Base", "mergeBy"), TemplateNativeLambda tfMergeBy),
                 (("Base", "compareIntegers"),
@@ -547,7 +546,214 @@ builtinBindings = Map.fromList
                  TemplateNativeLambda tfEscapeAttribute),
                 (("Base", "escapeHTML"), TemplateNativeLambda tfEscapeHTML),
                 (("Base", "newlinesToParagraphs"),
-                 TemplateNativeLambda tfNewlinesToParagraphs)]
+                 TemplateNativeLambda tfNewlinesToParagraphs),
+                
+                -- Everything below here is based on a corresponding function
+                -- in Haskell, which may or may not have an identical name.
+                
+                -- Lists
+                -- Lists - Basic functions
+                (("Base", "head"), TemplateNativeLambda tfHead),
+                (("Base", "last"), TemplateNativeLambda tfLast),
+                (("Base", "tail"), TemplateNativeLambda tfTail),
+                (("Base", "init"), TemplateNativeLambda tfInit),
+                (("Base", "null"), TemplateNativeLambda tfNull),
+                (("Base", "length"), TemplateNativeLambda tfLength),
+                -- Lists - List transformations
+                (("Base", "map"), TemplateNativeLambda tfMap),
+                (("Base", "reverse"), TemplateNativeLambda tfReverse),
+                (("Base", "intersperse"), TemplateNativeLambda tfIntersperse),
+                (("Base", "intercalate"), TemplateNativeLambda tfIntercalate),
+                (("Base", "transpose"), TemplateNativeLambda tfTranspose),
+                (("Base", "subsequences"), TemplateNativeLambda tfSubsequences),
+                (("Base", "permutations"), TemplateNativeLambda tfPermutations),
+                -- Lists - Reducing lists (folds)
+                (("Base", "foldl"), TemplateNativeLambda tfFoldl),
+                (("Base", "foldl1"), TemplateNativeLambda tfFoldl1),
+                (("Base", "foldr"), TemplateNativeLambda tfFoldr),
+                (("Base", "foldr1"), TemplateNativeLambda tfFoldr1),
+                -- Lists - Reducing lists (folds) - Special folds
+                (("Base", "concat"), TemplateNativeLambda tfConcat),
+                (("Base", "concatMap"), TemplateNativeLambda tfConcatMap),
+                (("Base", "and"), TemplateNativeLambda tfAnd),
+                (("Base", "or"), TemplateNativeLambda tfOr),
+                (("Base", "any"), TemplateNativeLambda tfAny),
+                (("Base", "all"), TemplateNativeLambda tfAll),
+                (("Base", "sum"), TemplateNativeLambda tfSum),
+                (("Base", "product"), TemplateNativeLambda tfProduct),
+                (("Base", "maximum"), TemplateNativeLambda tfMaximum),
+                (("Base", "minimum"), TemplateNativeLambda tfMinimum),
+                -- Lists - Building lists
+                -- Lists - Building lists - Scans
+                (("Base", "scanl"), TemplateNativeLambda tfScanl),
+                (("Base", "scanl1"), TemplateNativeLambda tfScanl1),
+                (("Base", "scanr"), TemplateNativeLambda tfScanr),
+                (("Base", "scanr1"), TemplateNativeLambda tfScanr1),
+                -- Lists - Building lists - Accumulating maps
+                (("Base", "mapAccumL"), TemplateNativeLambda tfMapAccumL),
+                (("Base", "mapAccumR"), TemplateNativeLambda tfMapAccumR),
+                -- Lists - Building lists - Replicate
+                (("Base", "replicate"), TemplateNativeLambda tfReplicate),
+                -- Lists - Building lists - Unfolding
+                (("Base", "unfoldr"), TemplateNativeLambda tfUnfoldr),
+                -- Lists - Sublists
+                -- Lists - Sublists - Extracting sublists
+                (("Base", "take"), TemplateNativeLambda tfTake),
+                (("Base", "drop"), TemplateNativeLambda tfDrop),
+                (("Base", "splitAt"), TemplateNativeLambda tfSplitAt),
+                (("Base", "takeWhile"), TemplateNativeLambda tfTakeWhile),
+                (("Base", "dropWhile"), TemplateNativeLambda tfDropWhile),
+                (("Base", "span"), TemplateNativeLambda tfSpan),
+                (("Base", "break"), TemplateNativeLambda tfBreak),
+                (("Base", "stripPrefix"), TemplateNativeLambda tfStripPrefix),
+                (("Base", "group"), TemplateNativeLambda tfGroup),
+                (("Base", "inits"), TemplateNativeLambda tfInits),
+                (("Base", "tails"), TemplateNativeLambda tfTails),
+                -- Lists - Sublists - Predicates
+                (("Base", "isPrefixOf"), TemplateNativeLambda tfIsPrefixOf),
+                (("Base", "isSuffixOf"), TemplateNativeLambda tfIsSuffixOf),
+                (("Base", "isInfixOf"), TemplateNativeLambda tfIsInfixOf),
+                -- Lists - Searching lists
+                -- Lists - Searching lists - Searching by equality
+                (("Base", "elem"), TemplateNativeLambda tfElem),
+                (("Base", "notElem"), TemplateNativeLambda tfNotElem),
+                (("Base", "lookup"), TemplateNativeLambda tfLookup),
+                -- Lists - Searching lists - Searching with a predicate
+                (("Base", "find"), TemplateNativeLambda tfFind),
+                (("Base", "filter"), TemplateNativeLambda tfFilter),
+                (("Base", "partition"), TemplateNativeLambda tfPartition),
+                -- Lists - Indexing lists
+                (("Base", "nth"), TemplateNativeLambda tfNth),
+                (("Base", "elemIndex"), TemplateNativeLambda tfElemIndex),
+                (("Base", "elemIndices"), TemplateNativeLambda tfElemIndices),
+                (("Base", "findIndex"), TemplateNativeLambda tfFindIndex),
+                (("Base", "findIndices"), TemplateNativeLambda tfFindIndices),
+                -- Lists - Special lists
+                -- Lists - "Set" operations
+                (("Base", "nub"), TemplateNativeLambda tfNub),
+                (("Base", "delete"), TemplateNativeLambda tfDelete),
+                (("Base", "deleteFirsts"), TemplateNativeLambda tfDeleteFirsts),
+                (("Base", "union"), TemplateNativeLambda tfUnion),
+                (("Base", "intersect"), TemplateNativeLambda tfIntersect),
+                -- Lists - Ordered lists
+                (("Base", "sort"), TemplateNativeLambda tfSort),
+                (("Base", "insert"), TemplateNativeLambda tfInsert),
+                -- Lists - Generalized functions
+                (("Base", "nubBy"), TemplateNativeLambda tfNubBy),
+                (("Base", "deleteBy"), TemplateNativeLambda tfDeleteBy),
+                (("Base", "deleteFirstsBy"),
+                 TemplateNativeLambda tfDeleteFirstsBy),
+                (("Base", "unionBy"), TemplateNativeLambda tfUnionBy),
+                (("Base", "intersectBy"), TemplateNativeLambda tfIntersectBy),
+                (("Base", "groupBy"), TemplateNativeLambda tfGroupBy),
+                (("Base", "sortBy"), TemplateNativeLambda tfSortBy),
+                (("Base", "insertBy"), TemplateNativeLambda tfInsertBy),
+                (("Base", "maximumBy"), TemplateNativeLambda tfMaximumBy),
+                (("Base", "minimumBy"), TemplateNativeLambda tfMinimumBy),
+                
+                -- Strings
+                -- Strings - Basic functions
+                (("Base", "stringHead"), TemplateNativeLambda tfStringHead),
+                (("Base", "stringLast"), TemplateNativeLambda tfStringLast),
+                (("Base", "stringTail"), TemplateNativeLambda tfStringTail),
+                (("Base", "stringInit"), TemplateNativeLambda tfStringInit),
+                (("Base", "stringNull"), TemplateNativeLambda tfStringNull),
+                (("Base", "stringLength"), TemplateNativeLambda tfStringLength),
+                -- Strings - String transformations
+                (("Base", "stringMap"), TemplateNativeLambda tfStringMap),
+                (("Base", "stringReverse"),
+                 TemplateNativeLambda tfStringReverse),
+                (("Base", "stringIntersperse"),
+                 TemplateNativeLambda tfStringIntersperse),
+                (("Base", "stringIntercalate"),
+                 TemplateNativeLambda tfStringIntercalate),
+                (("Base", "stringTranspose"),
+                 TemplateNativeLambda tfStringTranspose),
+                (("Base", "stringSubsequences"),
+                 TemplateNativeLambda tfStringSubsequences),
+                (("Base", "stringPermutations"),
+                 TemplateNativeLambda tfStringPermutations),
+                -- Strings - Reducing strings (folds)
+                (("Base", "stringFoldl"), TemplateNativeLambda tfStringFoldl),
+                (("Base", "stringFoldl1"), TemplateNativeLambda tfStringFoldl1),
+                (("Base", "stringFoldr"), TemplateNativeLambda tfStringFoldr),
+                (("Base", "stringFoldr1"), TemplateNativeLambda tfStringFoldr1),
+                -- Strings - Reducing strings (folds) - Special folds
+                (("Base", "stringConcat"), TemplateNativeLambda tfStringConcat),
+                (("Base", "stringConcatMap"),
+                 TemplateNativeLambda tfStringConcatMap),
+                (("Base", "stringAny"), TemplateNativeLambda tfStringAny),
+                (("Base", "stringAll"), TemplateNativeLambda tfStringAll),
+                -- Strings - Building strings
+                -- Strings - Building strings - Scans
+                (("Base", "stringScanl"), TemplateNativeLambda tfStringScanl),
+                (("Base", "stringScanl1"), TemplateNativeLambda tfStringScanl1),
+                (("Base", "stringScanr"), TemplateNativeLambda tfStringScanr),
+                (("Base", "stringScanr1"), TemplateNativeLambda tfStringScanr1),
+                -- Strings - Building strings - Accumulating maps
+                (("Base", "stringMapAccumL"),
+                 TemplateNativeLambda tfStringMapAccumL),
+                (("Base", "stringMapAccumR"),
+                 TemplateNativeLambda tfStringMapAccumR),
+                -- Strings - Building strings - Replicate
+                (("Base", "stringReplicate"),
+                 TemplateNativeLambda tfStringReplicate),
+                -- Strings - Building strings - Unfolding
+                (("Base", "stringUnfoldr"),
+                 TemplateNativeLambda tfStringUnfoldr),
+                -- Strings - Substrings
+                -- Strings - Substrings - Extracting sublists
+                (("Base", "stringTake"), TemplateNativeLambda tfStringTake),
+                (("Base", "stringDrop"), TemplateNativeLambda tfStringDrop),
+                (("Base", "stringSplitAt"),
+                 TemplateNativeLambda tfStringSplitAt),
+                (("Base", "stringTakeWhile"),
+                 TemplateNativeLambda tfStringTakeWhile),
+                (("Base", "stringDropWhile"),
+                 TemplateNativeLambda tfStringDropWhile),
+                (("Base", "stringSpan"), TemplateNativeLambda tfStringSpan),
+                (("Base", "stringBreak"), TemplateNativeLambda tfStringBreak),
+                (("Base", "stringStripPrefix"),
+                 TemplateNativeLambda tfStringStripPrefix),
+                (("Base", "stringGroup"), TemplateNativeLambda tfStringGroup),
+                (("Base", "stringInits"), TemplateNativeLambda tfStringInits),
+                (("Base", "stringTails"), TemplateNativeLambda tfStringTails),
+                -- Strings - Substrings - Predicates
+                (("Base", "stringIsPrefixOf"),
+                 TemplateNativeLambda tfStringIsPrefixOf),
+                (("Base", "stringIsSuffixOf"),
+                 TemplateNativeLambda tfStringIsSuffixOf),
+                (("Base", "stringIsInfixOf"),
+                 TemplateNativeLambda tfStringIsInfixOf),
+                -- Strings - Searching strings
+                -- Strings - Searching strings - Searching by equality
+                (("Base", "stringElem"), TemplateNativeLambda tfStringElem),
+                (("Base", "stringNotElem"),
+                 TemplateNativeLambda tfStringNotElem),
+                (("Base", "stringLookup"), TemplateNativeLambda tfStringLookup),
+                -- Strings - Searching strings - Searching with a predicate
+                (("Base", "stringFind"), TemplateNativeLambda tfStringFind),
+                (("Base", "stringFilter"), TemplateNativeLambda tfStringFilter),
+                (("Base", "stringPartition"),
+                 TemplateNativeLambda tfStringPartition),
+                -- Strings - Indexing strings
+                (("Base", "stringNth"), TemplateNativeLambda tfStringNth),
+                (("Base", "stringElemIndex"),
+                 TemplateNativeLambda tfStringElemIndex),
+                (("Base", "stringElemIndices"),
+                 TemplateNativeLambda tfStringElemIndices),
+                (("Base", "stringFindIndex"),
+                 TemplateNativeLambda tfStringFindIndex),
+                (("Base", "stringFindIndices"),
+                 TemplateNativeLambda tfStringFindIndices),
+                -- Strings - Text operations
+                (("Base", "stringLines"), TemplateNativeLambda tfStringLines),
+                (("Base", "stringWords"), TemplateNativeLambda tfStringWords),
+                (("Base", "stringUnlines"),
+                 TemplateNativeLambda tfStringUnlines),
+                (("Base", "stringUnwords"),
+                 TemplateNativeLambda tfStringUnwords),
+               ]
 
 
 tfJust :: TemplateContext
@@ -610,15 +816,6 @@ tfFromJust context parameters = do
              _ -> error $ "Parameter is not a Maybe in fromJust()."
 
 
-tfStringLength :: TemplateContext
-               -> [TemplateValue]
-               -> FruitTart TemplateValue
-tfStringLength context parameters = do
-  requireNParameters parameters 1 "stringLength"
-  string <- valueToString $ head parameters
-  return $ TemplateInteger $ fromIntegral $ length string
-
-
 tfStringWordCount :: TemplateContext
                   -> [TemplateValue]
                   -> FruitTart TemplateValue
@@ -631,57 +828,6 @@ tfStringWordCount context parameters = do
                            Just index -> let (_, rest) = splitAt index string
                                          in 1 + wordCount (drop 1 rest)
   return $ TemplateInteger $ fromIntegral $ wordCount string
-
-
-tfNth :: TemplateContext
-      -> [TemplateValue]
-      -> FruitTart TemplateValue
-tfNth context parameters = do
-  requireNParameters parameters 2 "nth"
-  n <- valueToInteger $ head parameters
-  list <- valueToList $ head $ drop 1 parameters
-  return $ head $ drop (fromIntegral n) list
-
-
-tfLength :: TemplateContext
-         -> [TemplateValue]
-         -> FruitTart TemplateValue
-tfLength context parameters = do
-  requireNParameters parameters 1 "length"
-  list <- valueToList $ head parameters
-  return $ TemplateInteger $ fromIntegral $ length list
-
-
-tfConcat :: TemplateContext
-         -> [TemplateValue]
-         -> FruitTart TemplateValue
-tfConcat context parameters = do
-  requireNParameters parameters 1 "concat"
-  list <- valueToList $ head parameters
-  sublists <- mapM valueToList list
-  return $ TemplateList $ concat sublists
-
-
-tfIntercalate :: TemplateContext
-              -> [TemplateValue]
-              -> FruitTart TemplateValue
-tfIntercalate context parameters = do
-  requireNParameters parameters 2 "intercalate"
-  string <- valueToString $ head parameters
-  list <- valueToList $ head $ drop 1 parameters
-  strings <- mapM valueToString list
-  return $ TemplateString $ intercalate string strings
-
-
-tfMap :: TemplateContext
-      -> [TemplateValue]
-      -> FruitTart TemplateValue
-tfMap context parameters = do
-  requireNParameters parameters 2 "map"
-  let function = head parameters
-  list <- valueToList $ head $ drop 1 parameters
-  list' <- mapM (\a -> applyFunction context function [a]) list
-  return $ TemplateList list'
 
 
 tfGroupBy :: TemplateContext
@@ -786,6 +932,1013 @@ tfNewlinesToParagraphs context parameters = do
   requireNParameters parameters 1 "newlinesToParagraphs"
   string <- valueToString $ head parameters
   return $ TemplateString $ newlinesToParagraphs string
+
+
+tfHead :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfHead context parameters = do
+  requireNParameters parameters 1 "head"
+  list <- valueToList $ head parameters
+  return $ head list
+
+
+tfLast :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfLast context parameters = do
+  requireNParameters parameters 1 "last"
+  list <- valueToList $ head parameters
+  return $ last list
+
+
+tfTail :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfTail context parameters = do
+  requireNParameters parameters 1 "tail"
+  list <- valueToList $ head parameters
+  return $ TemplateList $ tail list
+
+
+tfInit :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfInit context parameters = do
+  requireNParameters parameters 1 "init"
+  list <- valueToList $ head parameters
+  return $ TemplateList $ init list
+
+
+tfNull :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfNull context parameters = do
+  requireNParameters parameters 1 "null"
+  list <- valueToList $ head parameters
+  return $ TemplateBool $ null list
+
+
+tfLength :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfLength context parameters = do
+  requireNParameters parameters 1 "length"
+  list <- valueToList $ head parameters
+  return $ TemplateInteger $ fromIntegral $ length list
+
+
+tfMap :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfMap context parameters = do
+  requireNParameters parameters 2 "map"
+  let function = head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  list' <- mapM (\a -> applyFunction context function [a]) list
+  return $ TemplateList list'
+
+
+tfReverse :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfReverse context parameters = do
+  requireNParameters parameters 1 "reverse"
+  list <- valueToList $ head parameters
+  return $ TemplateList $ reverse list
+
+
+tfIntersperse :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfIntersperse context parameters = do
+  -- TODO
+
+
+tfIntercalate :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfIntercalate context parameters = do
+  -- TODO
+
+
+tfTranspose :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfTranspose context parameters = do
+  -- TODO
+
+
+tfSubsequences :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfSubsequences context parameters = do
+  -- TODO
+
+
+tfPermutations :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfPermutations context parameters = do
+  -- TODO
+
+
+tfFoldl :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfFoldl context parameters = do
+  -- TODO
+
+
+tfFoldl1 :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfFoldl1 context parameters = do
+  -- TODO
+
+
+tfFoldr :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfFoldr context parameters = do
+  -- TODO
+
+
+tfFoldr1 :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfFoldr1 context parameters = do
+  -- TODO
+
+
+tfConcat :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfConcat context parameters = do
+  requireNParameters parameters 1 "concat"
+  list <- valueToList $ head parameters
+  sublists <- mapM valueToList list
+  return $ TemplateList $ concat sublists
+
+
+tfConcatMap :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfConcatMap context parameters = do
+  -- TODO
+
+
+tfAnd :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfAnd context parameters = do
+  requireNParameters parameters 1 "and"
+  list <- valueToList $ head parameters
+  list <- mapM valueToBoolean list
+  return $ TemplateBoolean $ and list
+
+
+tfOr :: TemplateContext
+     -> [TemplateValue]
+     -> FruitTart TemplateValue
+tfOr context parameters = do
+  requireNParameters parameters 1 "or"
+  list <- valueToList $ head parameters
+  list <- mapM valueToBoolean list
+  return $ TemplateBoolean $ or list
+
+
+tfAny :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfAny context parameters = do
+  -- TODO
+
+
+tfAll :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfAll context parameters = do
+  -- TODO
+
+
+tfSum :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfSum context parameters = do
+  requireNParameters parameters 1 "sum"
+  list <- valueToList $ head parameters
+  list <- mapM valueToInteger list
+  return $ TemplateInteger $ sum list
+
+
+tfProduct :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfProduct context parameters = do
+  requireNParameters parameters 1 "product"
+  list <- valueToList $ head parameters
+  list <- mapM valueToInteger list
+  return $ TemplateInteger $ product list
+
+
+tfMaximum :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfMaximum context parameters = do
+  requireNParameters parameters 1 "maximum"
+  list <- valueToList 4 head parameters
+  case head list of
+    TemplateInteger _ -> do
+      list <- mapM valueToInteger list
+      return $ TemplateInteger $ maximum list
+    TemplateCharacter _ -> do
+      list <- mapM valueToCharacter list
+      return $ TemplateCharacter $ maximum list
+    _ -> do
+      error $ "Template value is not a List of Integers or Characters."
+
+
+tfMinimum :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfMinimum context parameters = do
+  requireNParameters parameters 1 "minimum"
+  list <- valueToList 4 head parameters
+  case head list of
+    TemplateInteger _ -> do
+      list <- mapM valueToInteger list
+      return $ TemplateInteger $ minimum list
+    TemplateCharacter _ -> do
+      list <- mapM valueToCharacter list
+      return $ TemplateCharacter $ minimum list
+    _ -> do
+      error $ "Template value is not a List of Integers or Characters."
+
+
+tfScanl :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfScanl context parameters = do
+  -- TODO
+
+
+tfScanl1 :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfScanl1 context parameters = do
+  -- TODO
+
+
+tfScanr :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfScanr context parameters = do
+  -- TODO
+
+
+tfScanr1 :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfScanr1 context parameters = do
+  -- TODO
+
+
+tfMapAcccumL :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfMapAccumL context parameters = do
+  -- TODO
+
+
+tfMapAccumR :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfMapAccumR context parameters = do
+  -- TODO
+
+
+tfReplicate :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfReplicate context parameters = do
+  -- TODO
+
+
+tfUnfoldr :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfUnfoldr context parameters = do
+  -- TODO
+
+
+tfTake :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfTake context parameters = do
+  -- TODO
+
+
+tfDrop :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfDrop context parameters = do
+  -- TODO
+
+
+tfSplitAt :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfSplitAt context parameters = do
+  -- TODO
+
+
+tfTakeWhile :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfTakeWhile context parameters = do
+  -- TODO
+
+
+tfDropWhile :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfDropWhile context parameters = do
+  -- TODO
+
+
+tfSpan :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfSpan context parameters = do
+  -- TODO
+
+
+tfBreak :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfBreak context parameters = do
+  -- TODO
+
+
+tfStripPrefix :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStripPrefix context parameters = do
+  -- TODO
+
+
+tfGroup :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfGroup context parameters = do
+  -- TODO
+
+
+tfInits :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfInits context parameters = do
+  -- TODO
+
+
+tfTails :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfTails context parameters = do
+  -- TODO
+
+
+tfIsPrefixOf :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfIsPrefixOf context parameters = do
+  -- TODO
+
+
+tfIsSuffixOf :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfIsSuffixOf context parameters = do
+  -- TODO
+
+
+tfIsInfixOf :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfIsInfixOf context parameters = do
+  -- TODO
+
+
+tfElem :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfElem context parameters = do
+  -- TODO
+
+
+tfNotElem :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfNotElem context parameters = do
+  -- TODO
+
+
+tfLookup :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfLookup context parameters = do
+  -- TODO
+
+
+tfFind :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfFind context parameters = do
+  -- TODO
+
+
+tfFilter :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfFilter context parameters = do
+  -- TODO
+
+
+tfPartition :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfPartition context parameters = do
+  -- TODO
+
+
+tfNth :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfNth context parameters = do
+  requireNParameters parameters 2 "nth"
+  n <- valueToInteger $ head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  return $ head $ drop (fromIntegral n) list
+
+
+tfElemIndex :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfElemIndex context parameters = do
+  -- TODO
+
+
+tfElemIndices :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfElemIndices context parameters = do
+  -- TODO
+
+
+tfFindIndex :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfFindIndex context parameters = do
+  -- TODO
+
+
+tfFindIndices :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfFindIndices context parameters = do
+  -- TODO
+
+
+tfNub :: TemplateContext
+      -> [TemplateValue]
+      -> FruitTart TemplateValue
+tfNub context parameters = do
+  -- TODO
+
+
+tfDelete :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfDelete context parameters = do
+  -- TODO
+
+
+tfDeleteFirsts :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfDeleteFirsts context parameters = do
+  -- TODO
+
+
+tfUnion :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfUnion context parameters = do
+  -- TODO
+
+
+tfIntersect :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfIntersect context parameters = do
+  -- TODO
+
+
+tfSort :: TemplateContext
+       -> [TemplateValue]
+       -> FruitTart TemplateValue
+tfSort context parameters = do
+  -- TODO
+
+
+tfInsert :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfInsert context parameters = do
+  -- TODO
+
+
+tfNubBy :: TemplateContext
+        -> [TemplateValue]
+        -> FruitTart TemplateValue
+tfNubBy context parameters = do
+  -- TODO
+
+
+tfDeleteBy :: TemplateContext
+           -> [TemplateValue]
+           -> FruitTart TemplateValue
+tfDeleteBy context parameters = do
+  -- TODO
+
+
+tfDeleteFirstsBy :: TemplateContext
+                 -> [TemplateValue]
+                 -> FruitTart TemplateValue
+tfDeleteFirstsBy context parameters = do
+  -- TODO
+
+
+tfUnionBy :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfUnionBy context parameters = do
+  -- TODO
+
+
+tfIntersectsBy :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfIntersectsBy context parameters = do
+  -- TODO
+
+
+tfGroupBy :: TemplateContext
+          -> [TemplateValue]
+          -> FruitTart TemplateValue
+tfGroupBy context parameters = do
+  -- TODO
+
+
+tfSortBy :: TemplateContext
+         -> [TemplateValue]
+         -> FruitTart TemplateValue
+tfSortBy context parameters = do
+  -- TODO
+
+
+tfInsertBy :: TemplateContext
+           -> [TemplateValue]
+           -> FruitTart TemplateValue
+tfInsertBy context parameters = do
+  -- TODO
+
+
+tfMaximumBy :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfMaximumBy context parameters = do
+  -- TODO
+
+
+tfMinimumBy :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfMinimumBy context parameters = do
+  -- TODO
+
+
+tfStringHead :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringHead context parameters = do
+  -- TODO
+
+
+tfStringLast :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringLast context parameters = do
+  -- TODO
+
+
+tfStringTail :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringTail context parameters = do
+  -- TODO
+
+
+tfStringInit :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringInit context parameters = do
+  -- TODO
+
+
+tfStringNull :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringNull context parameters = do
+  -- TODO
+
+
+tfStringLength :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringLength context parameters = do
+  requireNParameters parameters 1 "stringLength"
+  string <- valueToString $ head parameters
+  return $ TemplateInteger $ fromIntegral $ length string
+
+
+tfStringMap :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfStringMap context parameters = do
+  -- TODO
+
+
+tfStringReverse :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringReverse context parameters = do
+  -- TODO
+
+
+tfStringIntersperse :: TemplateContext
+                    -> [TemplateValue]
+                    -> FruitTart TemplateValue
+tfStringIntersperse context parameters = do
+  -- TODO
+
+
+tfStringIntercalate :: TemplateContext
+                    -> [TemplateValue]
+                    -> FruitTart TemplateValue
+tfStringIntercalate context parameters = do
+  requireNParameters parameters 2 "intercalate"
+  string <- valueToString $ head parameters
+  list <- valueToList $ head $ drop 1 parameters
+  strings <- mapM valueToString list
+  return $ TemplateString $ intercalate string strings
+
+
+tfStringTranspose :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringTranspose context parameters = do
+  -- TODO
+
+
+tfStringSubsequences :: TemplateContext
+                     -> [TemplateValue]
+                     -> FruitTart TemplateValue
+tfStringSubsequences context parameters = do
+  -- TODO
+
+
+tfStringPermutations :: TemplateContext
+                     -> [TemplateValue]
+                     -> FruitTart TemplateValue
+tfStringPermutations context parameters = do
+  -- TODO
+
+
+tfStringFoldl :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringFoldl context parameters = do
+  -- TODO
+
+
+tfStringFoldl1 :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringFoldl1 context parameters = do
+  -- TODO
+
+
+tfStringFoldr :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringFoldr context parameters = do
+  -- TODO
+
+
+tfStringFoldr1 :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringFoldr1 context parameters = do
+  -- TODO
+
+
+tfStringConcat :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringConcat context parameters = do
+  -- TODO
+
+
+tfStringConcatMap :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringConcatMap context parameters = do
+  -- TODO
+
+
+tfStringAny :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfStringAny context parameters = do
+  -- TODO
+
+
+tfStringAll :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfStringAll context parameters = do
+  -- TODO
+
+
+tfStringScanl :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringScanl context parameters = do
+  -- TODO
+
+
+tfStringScanl1 :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringScanl1 context parameters = do
+  -- TODO
+
+
+tfStringScanr :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringScanr context parameters = do
+  -- TODO
+
+
+tfStringScanr1 :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringScanr1 context parameters = do
+  -- TODO
+
+
+tfStringMapAccumL :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringMapAccumL context parameters = do
+  -- TODO
+
+
+tfStringMapAccumR :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringMapAccumR context parameters = do
+  -- TODO
+
+
+tfStringReplicate :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringReplicate context parameters = do
+  -- TODO
+
+
+tfStringUnfoldr :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringUnfoldr context parameters = do
+  -- TODO
+
+
+tfStringTake :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringTake context parameters = do
+  -- TODO
+
+
+tfStringDrop :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringDrop context parameters = do
+  -- TODO
+
+
+tfStringSplitAt :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringSplitAt context parameters = do
+  -- TODO
+
+
+tfStringTakeWhile :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringTakeWhile context parameters = do
+  -- TODO
+
+
+tfStringDropWhile :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringDropWhile context parameters = do
+  -- TODO
+
+
+tfStringSpan :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringSpan context parameters = do
+  -- TODO
+
+
+tfStringBreak :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringBreak context parameters = do
+  -- TODO
+
+
+tfStringStripPrefix :: TemplateContext
+                    -> [TemplateValue]
+                    -> FruitTart TemplateValue
+tfStringStripPrefix context parameters = do
+  -- TODO
+
+
+tfStringGroup :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringGroup context parameters = do
+  -- TODO
+
+
+tfStringInits :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringInits context parameters = do
+  -- TODO
+
+
+tfStringTails :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringTails context parameters = do
+  -- TODO
+
+
+tfStringIsPrefixOf :: TemplateContext
+                   -> [TemplateValue]
+                   -> FruitTart TemplateValue
+tfStringIsPrefixOf context parameters = do
+  -- TODO
+
+
+tfStringIsSuffixOf :: TemplateContext
+                   -> [TemplateValue]
+                   -> FruitTart TemplateValue
+tfStringIsSuffixOf context parameters = do
+  -- TODO
+
+
+tfStringIsInfixOf :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringIsInfixOf context parameters = do
+  -- TODO
+
+
+tfStringElem :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringElem context parameters = do
+  -- TODO
+
+
+tfStringNotElem :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringNotElem context parameters = do
+  -- TODO
+
+
+tfStringLookup :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringLookup context parameters = do
+  -- TODO
+
+
+tfStringFind :: TemplateContext
+             -> [TemplateValue]
+             -> FruitTart TemplateValue
+tfStringFind context parameters = do
+  -- TODO
+
+
+tfStringFilter :: TemplateContext
+               -> [TemplateValue]
+               -> FruitTart TemplateValue
+tfStringFilter context parameters = do
+  -- TODO
+
+
+tfStringPartition :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringPartition context parameters = do
+  -- TODO
+
+
+tfStringNth :: TemplateContext
+            -> [TemplateValue]
+            -> FruitTart TemplateValue
+tfStringNth context parameters = do
+  -- TODO
+
+
+tfStringElemIndex :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringElemIndex context parameters = do
+  -- TODO
+
+
+tfStringElemIndices :: TemplateContext
+                    -> [TemplateValue]
+                    -> FruitTart TemplateValue
+tfStringElemIndices context parameters = do
+  -- TODO
+
+
+tfStringFindIndex :: TemplateContext
+                  -> [TemplateValue]
+                  -> FruitTart TemplateValue
+tfStringFindIndex context parameters = do
+  -- TODO
+
+
+tfStringFindIndices :: TemplateContext
+                    -> [TemplateValue]
+                    -> FruitTart TemplateValue
+tfStringFindIndices context parameters = do
+  -- TODO
+
+
+tfStringLines :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringLines context parameters = do
+  -- TODO
+
+
+tfStringWords :: TemplateContext
+              -> [TemplateValue]
+              -> FruitTart TemplateValue
+tfStringWords context parameters = do
+  -- TODO
+
+
+tfStringUnlines :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringUnlines context parameters = do
+  -- TODO
+
+
+tfStringUnwords :: TemplateContext
+                -> [TemplateValue]
+                -> FruitTart TemplateValue
+tfStringUnwords context parameters = do
+  -- TODO
 
 
 requireNParameters :: [TemplateValue] -> Int -> String -> FruitTart ()

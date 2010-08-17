@@ -27,7 +27,6 @@ fruitTartPlugin = toDyn $ Interface {
                     interfacePrerequisites = [("Base", 1),
                                               ("Captcha", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState,
                     interfaceInitRequest = initRequest
                   }
 
@@ -361,12 +360,6 @@ initDatabase database = do
              ++ "VALUES (103, 'User List', '/users/index/', 1, 0, 0, 0 NULL)")
              []
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newEmptyMVar :: IO (MVar String)
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()

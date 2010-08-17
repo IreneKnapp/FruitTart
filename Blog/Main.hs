@@ -23,7 +23,6 @@ fruitTartPlugin = toDyn $ Interface {
                     interfacePrerequisites = [("FruitTart", 1),
                                               ("Base", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState,
                     interfaceInitRequest = initRequest
                   }
 
@@ -88,12 +87,6 @@ initDatabase database = do
              ++ "VALUES ('blog.css', 100, 'Blog.%');")
              []
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newEmptyMVar :: IO (MVar String)
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()

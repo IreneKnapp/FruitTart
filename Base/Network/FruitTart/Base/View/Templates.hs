@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, IncoherentInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, IncoherentInstances,
+             MultiParamTypeClasses, GADTs #-}
 module Network.FruitTart.Base.View.Templates (
                                               -- Templates.Types
                                               TemplateValueType(..),
@@ -34,18 +35,23 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 
 
-instance Bindable String where
-    toTemplate string = TemplateString string
-instance Bindable [Map (String, String) TemplateValue] where
-    toTemplate rows = TemplateList $ map TemplateMap rows
-
-
-bind :: Bindable a => String -> String -> a -> FruitTart ()
-bind moduleName valueName bindable = do
+bindTemplateValue :: String -> String -> (TemplateValue a) -> FruitTart ()
+bindTemplateValue moduleName valueName value = do
   bindingsMVar <- getInterfaceStateMVar "Base"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
+               :: FruitTart (MVar (Map (String, String) (TemplateValue a)))
   oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = Map.fromList [((moduleName, valueName), toTemplate bindable)]
+  let newBindings = Map.fromList [((moduleName, valueName), value)]
+      bindings' = Map.union newBindings oldBindings
+  liftIO $ putMVar bindingsMVar bindings'
+
+
+bindString :: String -> String -> String -> FruitTart ()
+bindString moduleName valueName value = do
+  bindingsMVar <- getInterfaceStateMVar "Base"
+               :: FruitTart (MVar (Map (String, String) (TemplateValue a)))
+  oldBindings <- liftIO $ takeMVar bindingsMVar
+  let newBindings = Map.fromList [((moduleName, valueName),
+                                   TemplateString value)]
       bindings' = Map.union newBindings oldBindings
   liftIO $ putMVar bindingsMVar bindings'
 
@@ -55,7 +61,7 @@ bindQuery :: String -> [(String, TemplateValueType)]
 bindQuery moduleName valueNamesAndTypes queryText queryValues = do
   [row] <- query queryText queryValues
   bindingsMVar <- getInterfaceStateMVar "Base"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
+               :: FruitTart (MVar (Map (String, String) (TemplateValue a)))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings = convertRowToBindings moduleName valueNamesAndTypes row
       bindings' = Map.union newBindings oldBindings
@@ -68,7 +74,7 @@ bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
                       queryText queryValues = do
   rows <- query queryText queryValues
   bindingsMVar <- getInterfaceStateMVar "Base"
-               :: FruitTart (MVar (Map (String, String) TemplateValue))
+               :: FruitTart (MVar (Map (String, String) (TemplateValue a)))
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings
           = Map.fromList [((moduleName, overallValueName),
@@ -140,7 +146,7 @@ getValueNamesAndTypes queryID = do
 
 
 namedQuery :: String -> String -> [SQLData]
-           -> FruitTart [Map (String, String) TemplateValue]
+           -> FruitTart [Map (String, String) (TemplateValue a)]
 namedQuery moduleName queryName queryValues = do
   rows <- query ("SELECT id, body, is_template_expression "
                 ++ " FROM queries WHERE module = ? AND name = ?")
@@ -165,7 +171,7 @@ namedQuery moduleName queryName queryValues = do
 
 
 convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
-                     -> Map (String, String) TemplateValue
+                     -> Map (String, String) (TemplateValue a)
 convertRowToBindings moduleName valueNamesAndTypes row
     = if length valueNamesAndTypes /= length row
         then error $ "Provided with " ++ (show $ length valueNamesAndTypes)
@@ -206,9 +212,9 @@ bindTemplateExpressionQuery :: String -> String -> String -> FruitTart ()
 bindTemplateExpressionQuery moduleName queryName queryText = do
   value <- eval moduleName queryText
   case value of
-    TemplateList _ -> bind moduleName queryName value
+    TemplateList _ -> bindTemplateValue moduleName queryName value
     TemplateMap theMap -> mapM_ (\(moduleName, valueName)
-                                    -> bind moduleName valueName
+                                    -> bindTemplateValue moduleName valueName
                                             $ fromJust
                                                   $ Map.lookup (moduleName, valueName)
                                                                theMap)
@@ -217,7 +223,10 @@ bindTemplateExpressionQuery moduleName queryName queryText = do
 
 
 templateExpressionQueryMultipleRows
-    :: String -> String -> String -> FruitTart [Map (String, String) TemplateValue]
+    :: String
+    -> String
+    -> String
+    -> FruitTart [Map (String, String) (TemplateValue a)]
 templateExpressionQueryMultipleRows moduleName queryName queryText = do
   value <- eval moduleName queryText
   case value of
@@ -225,7 +234,7 @@ templateExpressionQueryMultipleRows moduleName queryName queryText = do
     _ -> error "Value from template-expression query not a List of Maps."
 
 
-getBinding :: String -> String -> FruitTart (Maybe TemplateValue)
+getBinding :: String -> String -> FruitTart (Maybe (TemplateValue a))
 getBinding moduleName valueName = do
   bindingsMVar <- getInterfaceStateMVar "Base"
                :: FruitTart (MVar (Map (String, String) TemplateValue))

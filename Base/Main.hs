@@ -29,7 +29,6 @@ fruitTartPlugin = toDyn $ Interface {
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("FruitTart", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState,
                     interfaceInitRequest = initRequest
                   }
 
@@ -307,12 +306,6 @@ initDatabase database = do
              (  "INSERT INTO month_names (number, name) VALUES (12, 'December')")
              []
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newMVar (Map.empty :: Map (String, String) TemplateValue)
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()

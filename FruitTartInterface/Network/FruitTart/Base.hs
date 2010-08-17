@@ -1,5 +1,6 @@
 module Network.FruitTart.Base (
-                               getInterfaceStateMVar,
+                               getBindingsMVar,
+                               getCaptchaCacheMVar,
                                getInput,
                                permanentRedirect,
                                seeOtherRedirect,
@@ -28,18 +29,14 @@ import Network.FastCGI
 import Network.FruitTart.Util
 
 
-getInterfaceStateMVar :: (Typeable a) => String -> FruitTart (MVar a)
-getInterfaceStateMVar moduleName = do
-  FruitTartState { interfaceStateMVarMap = theMap } <- get
-  let maybeDynamicState = Map.lookup moduleName theMap
-  case maybeDynamicState of
-    Nothing -> error $ "No state found for module " ++ moduleName ++ "."
-    Just _ -> return ()
-  let maybeState = fromDynamic $ fromJust maybeDynamicState
-  case maybeState of
-    Nothing -> error $ "State for module "++ moduleName ++ " has an unexpected type."
-    Just _ -> return ()
-  return $ fromJust maybeState
+getBindingsMVar :: FruitTart (MVar (Map (String, String) (TemplateValue a)))
+  FruitTartState { bindingsMVar = bindingsMVar } <- get
+  return bindingsMVar
+
+
+getCaptchaCacheMVar :: FruitTart (MVar (Map Int64 (String, ByteString)))
+  FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
+  return captchaCacheMVar
 
 
 getInput :: String -> FruitTart (Maybe String)

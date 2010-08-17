@@ -23,7 +23,6 @@ fruitTartPlugin = Interface {
                     interfacePrerequisites = [("FruitTart", 1),
                                               ("Base", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState,
                     interfaceInitRequest = initRequest
                   }
 
@@ -137,12 +136,6 @@ initDatabase database = do
              ++ "VALUES ('adventure.js', 100, 'Adventure');")
              []
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newEmptyMVar :: IO (MVar String)
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()

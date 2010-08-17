@@ -4,6 +4,7 @@ module Network.FruitTart.Util.Types where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.State
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Dynamic
 import Data.Int
@@ -20,6 +21,8 @@ data FruitTartState  = FruitTartState {
       database :: Database,
       formVariableMapMVar :: MVar (Map String String),
       interfacesMapMVar :: MVar (Map String Interface),
+      bindingsMVar :: MVar (Map (String, String) (TemplateValue a)),
+      captchaCacheMVar :: MVar (Map Int64 (String, ByteString)),
       interfaceStateMVarMap :: Map String Dynamic,
       sessionID :: Maybe Int64
     }
@@ -91,7 +94,6 @@ data Interface = Interface {
       interfaceModuleSchemaVersion :: Int64,
       interfacePrerequisites :: [(String, Int64)],
       interfaceInitDatabase :: Database -> IO (),
-      interfaceInitState :: IO Dynamic,
       interfaceInitRequest :: FruitTart ()
     } deriving (Typeable)
 

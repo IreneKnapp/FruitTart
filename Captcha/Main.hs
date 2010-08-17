@@ -25,7 +25,6 @@ fruitTartPlugin = toDyn $ Interface {
                     interfaceModuleSchemaVersion = moduleSchemaVersion,
                     interfacePrerequisites = [("Base", 1)],
                     interfaceInitDatabase = initDatabase,
-                    interfaceInitState = initState,
                     interfaceInitRequest = initRequest
                   }
 
@@ -58,12 +57,6 @@ initDatabase database = do
              "INSERT INTO schema_versions (module, version) VALUES (?, ?)"
              [SQLText moduleName, SQLInteger moduleSchemaVersion]
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newMVar (Map.empty :: Map Int64 (String, ByteString))
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()

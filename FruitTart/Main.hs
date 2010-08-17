@@ -24,13 +24,16 @@ main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
   formVariableMapMVar <- newMVar $ Map.empty
+  bindingsMVar <- newMVar $ Map.empty
+  captchaCacheMVar <- newMVar $ Map.empty
   interfacesMapMVar <- newMVar $ Map.empty
-  interfaceStateMVarMap <- loadInstalledModules database interfacesMapMVar
+  loadInstalledModules database interfacesMapMVar
   state <- return $ FruitTartState {
              database = database,
              formVariableMapMVar = formVariableMapMVar,
              interfacesMapMVar = interfacesMapMVar,
-             interfaceStateMVarMap = interfaceStateMVarMap,
+             bindingsMVar = bindingsMVar,
+             captchaCacheMVar = captchaCacheMVar,
              sessionID = Nothing
            }
   interfacesMap <- readMVar interfacesMapMVar
@@ -43,7 +46,7 @@ main = do
   return ()
 
 
-loadInstalledModules :: Database -> MVar (Map String Interface) -> IO (Map String Dynamic)
+loadInstalledModules :: Database -> MVar (Map String Interface) -> IO ()
 loadInstalledModules database interfacesMapMVar = do
   names <- earlyQuery database "SELECT name FROM installed_modules" []
   interfaces
@@ -205,19 +208,16 @@ loadInstalledModules database interfacesMapMVar = do
                                               unavailableVersionsRequiringModules))
                                conflictingVersions)
          ++ "."
-  mapM (\moduleToLoad@(moduleName, moduleVersion) -> do
-          interfacesMap <- takeMVar interfacesMapMVar
-          let interface = fromJust $ Map.lookup moduleToLoad availableModuleMap
-          maybeInitDatabase database
-                            moduleName
-                            moduleVersion
-                            (interfaceInitDatabase interface)
-          stateMVarDynamic <- interfaceInitState interface
-          interfacesMap' <- return $ Map.insert moduleName interface interfacesMap
-          putMVar interfacesMapMVar interfacesMap'
-          return (moduleName, stateMVarDynamic))
-       loadOrder
-       >>= return . Map.fromList
+  mapM_ (\moduleToLoad@(moduleName, moduleVersion) -> do
+           interfacesMap <- takeMVar interfacesMapMVar
+           let interface = fromJust $ Map.lookup moduleToLoad availableModuleMap
+               maybeInitDatabase database
+                                 moduleName
+                                 moduleVersion
+                                 (interfaceInitDatabase interface)
+               interfacesMap' <- return $ Map.insert moduleName interface interfacesMap
+           putMVar interfacesMapMVar interfacesMap')
+        loadOrder
 
 
 baseInterface :: Interface
@@ -229,7 +229,6 @@ baseInterface = Interface {
                   interfaceModuleSchemaVersion = schemaVersion,
                   interfacePrerequisites = [],
                   interfaceInitDatabase = initDatabase,
-                  interfaceInitState = initState,
                   interfaceInitRequest = initRequest
                 }
 
@@ -342,12 +341,6 @@ initDatabase database = do
             ++ "SET owner_users = 1, anonymous_user = 3, nobody_user = 2")
             []
   return ()
-
-
-initState :: IO Dynamic
-initState = do
-  mVar <- newEmptyMVar :: IO (MVar String)
-  return $ toDyn mVar
 
 
 initRequest :: FruitTart ()
