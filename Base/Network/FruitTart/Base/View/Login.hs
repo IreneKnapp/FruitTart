@@ -58,8 +58,8 @@ getLoginButton currentPage = do
 
 outputMustLoginPage :: String -> FruitTart ()
 outputMustLoginPage currentPage = do
-  doctype <- getTemplate "Templates" "doctype" []
-  pageHeadItems <- getTemplate "Templates" "pageHeadItems" [TemplateString "Base.Login"]
+  doctype <- getTemplate "Base" "doctype" []
+  pageHeadItems <- getTemplate "Base" "pageHeadItems" [TemplateString "Base.Login"]
   navigationBar <- getTemplate "Base" "navigationBar" [TemplateString currentPage]
   loginButton <- getLoginButton currentPage
   fPutStr $ doctype
