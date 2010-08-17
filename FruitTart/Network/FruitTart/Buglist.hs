@@ -1,4 +1,4 @@
-module Main (fruitTartPlugin) where
+module Network.FruitTart.Buglist (fruitTartPlugin) where
 
 import Control.Concurrent
 import Control.Monad.State

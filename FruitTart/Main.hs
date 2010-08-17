@@ -12,11 +12,13 @@ import Network.FastCGI
 import System.Environment
 import System.Exit
 import System.IO.Unsafe
-import System.Plugins
 
 import Database.SQLite3
 import Network.FruitTart.Util
 import qualified Network.FruitTart.Dispatcher as Dispatcher
+import qualified Network.FruitTart.Captcha as Captcha
+import qualified Network.FruitTart.Buglist as Buglist
+import qualified Network.FruitTart.Blog as Blog
 
 
 main :: IO ()
@@ -48,22 +50,10 @@ main = do
 
 loadInstalledModules :: Database -> MVar (Map String Interface) -> IO ()
 loadInstalledModules database interfacesMapMVar = do
-  names <- earlyQuery database "SELECT name FROM installed_modules" []
-  interfaces
-      <- mapM (\[SQLText name] -> do
-                maybeInterface <- loadDynamic (name, "Main", "fruitTartPlugin")
-                case maybeInterface of
-                  Nothing -> do
-                    -- fLog $ "Not installed or not a plugin: " ++ name
-                    return []
-                  Just dynamicInterface -> do
-                    case fromDynamic dynamicInterface of
-                      Nothing -> do
-                        -- fLog $ "Plugin not compatible: " ++ name
-                        return []
-                      Just interface -> return [interface])
-              names
-         >>= return . (\interfaces -> concat [[baseInterface], interfaces]) . concat
+  let interfaces = [baseInterface,
+                    Captcha.fruitTartPlugin,
+                    Buglist.fruitTartPlugin,
+                    Blog.fruitTartPlugin]
   let availableModules = map (\interface -> (interfaceModuleName interface,
                                              interfaceModuleVersion interface))
                              interfaces

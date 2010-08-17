@@ -17,17 +17,49 @@ description:
 
 Executable FruitTart
   main-is: Main.hs
+  other-modules: Network.FruitTart.Common,
+                 Network.FruitTart.Dispatcher,
+                 Network.FruitTart.Util,
+                 Network.FruitTart.Util.Database,
+                 Network.FruitTart.Util.HTML,
+                 Network.FruitTart.Util.Lists,
+                 Network.FruitTart.Util.Passwords,
+                 Network.FruitTart.Util.Text,
+                 Network.FruitTart.Util.Types,
+                 Network.FruitTart.Base,
+                 Network.FruitTart.Base.Controller.Functions,
+                 Network.FruitTart.Base.Controller.Login,
+                 Network.FruitTart.Base.Controller.Modules,
+                 Network.FruitTart.Base.Controller.Queries,
+                 Network.FruitTart.Base.Controller.Templates,
+                 Network.FruitTart.Base.Templates.Semantics,
+                 Network.FruitTart.Base.Templates.Syntax,
+                 Network.FruitTart.Base.Templates.Types,
+                 Network.FruitTart.Base.View.Login,
+                 Network.FruitTart.Base.View.PopupMessage,
+                 Network.FruitTart.Base.View.Templates,
+                 Network.FruitTart.Captcha,
+                 Network.FruitTart.Captcha.Controller.Captcha,
+                 Network.FruitTart.Buglist,
+                 Network.FruitTart.Buglist.Controller.Issues,
+                 Network.FruitTart.Buglist.Controller.Users,
+                 Network.FruitTart.Buglist.View.Navigation,
+                 Network.FruitTart.Blog,
+                 Network.FruitTart.Blog.Controller.Blog
   build-depends: base >= 4.1 && < 5,
+                 array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,
                  containers >= 0.2.0.1,
                  haskell98,
                  mtl >= 1.1.0.2,
-                 old-time >= 1.0.0.2,
+                 time >= 1.1.4,
+                 old-time >= 1.0.0.4,
+                 old-locale >= 1.0.0.1,
                  
+                 Crypto >= 4.2.0,
                  utf8-string >= 0.3.5,
                  
                  direct-fastcgi >= 1.0.1,
-                 direct-plugins >= 1.0,
                  direct-sqlite >= 1.0,
-                 FruitTartInterface >= 1.0 && < 2
+                 hs-captcha >= 1.0
   extra-libraries: sqlite3

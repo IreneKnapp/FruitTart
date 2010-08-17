@@ -1,4 +1,4 @@
-module Main (fruitTartPlugin) where
+module Network.FruitTart.Captcha (fruitTartPlugin) where
 
 import Control.Concurrent
 import Control.Monad.State

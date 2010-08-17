@@ -1,20 +1,20 @@
-module Network.FruitTart.Base (
-                               getBindingsMVar,
-                               getCaptchaCacheMVar,
-                               getInput,
-                               permanentRedirect,
-                               seeOtherRedirect,
-                               error404,
-                               error500,
-                               errorControllerUndefined,
-                               errorActionUndefined,
-                               errorActionParameters,
-                               errorActionMethod,
-                               errorInvalidID,
-                               parseURL,
-                               canonicalURL,
-                               getSessionID
-                              )
+module Network.FruitTart.Common (
+                                 getBindingsMVar,
+                                 getCaptchaCacheMVar,
+                                 getInput,
+                                 permanentRedirect,
+                                 seeOtherRedirect,
+                                 error404,
+                                 error500,
+                                 errorControllerUndefined,
+                                 errorActionUndefined,
+                                 errorActionParameters,
+                                 errorActionMethod,
+                                 errorInvalidID,
+                                 parseURL,
+                                 canonicalURL,
+                                 getSessionID
+                                )
     where
 
 import Control.Concurrent.MVar
