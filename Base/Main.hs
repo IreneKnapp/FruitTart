@@ -14,6 +14,7 @@ import Network.FruitTart.Base.Templates.Types
 import Network.FruitTart.Util
 import qualified Network.FruitTart.Base.Controller.Functions as Controller.Functions
 import qualified Network.FruitTart.Base.Controller.Login as Controller.Login
+import qualified Network.FruitTart.Base.Controller.Modules as Controller.Modules
 import qualified Network.FruitTart.Base.Controller.Templates as Controller.Templates
 import qualified Network.FruitTart.Base.Controller.Queries as Controller.Queries
 import qualified Network.FruitTart.Base.View.Templates as View.Templates
@@ -38,6 +39,7 @@ dispatchTable
     = combineActionTables
       [("functions", Controller.Functions.actionTable),
        ("login", Controller.Login.actionTable),
+       ("modules", Controller.Modules.actionTable),
        ("templates", Controller.Templates.actionTable),
        ("queries", Controller.Queries.actionTable)]
 

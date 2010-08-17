@@ -211,7 +211,7 @@ createPOST = do
       body <- return $ case maybeBody of
                          Nothing -> ""
                          Just body -> body
-      items <- getInputItems
+      results <- getInputResults
       namedQuery "Base" "beginExclusiveTransaction" []
       [values]
           <- namedQuery "Base.Queries" "queryExists"
@@ -233,13 +233,13 @@ createPOST = do
           queryID <- return $ case queryID of
                                 TemplateInteger integer -> integer
           if not isTemplateExpression
-            then mapM (\((itemType, itemName), index) -> do
+            then mapM (\((resultType, resultName), index) -> do
                          namedQuery "Base.Queries" "insertQueryResult"
                                     [SQLInteger queryID,
                                      SQLInteger index,
-                                     SQLText itemType,
-                                     SQLText itemName])
-                 $ zip items [0..]
+                                     SQLText resultType,
+                                     SQLText resultName])
+                 $ zip results [0..]
             else return []
           namedQuery "Base" "commit" []
           setPopupMessage $ Just "Query created."
@@ -250,6 +250,17 @@ createPOST = do
           bind "Base.Queries" "queryName" queryName
           bind "Base.Queries" "isTemplateExpression" isTemplateExpression
           bind "Base.Queries" "body" body
+          bind "Base.Queries" "results"
+               [Map.fromList
+                $ concat
+                  $ map (\((resultType, resultName), index)
+                           -> [(("Base.Queries", "name"),
+                                TemplateString resultName),
+                               (("Base.Queries", "type"),
+                                TemplateString resultType),
+                               (("Base.Queries", "index"),
+                                TemplateInteger index)])
+                        $ zip results [0..]]
           outputQueryPage currentPage targetPage
                           (Just "A query by that name already exists.")
                           Nothing
@@ -279,7 +290,7 @@ edit queryID = do
       body <- return $ case maybeBody of
                          Nothing -> ""
                          Just body -> body
-      items <- getInputItems
+      results <- getInputResults
       namedQuery "Base" "beginTransaction" []
       [values]
           <- namedQuery "Base.Queries" "queryExistsWithDifferentID"
@@ -298,13 +309,13 @@ edit queryID = do
                       SQLInteger queryID]
           namedQuery "Base.Queries" "deleteQueryResults" [SQLInteger queryID]
           if not isTemplateExpression
-            then mapM (\((itemType, itemName), index) -> do
+            then mapM (\((resultType, resultName), index) -> do
                          namedQuery "Base.Queries" "insertQueryResult"
                                     [SQLInteger queryID,
                                      SQLInteger index,
-                                     SQLText itemType,
-                                     SQLText itemName])
-                      $ zip items [0..]
+                                     SQLText resultType,
+                                     SQLText resultName])
+                      $ zip results [0..]
             else return []
           namedQuery "Base" "commit" []
           setPopupMessage $ Just "Query changed."
@@ -315,6 +326,17 @@ edit queryID = do
           bind "Base.Queries" "queryName" queryName
           bind "Base.Queries" "isTemplateExpression" isTemplateExpression
           bind "Base.Queries" "body" body
+          bind "Base.Queries" "results"
+               [Map.fromList
+                $ concat
+                  $ map (\((resultType, resultName), index)
+                           -> [(("Base.Queries", "name"),
+                                TemplateString resultName),
+                               (("Base.Queries", "type"),
+                                TemplateString resultType),
+                               (("Base.Queries", "index"),
+                                TemplateInteger index)])
+                        $ zip results [0..]]
           outputQueryPage currentPage targetPage
                           (Just "A query by that name already exists.")
                           (Just queryID)
@@ -360,23 +382,23 @@ deletePOST queryID = do
       seeOtherRedirect "/queries/index/"
 
 
-getInputItems :: FruitTart [(String, String)]
-getInputItems
-    = let getInputItem index = do
-            maybeItemType <- getInput $ "type" ++ (show index)
-            case maybeItemType of
+getInputResults :: FruitTart [(String, String)]
+getInputResults
+    = let getInputResult index = do
+            maybeResultType <- getInput $ "type" ++ (show index)
+            case maybeResultType of
               Nothing -> return Nothing
-              Just itemType -> do
-                maybeItemName <- getInput $ "name" ++ (show index)
-                itemName <- case maybeItemName of
+              Just resultType -> do
+                maybeResultName <- getInput $ "name" ++ (show index)
+                resultName <- case maybeResultName of
                           Nothing -> return ""
-                          Just itemName -> return itemName
-                return $ Just (itemType, itemName)
-          getInputItemsFrom index = do
-            maybeItem <- getInputItem index
-            case maybeItem of
+                          Just resultName -> return resultName
+                return $ Just (resultType, resultName)
+          getInputResultsFrom index = do
+            maybeResult <- getInputResult index
+            case maybeResult of
               Nothing -> return []
-              Just item -> do
-                rest <- getInputItemsFrom $ index + 1
-                return $ item : rest
-      in getInputItemsFrom 1
+              Just result -> do
+                rest <- getInputResultsFrom $ index + 1
+                return $ result : rest
+      in getInputResultsFrom 1
