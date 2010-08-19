@@ -1,9 +1,9 @@
 {
-module Network.FruitTart.Base.Templates.Syntax (
-                                                readExpression,
-                                                parser,
-                                                lexer
-                                                )
+module Network.FruitTart.Custard.Syntax (
+                                         readExpression,
+                                         parser,
+                                         lexer
+                                        )
     where
 
 import Data.Char
@@ -14,138 +14,141 @@ import Data.Maybe
 import Numeric
 
 import Database.SQLite3
-import {-# SOURCE #-} Network.FruitTart.Base.Templates.Semantics
-import Network.FruitTart.Base.Templates.Types
+import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
+import Network.FruitTart.Types
 import Network.FruitTart.Util
 
 }
 
 %name parser Expression
-%tokentype { TemplateToken }
+%tokentype { CustardToken }
 %error { parseError }
 
 %token
-        string      { TokenStringValue $$ }
-        integer     { TokenStringValue $$ }
-        symbol      { TokenSymbol _ _ }
-        if          { TokenIf }
-        case        { TokenCase }
-        call        { TokenCall }
-        iterate     { TokenIterate }
-        query       { TokenQuery }
-        lookup      { TokenLookup }
-        bound       { TokenBound }
-        bind        { TokenBind }
-        bindmap     { TokenBindMap }
-        '('         { TokenLeftParen }
-        ')'         { TokenRightParen }
-        '['         { TokenLeftSquareBracket }
-        ']'         { TokenRightSquareBracket }
-        '{'         { TokenLeftCurlyBracket }
-        '}'         { TokenRightCurlyBracket }
-	'->'        { TokenMinusGreater }
-        ';'         { TokenSemicolon }
-        ','         { TokenComma }
-        '++'        { TokenPlusPlus }
-        '=='        { TokenEqualsEquals }
-        '!='        { TokenExclamationEquals }
-        '!'         { TokenExclamation }
-        '&&'        { TokenAmpersandAmpersand }
-        '||'        { TokenBarBar }
-        '>='        { TokenGreaterEquals }
-        '>'         { TokenGreater }
-        '<='        { TokenLessEquals }
-        '<'         { TokenLess }
-        '+'         { TokenPlus }
-        '-'         { TokenMinus }
-        '*'         { TokenStar }
-        '/'         { TokenSlash }
+        string              { TokenStringValue $$ }
+        integer             { TokenIntegerValue $$ }
+        symbol              { TokenSymbol _ _ }
+        if                  { TokenIf }
+        case                { TokenCase }
+        call                { TokenCall }
+        iterate             { TokenIterate }
+        query               { TokenQuery }
+        bound               { TokenBound }
+        bind                { TokenBind }
+        bindmap             { TokenBindMap }
+        bindQuery1          { TokenBindQuery1 }
+        bindQueryN          { TokenBindQueryN }
+        '('                 { TokenLeftParen }
+        ')'                 { TokenRightParen }
+        '['                 { TokenLeftSquareBracket }
+        ']'                 { TokenRightSquareBracket }
+        '{'                 { TokenLeftCurlyBracket }
+        '}'                 { TokenRightCurlyBracket }
+	'->'                { TokenMinusGreater }
+        ';'                 { TokenSemicolon }
+        ','                 { TokenComma }
+        '++'                { TokenPlusPlus }
+        '=='                { TokenEqualsEquals }
+        '!='                { TokenExclamationEquals }
+        '!'                 { TokenExclamation }
+        '&&'                { TokenAmpersandAmpersand }
+        '||'                { TokenBarBar }
+        '>='                { TokenGreaterEquals }
+        '>'                 { TokenGreater }
+        '<='                { TokenLessEquals }
+        '<'                 { TokenLess }
+        '+'                 { TokenPlus }
+        '-'                 { TokenMinus }
+        '*'                 { TokenStar }
+        '/'                 { TokenSlash }
 
 %%
 
 PrimaryExpression     : string
-                      { TemplateLiteral $1 }
+                      { CustardStringLiteral $1 }
                       | integer
-                      { TemplateLiteral $1 }
+                      { CustardIntegerLiteral $1 }
                       | symbol
-                      { TemplateVariable (symbolTokenPackage $1, symbolTokenName $1) }
+                      { CustardVariable (symbolTokenPackage $1, symbolTokenName $1) }
                       | '[' ExpressionList ']'
-                      { TemplateExpressionList $2 }
+                      { CustardExpressionList $2 }
 		      | '{' LambdaList '->' Expression '}'
-		      { TemplateLambdaExpression $2 $4 }
+		      { CustardLambdaExpression $2 $4 }
                       | '(' Expression ')'
                       { $2 }
 
 FunctionCallExpression
                       : FunctionCallExpression '(' ExpressionList ')'
-                      { TemplateFunctionCall $1 $3 }
+                      { CustardFunctionCall $1 $3 }
                       | if '(' ExpressionList ')'
-                      { TemplateIfExpression $3 }
+                      { CustardIfExpression $3 }
                       | case '(' ExpressionList ')'
-                      { TemplateCaseExpression $3 }
+                      { CustardCaseExpression $3 }
                       | call '(' ExpressionList ')'
-                      { TemplateCallExpression $3 }
+                      { CustardCallExpression $3 }
                       | iterate '(' ExpressionList ')'
-                      { TemplateIterateExpression $3 }
+                      { CustardIterateExpression $3 }
                       | query '(' ExpressionList ')'
-                      { TemplateQueryExpression $3 }
-                      | lookup '(' ExpressionList ')'
-                      { TemplateLookupExpression $3 }
+                      { CustardQueryExpression $3 }
                       | bound '(' ExpressionList ')'
-                      { TemplateBoundExpression $3 }
+                      { CustardBoundExpression $3 }
                       | bind '(' ExpressionList ')'
-                      { TemplateBindExpression $3 }
+                      { CustardBindExpression $3 }
                       | bindmap '(' ExpressionList ')'
-                      { TemplateBindMapExpression $3 }
+                      { CustardBindMapExpression $3 }
+                      | bindQuery1 '(' ExpressionList ')'
+                      { CustardBindQuery1Expression $3 }
+                      | bindQueryN '(' ExpressionList ')'
+                      { CustardBindQueryNExpression $3 }
 		      | PrimaryExpression
 		      { $1 }
 
 UnaryExpression       : '!' UnaryExpression
-                      { TemplateOperationNot $2 }
+                      { CustardOperationNot $2 }
 		      | FunctionCallExpression
 		      { $1 }
 
 MultiplicativeExpression
                       : MultiplicativeExpression '*' UnaryExpression
-                      { TemplateOperationMultiply $1 $3 }
+                      { CustardOperationMultiply $1 $3 }
                       | MultiplicativeExpression '/' UnaryExpression
-                      { TemplateOperationDivide $1 $3 }
+                      { CustardOperationDivide $1 $3 }
                       | UnaryExpression
                       { $1 }
 
 AdditiveExpression    : AdditiveExpression '++' MultiplicativeExpression
-                      { TemplateOperationConcatenate $1 $3 }
+                      { CustardOperationConcatenate $1 $3 }
                       | AdditiveExpression '+' MultiplicativeExpression
-                      { TemplateOperationAdd $1 $3 }
+                      { CustardOperationAdd $1 $3 }
                       | AdditiveExpression '-' MultiplicativeExpression
-                      { TemplateOperationSubtract $1 $3 }
+                      { CustardOperationSubtract $1 $3 }
 		      | MultiplicativeExpression
 		      { $1 }
 
 EqualityExpression    : EqualityExpression '==' AdditiveExpression
-                      { TemplateOperationEquals $1 $3 }
+                      { CustardOperationEquals $1 $3 }
                       | EqualityExpression '!=' AdditiveExpression
-                      { TemplateOperationNotEquals $1 $3 }
+                      { CustardOperationNotEquals $1 $3 }
                       | EqualityExpression '>=' AdditiveExpression
-                      { TemplateOperationGreaterEquals $1 $3 }
+                      { CustardOperationGreaterEquals $1 $3 }
                       | EqualityExpression '>' AdditiveExpression
-                      { TemplateOperationGreater $1 $3 }
+                      { CustardOperationGreater $1 $3 }
                       | EqualityExpression '<=' AdditiveExpression
-                      { TemplateOperationLessEquals $1 $3 }
+                      { CustardOperationLessEquals $1 $3 }
                       | EqualityExpression '<' AdditiveExpression
-                      { TemplateOperationLess $1 $3 }
+                      { CustardOperationLess $1 $3 }
                       | AdditiveExpression
                       { $1 }
 
 LogicalExpression     : LogicalExpression '&&' EqualityExpression
-                      { TemplateOperationAnd $1 $3 }
+                      { CustardOperationAnd $1 $3 }
                       | LogicalExpression '||' EqualityExpression
-                      { TemplateOperationOr $1 $3 }
+                      { CustardOperationOr $1 $3 }
                       | EqualityExpression
                       { $1 }
 
 Expression	      : Expression ';' LogicalExpression
-		      { TemplateSequence $1 $3 }
+		      { CustardSequence $1 $3 }
 		      | Expression ';'
 		      { $1 }
 		      | LogicalExpression
@@ -168,24 +171,24 @@ LambdaList	      : LambdaList1
 
 LambdaList1	      : LambdaList1 ',' symbol
 		      { $1
-		        ++ [TemplateParameter (symbolTokenPackage $3,
+		        ++ [CustardParameter (symbolTokenPackage $3,
 			                       symbolTokenName $3)] }
 		      | symbol
-		      { [TemplateParameter (symbolTokenPackage $1, symbolTokenName $1)] }
+		      { [CustardParameter (symbolTokenPackage $1, symbolTokenName $1)] }
 
 {
 
-readExpression :: Database -> String -> String -> IO TemplateExpression
+readExpression :: Database -> String -> String -> IO CustardExpression
 readExpression database defaultPackage input = do
   tokens <- lexer database defaultPackage input
   return $ parser tokens
 
 
-parseError :: [TemplateToken] -> a
+parseError :: [CustardToken] -> a
 parseError _ = error $ "Expression-parsing error."
 
 
-lexer :: Database -> String -> String -> IO [TemplateToken]
+lexer :: Database -> String -> String -> IO [CustardToken]
 lexer _ _ "" = return []
 lexer database defaultPackage ('(':rest) = do
   restTokens <- lexer database defaultPackage rest
@@ -259,12 +262,12 @@ lexer database defaultPackage ('/':rest) = do
 lexer database defaultPackage all@('"':_) = do
   let (string, rest) = readString all
   restTokens <- lexer database defaultPackage rest
-  return $ (TokenStringValue $ TemplateString string) : restTokens
+  return $ (TokenStringValue $ CustardString string) : restTokens
 lexer database defaultPackage all@(c:_)
   | isDigit c = do
     let [(result, rest)] = readDec all
     restTokens <- lexer database defaultPackage rest
-    return $ (TokenIntegerValue $ TemplateInteger result) : restTokens
+    return $ (TokenIntegerValue $ CustardInteger result) : restTokens
   | isAlpha c = do
     let (maybePackage, symbol, rest) = readSymbol all
     token <- case maybePackage of
@@ -274,10 +277,11 @@ lexer database defaultPackage all@(c:_)
                      | symbol == "call" -> return TokenCall
                      | symbol == "iterate" -> return TokenIterate
                      | symbol == "query" -> return TokenQuery
-                     | symbol == "lookup" -> return TokenLookup
                      | symbol == "bound" -> return TokenBound
                      | symbol == "bind" -> return TokenBind
                      | symbol == "bindmap" -> return TokenBindMap
+                     | symbol == "bindQuery1" -> return TokenBindQuery1
+                     | symbol == "bindQueryN" -> return TokenBindQueryN
                      | otherwise -> intern database defaultPackage symbol
       Just package -> intern database package symbol
     restTokens <- lexer database defaultPackage rest
@@ -317,15 +321,15 @@ readSymbol input
       in (maybeOtherComponents, lastComponent, rest)
 
 
-symbolTokenPackage :: TemplateToken -> String
+symbolTokenPackage :: CustardToken -> String
 symbolTokenPackage (TokenSymbol result _) = result
 
 
-symbolTokenName :: TemplateToken -> String
+symbolTokenName :: CustardToken -> String
 symbolTokenName (TokenSymbol _ result) = result
 
 
-intern :: Database -> String -> String -> IO TemplateToken
+intern :: Database -> String -> String -> IO CustardToken
 intern database moduleName properName = do
   importedModules
     <- earlyQuery database

@@ -37,16 +37,6 @@ module Network.FruitTart.Util (
                                -- Text
                                fromCRLF,
                                wordWrap,
-                               
-                               -- Types
-                               FruitTartState(..),
-                               FruitTart,
-                               ActionTable,
-                               ControllerTable,
-                               ParameterType(..),
-                               Interface(..),
-                               makeActionTable,
-                               combineActionTables
                               )
     where
 
@@ -60,4 +50,3 @@ import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists
 import Network.FruitTart.Util.Passwords
 import Network.FruitTart.Util.Text
-import Network.FruitTart.Util.Types

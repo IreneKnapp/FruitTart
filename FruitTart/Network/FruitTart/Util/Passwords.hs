@@ -8,7 +8,7 @@ import Foreign
 
 import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
-import Network.FruitTart.Util.Types
+import Network.FruitTart.Types
 
 
 hashPassword :: String -> BS.ByteString

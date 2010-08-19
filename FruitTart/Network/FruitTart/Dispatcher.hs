@@ -19,22 +19,39 @@ import Random
 import System.Time
 
 import qualified Database.SQLite3 as SQL
-import Network.FruitTart.Base
+import Network.FruitTart.Custard.Semantics
+import Network.FruitTart.Types
 import Network.FruitTart.Util
 
 
-processRequest :: ControllerTable -> FruitTart ()
-processRequest dispatchTable  = do
-  fCatch (processRequest' dispatchTable)
+processRequest :: FruitTart ()
+processRequest  = do
+  fCatch processRequest'
          (\e -> do
                   fLog $ "FruitTart: " ++ show (e :: SomeException)
-                  error500)
+                  fCatch (do
+                           applyFunctionGivenName ControllerContext
+                                                  Map.empty
+                                                  "Base"
+                                                  "error500"
+                                                  [])
+                         (\e -> do
+                           setResponseStatus 500
+                           setResponseHeader HttpContentType
+                                             "text/html; charset=UTF8"
+                           fPutStr $ "<html><head><title>"
+                                     ++ "500 Internal Server Error"
+                                     ++ "</title></head><body>"
+                                     ++ "<h1>500 Internal Server Error</h1><p>"
+                                     ++ "FruitTart encountered an error while "
+                                     ++ "processing this request.  The logfile "
+                                     ++ "has more details.</p></body></html>"))
 
 
-processRequest' :: ControllerTable -> FruitTart ()
-processRequest' dispatchTable = do
+processRequest' :: FruitTart ()
+processRequest' = do
   initializeSession
-  processFormInput
+  formInput <- processFormInput
   callModuleInitRequestMethods
   setMimeType
   maybeURL <- getQueryString
@@ -47,130 +64,63 @@ processRequest' dispatchTable = do
   if url /= canonical
     then permanentRedirect canonical
     else do
-      maybeControllerData <- return $ Map.lookup controllerName dispatchTable
-      case maybeControllerData of
+      maybeControllerModuleName <- lookupController controllerName
+      case maybeControllerModuleName of
         Nothing -> errorControllerUndefined controllerName
-        Just controllerData
+        Just controllerModuleName
           -> do
-           maybeActionData <- return $ Map.lookup actionName controllerData
-           case maybeActionData of
-             Nothing -> errorActionUndefined controllerName actionName
-             Just actionData
-                 -> do
-                  maybeMethodData <- return $ Map.lookup method actionData
-                  case maybeMethodData of
-                    Nothing -> errorActionMethod controllerName actionName method
-                    Just (mandatoryParameterTypes,
-                          optionalParameterTypes,
-                          namedParameterTypes,
-                          dynamicFunction)
-                        -> invokeDynamicFunction controllerName
-                                                 actionName
-                                                 dynamicFunction
-                                                 unnamedParameters
-                                                 namedParameters
-                                                 mandatoryParameterTypes
-                                                 optionalParameterTypes
-                                                 namedParameterTypes
+           maybeActionIDAndFunctionName
+             <- lookupAction controllerModuleName actionName method
+           case maybeActionIDAndFunctionName of
+             Nothing -> errorActionUndefined controllerName actionName method
+             Just (actionID, functionName) -> do
+               (mandatoryParameterTypes,
+                optionalParameterTypes,
+                namedParameterTypes) <- lookupParameterTypes actionID
+               parameters <- decodeParameters unnamedParameters
+                                              namedParameters
+                                              mandatoryParameterTypes
+                                              optionalParameterTypes
+                                              namedParameterTypes
+               applyFunctionGivenName ControllerContext
+                                      formInput
+                                      controllerName
+                                      functionName
+                                      parameters
+               return ()
   endSession
 
 
-invokeDynamicFunction
-    :: String -> String
-    -> Dynamic
-    -> [String]
-    -> [(String, String)]
-    -> [ParameterType]
-    -> [ParameterType]
-    -> [(String, ParameterType)]
-    -> FruitTart ()
-invokeDynamicFunction controllerName actionName
-                      dynamicFunction
-                      unnamedParameters
-                      namedParameters
-                      mandatoryParameterTypes
-                      optionalParameterTypes
-                      namedParameterTypes
- = do
-  let handleMandatoryParameters strings types values =
-        case types of
-          [] -> case strings of
-                  [] -> return $ Just $ reverse values
-                  _ -> return Nothing
-          (type':restTypes)
-              -> case strings of
-                   (string:restStrings)
-                       | validateParameter type' string
-                       -> handleMandatoryParameters restStrings
-                                                    restTypes
-                                                    (readParameter type' string
-                                                     : values)
-                   _ -> return Nothing
-      handleOptionalParameters strings types values =
-        case types of
-          [] -> case strings of
-                  [] -> return $ Just $ reverse values
-                  _ -> return Nothing
-          (type':restTypes)
-              -> case strings of
-                   (string:restStrings)
-                       | validateParameter type' string
-                       -> handleOptionalParameters restStrings
-                                                   restTypes
-                                                   ((dynamicJust type'
-                                                      $ readParameter type' string)
-                                                    : values)
-                   _ -> handleOptionalParameters []
-                                                 restTypes
-                                                 (dynamicNothing type' : values)
-      handleNamedParameters namedParameters namedParameterTypes actualParameters =
-        case namedParameterTypes of
-          [] -> case namedParameters of
-                  [] -> return $ Just $ reverse actualParameters
-                  _ -> return Nothing
-          ((formalParameterName, parameterType):restNamedParameterTypes)
-              -> case namedParameters of
-                   ((actualParameterName, parameter):restNamedParameters)
-                       | (formalParameterName == actualParameterName)
-                         && (validateParameter parameterType parameter)
-                       -> handleNamedParameters restNamedParameters
-                                                restNamedParameterTypes
-                                                ((dynamicJust
-                                                  parameterType
-                                                  $ readParameter parameterType
-                                                                  parameter)
-                                                 : actualParameters)
-                   ((actualParameterName, parameter):restNamedParameters)
-                       | (formalParameterName == actualParameterName)
-                       -> return Nothing
-                   _ -> handleNamedParameters namedParameters
-                                              restNamedParameterTypes
-                                              (dynamicNothing parameterType
-                                               : actualParameters)
-      dynApplyAll dynamicFunction [] = dynamicFunction
-      dynApplyAll dynamicFunction (parameter:rest)
-              = dynApplyAll (dynApp dynamicFunction parameter) rest
-      nUnnamedParameters = length unnamedParameters
-      nMandatoryParameters = length mandatoryParameterTypes
-      mandatoryParameters = if (nMandatoryParameters > nUnnamedParameters)
-                              then unnamedParameters
-                              else take nMandatoryParameters unnamedParameters
-      optionalParameters = if (nMandatoryParameters > nUnnamedParameters)
-                             then []
-                             else drop nMandatoryParameters unnamedParameters
-  maybeMandatoryValues
-    <- handleMandatoryParameters mandatoryParameters mandatoryParameterTypes []
-  maybeOptionalValues
-    <- handleOptionalParameters optionalParameters optionalParameterTypes []
-  maybeNamedValues
-    <- handleNamedParameters namedParameters namedParameterTypes []
-  case (maybeMandatoryValues, maybeOptionalValues, maybeNamedValues) of
-    (Just mandatoryValues, Just optionalValues, Just namedValues) ->
-        fromJust $ fromDynamic $ dynApplyAll dynamicFunction
-                                             $ concat [mandatoryValues,
-                                                       optionalValues,
-                                                       namedValues]
-    _ -> errorActionParameters controllerName actionName
+lookupController :: String -> FruitTart (Maybe String)
+lookupController name = do
+  return Nothing
+  -- TODO
+
+
+lookupAction :: String -> String -> String -> FruitTart (Maybe (Int64, String))
+lookupAction moduleName actionName method = do
+  return Nothing
+  -- TODO
+
+
+lookupParameterTypes :: Int64
+                     -> FruitTart ([CustardValueType],
+                                   [CustardValueType],
+                                   Map String CustardValueType)
+lookupParameterTypes = do
+  return ([], [], Map.empty)
+  -- TODO
+
+
+decodeParameters :: [String]
+                 -> Map String String
+                 -> [CustardValueType]
+                 -> [CustardValueType]
+                 -> Map String CustardValueType
+                 -> FruitTart [AnyCustardValue]
+decodeParameters = do
+  return []
+  -- TODO
 
 
 validateParameter :: ParameterType -> String -> Bool
@@ -245,7 +195,7 @@ generateSessionID = do
   return sessionID
 
 
-processFormInput :: FruitTart ()
+processFormInput :: FruitTart (Map String String)
 processFormInput = do
   state <- get
   maybeRequestMethod <- getRequestMethod
@@ -255,13 +205,11 @@ processFormInput = do
       case maybeContentType of
         Just "application/x-www-form-urlencoded" -> do
           inputData <- fGetContents
-          let formVariableMap = parseFormURLEncoded $ UTF8.toString inputData
-          liftIO $ swapMVar (formVariableMapMVar state) formVariableMap
+          return $ parseFormURLEncoded $ UTF8.toString inputData
         _ -> do
-          liftIO $ swapMVar (formVariableMapMVar state) Map.empty
+          return Map.empty
     _ -> do
-      liftIO $ swapMVar (formVariableMapMVar state) Map.empty
-  return ()
+      return Map.empty
 
 
 parseFormURLEncoded :: String -> Map String String
@@ -334,3 +282,46 @@ setMimeType = do
   if xhtmlQValue >= htmlQValue
     then setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF-8"
     else setResponseHeader HttpContentType "text/html; charset=UTF-8"
+
+
+parseURL :: String -> (String, String, [String], Map String String)
+parseURL url =
+    let pathComponents = if (length url >= 1) && (head url) == '/'
+                         then pathComponents' $ tail url
+                         else error "URL does not start with slash."
+        pathComponents' "" = []
+        pathComponents' string = case break ((==) '/') string of
+                                   (start, "") -> [start]
+                                   (start, _:rest) -> start : pathComponents' rest
+        controller = if length pathComponents >= 1
+                     then map toLower $ pathComponents !! 0
+                     else defaultController
+        action = if length pathComponents >= 2
+                 then map toLower $ pathComponents !! 1
+                 else defaultAction
+        parameters = if length pathComponents >= 2
+                     then tail $ tail pathComponents
+                     else []
+        urlParameters = filter ((/=) "")
+                        $ filter (notElem ':') parameters
+        namedParameters = map (\parameter -> case break ((==) ':') parameter of
+                                               (name, _:value)
+                                                   -> (map toLower name, value))
+                          $ filter (elem ':') parameters
+    in (controller, action, urlParameters, Map.fromList namedParameters)
+
+
+canonicalURL :: String -> String -> [String] -> [(String, String)] -> String
+canonicalURL controllerName actionName urlParameters namedParameters =
+    let basePart = "/"
+                   ++ (map toLower controllerName) ++ "/"
+                   ++ (map toLower actionName) ++ "/"
+        urlParametersPart = concat $ map (\parameter -> concat [parameter, "/"])
+                            urlParameters
+        namedParametersPart = concat $ map (\(key, value) ->
+                                                concat [map toLower key,
+                                                        ":",
+                                                        value,
+                                                        "/"])
+                              namedParameters
+    in concat [basePart, urlParametersPart, namedParametersPart]

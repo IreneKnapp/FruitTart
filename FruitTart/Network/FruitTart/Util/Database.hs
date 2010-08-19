@@ -8,7 +8,7 @@ import Numeric
 import System.Locale
 
 import Database.SQLite3
-import Network.FruitTart.Util.Types
+import Network.FruitTart.Types
 
 
 earlyQuery :: Database -> String -> [SQLData] -> IO [[SQLData]]
