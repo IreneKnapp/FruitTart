@@ -23,7 +23,6 @@ import qualified Network.FruitTart.Custard.Functions.Forms as Forms
 import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
 import qualified Network.FruitTart.Custard.Functions.Strings as Strings
-import Network.FruitTart.Common
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 

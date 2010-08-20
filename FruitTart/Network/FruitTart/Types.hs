@@ -78,9 +78,8 @@ instance MonadFastCGI FruitTart where
       put state'
       return result
 
-data ParameterType = IDParameter
+data ParameterType = IntegerParameter
                    | StringParameter
-                   | EitherStringIDParameter
 
 
 data CustardValueType = CBool

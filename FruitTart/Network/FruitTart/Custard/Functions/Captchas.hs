@@ -16,7 +16,6 @@ import Graphics.Captcha
 
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
-import Network.FruitTart.Common
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 

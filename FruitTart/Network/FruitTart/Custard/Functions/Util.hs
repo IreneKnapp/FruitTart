@@ -34,7 +34,6 @@ import Data.Maybe
 import Prelude hiding (catch)
 
 import Network.FruitTart.Custard.Syntax
-import Network.FruitTart.Common
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 

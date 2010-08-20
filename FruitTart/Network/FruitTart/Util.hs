@@ -18,6 +18,9 @@ module Network.FruitTart.Util (
                                timestampToString,
                                byteSizeToString,
                                
+                               -- State
+                               getCaptchaCacheMVar,
+                               
                                -- HTML
                                escapeAttribute,
                                escapeHTML,
@@ -46,6 +49,7 @@ import Network.FastCGI
 
 import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
+import Network.FruitTart.Util.State
 import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists
 import Network.FruitTart.Util.Passwords

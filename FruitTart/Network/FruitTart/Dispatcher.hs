@@ -93,82 +93,161 @@ processRequest' = do
                (mandatoryParameterTypes,
                 optionalParameterTypes,
                 namedParameterTypes) <- lookupParameterTypes actionID
-               parameters <- decodeParameters unnamedParameters
-                                              namedParameters
-                                              mandatoryParameterTypes
-                                              optionalParameterTypes
-                                              namedParameterTypes
-               applyFunctionGivenName ControllerContext
-                                      formInput
-                                      controllerName
-                                      functionName
-                                      parameters
-               return ()
+               let maybeParameters = decodeParameters controllerModuleName
+                                                      unnamedParameters
+                                                      namedParameters
+                                                      mandatoryParameterTypes
+                                                      optionalParameterTypes
+                                                      namedParameterTypes
+               case maybeParameters of
+                 Nothing -> do
+                    applyFunctionGivenName ControllerContext
+                                           Map.empty
+                                           "Base"
+                                           "errorActionParameters"
+                                           [CustardString controllerName,
+                                            CustardString actionName,
+                                            CustardString method]
+                    return ()
+                 Just parameters -> do
+                   applyFunctionGivenName ControllerContext
+                                          formInput
+                                          controllerName
+                                          functionName
+                                          parameters
+                   return ()
   endSession
 
 
 lookupController :: String -> FruitTart (Maybe String)
-lookupController name = do
-  return Nothing
-  -- TODO
+lookupController mappedName = do
+  rows <- query "SELECT module FROM controllers WHERE mapped_name = ?"
+                [SQLText mappedName]
+  case rows of
+    [] -> return Nothing
+    [[SQLText moduleName]] -> return $ Just moduleName
 
 
 lookupAction :: String -> String -> String -> FruitTart (Maybe (Int64, String))
 lookupAction moduleName actionName method = do
-  return Nothing
-  -- TODO
+  rows <- query ("SELECT id, function FROM controller_actions "
+                 ++ "WHERE controller = ? AND action = ? AND method = ?")
+                [SQLText moduleName, SQLText actionName, SQLText method]
+  case rows of
+    [] -> return Nothing
+    [[SQLInteger actionID, SQLText functionName]]
+      -> return $ Just (actionID, functionName)
 
 
 lookupParameterTypes :: Int64
-                     -> FruitTart ([CustardValueType],
-                                   [CustardValueType],
-                                   Map String CustardValueType)
+                     -> FruitTart ([ParameterType],
+                                   [ParameterType],
+                                   Map String ParameterType)
 lookupParameterTypes actionID = do
-  return ([], [], Map.empty)
-  -- TODO
+  mandatoryParameterRows
+    <- query ("SELECT type FROM action_mandatory_parameters "
+              ++ "WHERE action = ? ORDER BY item")
+             [SQLInteger actionID]
+  optionalParameterRows
+    <- query ("SELECT type FROM action_optional_parameters "
+              ++ "WHERE action = ? ORDER BY item")
+             [SQLInteger actionID]
+  namedParameterRows
+    <- query ("SELECT name, type FROM action_named_parameters "
+              ++ "WHERE action = ?")
+             [SQLInteger actionID]
+  let decodeType "integer" = IntegerParameter
+      decodeType "string" = StringParameter
+      decodeType _ = StringParameter
+      mandatoryParameterTypes = map (\[SQLText theType] -> decodeType theType)
+                                    mandatoryParameterRows
+      optionalParameterTypes = map (\[SQLText theType] -> decodeType theType)
+                                   optionalParameterRows
+      namedParameterTypeMap = Map.fromList
+                              $ map (\[SQLText name, SQLText theType] ->
+                                      (name, decodeType theType))
+                                    namedParameterRows
+  return (mandatoryParameterTypes,
+          optionalParameterTypes,
+          namedParameterTypeMap)
 
 
-decodeParameters :: [String]
+decodeParameters :: String
+                 -> [String]
                  -> Map String String
-                 -> [CustardValueType]
-                 -> [CustardValueType]
-                 -> Map String CustardValueType
-                 -> FruitTart [CustardValue]
-decodeParameters unnamedParameters
-                 namedParameters
+                 -> [ParameterType]
+                 -> [ParameterType]
+                 -> Map String ParameterType
+                 -> Maybe [CustardValue]
+decodeParameters moduleName
+                 unnamedParameterInputs
+                 namedParameterInputs
                  mandatoryParameterTypes
                  optionalParameterTypes
-                 namedParameterTypes = do
-  return []
-  -- TODO
+                 namedParameterTypes =
+  let nFormalMandatoryParameters = length mandatoryParameterTypes
+      nFormalOptionalParameters = length optionalParameterTypes
+      mandatoryParameterInputs
+        = take nFormalMandatoryParameters unnamedParameterInputs
+      optionalParameterInputs
+        = drop nFormalMandatoryParameters unnamedParameterInputs
+      nActualMandatoryParameters = length mandatoryParameterInputs
+      nActualOptionalParameters = length optionalParameterInputs
+      unknownNamedParameters
+        = Map.difference namedParameterInputs namedParameterTypes
+  in if (nActualMandatoryParameters /= nFormalMandatoryParameters)
+        || (nActualOptionalParameters > nActualOptionalParameters)
+        || (not $ Map.null unknownNamedParameters)
+    then Nothing
+    else let mandatoryZipped
+               = zip mandatoryParameterInputs mandatoryParameterTypes
+             optionalZipped
+               = zip optionalParameterInputs optionalParameterTypes
+             namedZipped
+               = Map.mapWithKey (\key value ->
+                                   (value,
+                                    fromJust
+                                    $ Map.lookup key namedParameterTypes))
+                                namedParameterInputs
+             mandatoryParametersValid
+               = and $ map validateParameter mandatoryZipped
+             optionalParametersValid
+               = and $ map validateParameter optionalZipped
+             namedParametersValid
+               = and $ Map.elems $ Map.map validateParameter namedZipped
+         in if not (mandatoryParametersValid
+                    && optionalParametersValid
+                    && namedParametersValid)
+           then Nothing
+           else let mandatoryParameters
+                      = map readParameter mandatoryZipped
+                    nOptionalNothings
+                      = nFormalOptionalParameters - nActualOptionalParameters
+                    optionalNothings
+                      = take nOptionalNothings $ repeat $ CustardMaybe Nothing
+                    optionalParameters
+                      = map (CustardMaybe . Just . readParameter) optionalZipped
+                        ++ optionalNothings
+                    namedParameters
+                      = Map.mapKeys (\properName -> (moduleName, properName))
+                                    $ Map.map readParameter namedZipped
+                    hasNamedParameters
+                      = not $ Map.null namedParameterTypes
+                in Just $ mandatoryParameters
+                          ++ optionalParameters
+                          ++ (if hasNamedParameters
+                                then [CustardMap namedParameters]
+                                else [])
 
 
-validateParameter :: ParameterType -> String -> Bool
-validateParameter IDParameter id = length id > 0 && all isDigit id
-validateParameter StringParameter _ = True
-validateParameter EitherStringIDParameter _ = True
+validateParameter :: (String, ParameterType) -> Bool
+validateParameter (id, IntegerParameter) = length id > 0 && all isDigit id
+validateParameter (_, StringParameter) = True
 
 
-readParameter :: ParameterType -> String -> Dynamic
-readParameter IDParameter id = toDyn (read id :: Int64)
-readParameter StringParameter string = toDyn string
-readParameter EitherStringIDParameter string
-    = toDyn $ if length string > 0 && all isDigit string
-              then Right $ (read string :: Int64)
-              else Left string
-
-
-dynamicJust :: ParameterType -> Dynamic -> Dynamic
-dynamicJust IDParameter item = toDyn (fromDynamic item :: Maybe Int64)
-dynamicJust StringParameter item = toDyn (fromDynamic item :: Maybe String)
-dynamicJust EitherStringIDParameter item
-    = toDyn (fromDynamic item :: Maybe (Either String Int64))
-
-
-dynamicNothing :: ParameterType -> Dynamic
-dynamicNothing IDParameter = toDyn (Nothing :: Maybe Int64)
-dynamicNothing StringParameter = toDyn (Nothing :: Maybe String)
-dynamicNothing EitherStringIDParameter = toDyn (Nothing :: Maybe (Either String Int64))
+readParameter :: (String, ParameterType) -> CustardValue
+readParameter (id, IntegerParameter) = CustardInteger $ read id
+readParameter (string, StringParameter) = CustardString string
 
 
 initializeSession :: FruitTart ()

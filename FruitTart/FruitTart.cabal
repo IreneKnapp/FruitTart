@@ -17,11 +17,11 @@ description:
 
 Executable FruitTart
   main-is: Main.hs
-  other-modules: Network.FruitTart.Common,
-                 Network.FruitTart.Dispatcher,
+  other-modules: Network.FruitTart.Dispatcher,
                  Network.FruitTart.Types,
                  Network.FruitTart.Util,
                  Network.FruitTart.Util.Database,
+                 Network.FruitTart.Util.State,
                  Network.FruitTart.Util.HTML,
                  Network.FruitTart.Util.Lists,
                  Network.FruitTart.Util.Passwords,
