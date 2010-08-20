@@ -14,6 +14,7 @@ import System.Exit
 import System.IO.Unsafe
 
 import Database.SQLite3
+import Network.FruitTart.Types
 import Network.FruitTart.Util
 import Network.FruitTart.Dispatcher
 

@@ -29,8 +29,11 @@ Executable FruitTart
                  Network.FruitTart.Custard.Semantics,
                  Network.FruitTart.Custard.Syntax,
                  Network.FruitTart.Custard.Functions.Util,
-                 Network.FruitTart.Custard.Functions.Captchas,
+                 Network.FruitTart.Custard.Functions.General,
                  Network.FruitTart.Custard.Functions.Forms,
+                 Network.FruitTart.Custard.Functions.Captchas,
+                 Network.FruitTart.Custard.Functions.Lists,
+                 Network.FruitTart.Custard.Functions.Strings,
                  Network.FruitTart.Base.View.Login,
                  Network.FruitTart.Base.View.PopupMessage
   build-depends: base >= 4.1 && < 5,

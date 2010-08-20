@@ -25,8 +25,8 @@ import Network.FruitTart.Util
 %error { parseError }
 
 %token
-        string              { TokenStringValue $$ }
-        integer             { TokenIntegerValue $$ }
+        string              { TokenValue $$ }
+        integer             { TokenValue $$ }
         symbol              { TokenSymbol _ _ }
         if                  { TokenIf }
         case                { TokenCase }
@@ -65,9 +65,9 @@ import Network.FruitTart.Util
 %%
 
 PrimaryExpression     : string
-                      { CustardStringLiteral $1 }
+                      { CustardLiteral $1 }
                       | integer
-                      { CustardIntegerLiteral $1 }
+                      { CustardLiteral $1 }
                       | symbol
                       { CustardVariable (symbolTokenPackage $1, symbolTokenName $1) }
                       | '[' ExpressionList ']'
@@ -262,12 +262,12 @@ lexer database defaultPackage ('/':rest) = do
 lexer database defaultPackage all@('"':_) = do
   let (string, rest) = readString all
   restTokens <- lexer database defaultPackage rest
-  return $ (TokenStringValue $ CustardString string) : restTokens
+  return $ (TokenValue $ CustardString string) : restTokens
 lexer database defaultPackage all@(c:_)
   | isDigit c = do
     let [(result, rest)] = readDec all
     restTokens <- lexer database defaultPackage rest
-    return $ (TokenIntegerValue $ CustardInteger result) : restTokens
+    return $ (TokenValue $ CustardInteger result) : restTokens
   | isAlpha c = do
     let (maybePackage, symbol, rest) = readSymbol all
     token <- case maybePackage of

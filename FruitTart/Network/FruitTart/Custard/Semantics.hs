@@ -17,6 +17,8 @@ import Data.Maybe
 import Prelude hiding (catch)
 
 import Network.FruitTart.Custard.Syntax
+import Network.FruitTart.Custard.Functions.Util
+import qualified Network.FruitTart.Custard.Functions.General as General
 import qualified Network.FruitTart.Custard.Functions.Forms as Forms
 import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
@@ -30,7 +32,7 @@ getTemplateWithParameters :: String
                           -> String
                           -> CustardContextType
                           -> Map String String
-                          -> [AnyCustardValue]
+                          -> [CustardValue]
                           -> FruitTart String
 getTemplateWithParameters moduleName
                           templateName
@@ -43,7 +45,7 @@ getTemplateWithParameters moduleName
                   custardContextParameters = parameters,
                   custardContextBindings = Map.empty
                 }
-  getTemplateWithContext context
+  getTemplateWithContext moduleName templateName context
 
 
 getTemplateWithContext :: String
@@ -62,20 +64,17 @@ getTemplateWithContext moduleName templateName context = do
     else return ()
   foldM (\(context, accumulator) ([SQLText kind, SQLText body], index) -> do
           case kind of
-            "content" -> return body
+            "content" -> return (context, body)
             "expression" ->
                 fCatch (do
                          FruitTartState { database = database } <- get
                          expression <- liftIO $ readExpression database
                                                                moduleName
                                                                body
-                         (result, newBindings)
+                         (context, result)
                            <- evalExpression context expression
-                         let context'= context {
-                                         custardContextBindings = newBindings
-                                       }
                          resultString <- valueToStringAllowingNull result
-                         return (context', accumulator ++ resultString))
+                         return (context, accumulator ++ resultString))
                        (\e -> error $ "While processing template "
                                     ++ moduleName ++ "."
                                     ++ templateName ++ ", item " ++ (show index)
@@ -86,7 +85,7 @@ getTemplateWithContext moduleName templateName context = do
         >>= return . snd
 
 
-eval :: String -> String -> FruitTart AnyCustardValue
+eval :: String -> String -> FruitTart CustardValue
 eval moduleName body = do
   let context = CustardContext {
                   custardContextType = TemplateContext,
@@ -96,25 +95,24 @@ eval moduleName body = do
                 }
   FruitTartState { database = database } <- get
   expression <- liftIO $ readExpression database moduleName body
-  (result, _) <- evalExpression context expression
+  (_, result) <- evalExpression context expression
   return result
 
 
-valueToStringAllowingNull :: AnyCustardValue -> FruitTart String
-valueToStringAllowingNull (SomeCustardValue (CustardString string))
+valueToStringAllowingNull :: CustardValue -> FruitTart String
+valueToStringAllowingNull (CustardString string)
   = return string
-valueToStringAllowingNull (SomeCustardValue TemplateNull) = return ""
+valueToStringAllowingNull CustardNull = return ""
 valueToStringAllowingNull value
   = error $ "Value is not a String or Null."
 
 
 evalExpression :: CustardContext
                -> CustardExpression
-               -> FruitTart (CustardContext, AnyCustardValue)
+               -> FruitTart (CustardContext, CustardValue)
 evalExpression context expression = do
     case expression of
-      CustardStringLiteral value -> return (context, SomeCustardValue value)
-      CustardIntegerLiteral value -> return (context, SomeCustardValue value)
+      CustardLiteral value -> return (context, value)
       CustardExpressionList subexpressions -> do
         (context, values)
           <- foldM (\(context, values) subexpression -> do
@@ -122,90 +120,90 @@ evalExpression context expression = do
                       return (context, values ++ [value]))
                    (context, [])
                    subexpressions
-        return (context, SomeCustardValue $ CustardList values)
+        return (context, CustardList values)
       CustardOperationConcatenate aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         case (aValue, bValue) of
           (CustardString aString, CustardString bString)
               -> return (context,
-                         SomeCustardValue $ CustardString $ aString ++ bString)
+                         CustardString $ aString ++ bString)
           _ -> error "Cannot concatenate non-Strings."
       CustardOperationEquals aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardEqual aValue bValue
         return (context, result)
       CustardOperationNotEquals aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
-        result <- custardEqual aValue bValue >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
+        result <- custardEqual aValue bValue
         result <- custardNegate result
         return (context, result)
       CustardOperationNot expression -> do
-        (context, value) <- evalExpression context expression >>= return . fst
+        (context, value) <- evalExpression context expression
         result <- custardNegate value
         return (context, result)
       CustardOperationAnd aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardAnd aValue bValue
         return (context, result)
       CustardOperationOr aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardOr aValue bValue
         return (context, result)
       CustardOperationGreaterEquals aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardCompare aValue bValue
-        return (context, SomeCustardValue $ CustardBool $ case result of
-                                                            EQ -> True
-                                                            GT -> True
-                                                            LT -> False)
+        return (context, CustardBool $ case result of
+                                         EQ -> True
+                                         GT -> True
+                                         LT -> False)
       CustardOperationGreater aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardCompare aValue bValue
-        return (context, SomeCustardValue $ CustardBool $ case result of
-                                                            EQ -> False
-                                                            GT -> True
-                                                            LT -> False)
+        return (context, CustardBool $ case result of
+                                         EQ -> False
+                                         GT -> True
+                                         LT -> False)
       CustardOperationLessEquals aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardCompare aValue bValue
-        return (context, SomeCustardValue $ CustardBool $ case result of
-                                                            EQ -> True
-                                                            GT -> False
-                                                            LT -> True)
+        return (context, CustardBool $ case result of
+                                         EQ -> True
+                                         GT -> False
+                                         LT -> True)
       CustardOperationLess aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardCompare aValue bValue
-        return (context, SomeCustardValue $ CustardBool $ case result of
-                                                            EQ -> False
-                                                            GT -> False
-                                                            LT -> True)
+        return (context, CustardBool $ case result of
+                                         EQ -> False
+                                         GT -> False
+                                         LT -> True)
       CustardOperationAdd aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardArithmetic aValue bValue (+)
         return (context, result)
       CustardOperationSubtract aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardArithmetic aValue bValue (-)
         return (context, result)
       CustardOperationMultiply aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardArithmetic aValue bValue (*)
         return (context, result)
       CustardOperationDivide aExpression bExpression -> do
-        (context, aValue) <- evalExpression context aExpression >>= return . fst
-        (context, bValue) <- evalExpression context bExpression >>= return . fst
+        (context, aValue) <- evalExpression context aExpression
+        (context, bValue) <- evalExpression context bExpression
         result <- custardArithmetic aValue bValue div
         return (context, result)
       CustardIfExpression subexpressions -> do
@@ -216,7 +214,7 @@ evalExpression context expression = do
             ifTrue = head $ drop 1 subexpressions
             ifFalse = head $ drop 2 subexpressions
         (context, result) <- evalExpression context condition
-                             >>= valueToBoolean . fst
+        result <- valueToBoolean result
         if result
           then evalExpression context ifTrue
           else evalExpression context ifFalse
@@ -225,21 +223,22 @@ evalExpression context expression = do
         if not ((n > 1) && (odd n))
           then error $ "Invalid number of parameters to case()."
           else return ()
-        (context, mainKey) <- (evalExpression context $ head subexpressions)
-                              >>= return . fst
-        let case' items = do
+        (context, mainKey) <- evalExpression context $ head subexpressions
+        let case' context items = do
               case items of
                 [] -> error $ "No match in case() for " ++ (show mainKey) ++ "."
                 (key:(value:rest)) -> do
                   case key of
-                    CustardVariable (_, "otherwise") ->
+                    CustardVariable ("Base", "otherwise") ->
                       evalExpression context value
                     _ -> do
-                      key <- evalExpression context key >>= return . fst
-                      if mainKey == key
+                      (context, key) <- evalExpression context key
+                      result <- custardEqual mainKey key
+                      result <- valueToBoolean result
+                      if result
                         then evalExpression context value
-                        else case' rest
-        case' $ tail subexpressions
+                        else case' context rest
+        case' context $ tail subexpressions
       CustardCallExpression subexpressions -> do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to call()."
@@ -254,9 +253,9 @@ evalExpression context expression = do
                       return (context, values ++ [value]))
                    (context, [])
                    $ drop 1 subexpressions
-        let subcontext = context { templateContextParameters = subparameters }
+        let subcontext = context { custardContextParameters = subparameters }
         result <- getTemplateWithContext moduleName templateName subcontext
-        return (context, SomeCustardValue $ CustardString result)
+        return (context, CustardString result)
       CustardIterateExpression subexpressions -> do
         if length subexpressions < 2
            then error $ "Invalid number of parameters to iterate()."
@@ -265,8 +264,8 @@ evalExpression context expression = do
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "First parameter to iterate() is not a symbol."
-        (context, rows) <- valueToListOfMaps
-                           $ evalExpression context $ subexpressions !! 1
+        (context, rows) <- evalExpression context $ subexpressions !! 1
+        rows <- valueToListOfMaps rows
         (context, subparameters)
           <- foldM (\(context, values) subexpression -> do
                       (context, value) <- evalExpression context subexpression
@@ -283,36 +282,40 @@ evalExpression context expression = do
                                                   templateName
                                                   subcontext)
                         rows
-        return (context, SomeCustardValue $ CustardString $ concat results)
+        return (context, CustardString $ concat results)
       CustardQueryExpression subexpressions -> do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to query()."
            else return ()
-        parameters <- (mapM (evalExpression context) $ drop 1 subexpressions)
-                      >>= return . map fst
+        (context, parameters)
+          <- foldM (\(context, values) subexpression -> do
+                      (context, value) <- evalExpression context subexpression
+                      return (context, values ++ [value]))
+                   (context, [])
+                   $ drop 1 subexpressions
         (moduleName, queryName)
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "First parameter to query() is not a symbol."
         mapM (\parameter -> case parameter of
-               SomeCustardValue (CustardBool True)
+               CustardBool True
                  -> return $ SQLInteger 1
-               SomeCustardValue (CustardBool False)
+               CustardBool False
                  -> return $ SQLInteger 0
-               SomeCustardValue (CustardMaybe Nothing)
+               CustardMaybe Nothing
                  -> return $ SQLNull
-               SomeCustardValue (CustardMaybe (Just (CustardInteger integer)))
+               CustardMaybe (Just (CustardInteger integer))
                  -> return $ SQLInteger integer
-               SomeCustardValue (CustardMaybe (Just (CustardString string)))
+               CustardMaybe (Just (CustardString string))
                  -> return $ SQLText string
-               SomeCustardValue (CustardInteger integer)
+               CustardInteger integer
                  -> return $ SQLInteger integer
-               SomeCustardValue (CustardString string)
+               CustardString string
                  -> return $ SQLText string
                _ -> error "Invalid type for query parameter.")
              parameters
-             >>= namedQuery moduleName queryName
-        return (context, SomeCustardValue $ CustardNull)
+             >>= namedQuery (moduleName, queryName)
+        return (context, CustardNull)
       CustardBoundExpression subexpressions -> do
         if length subexpressions /= 1
           then error $ "Invalid number of parameters to bound()."
@@ -324,42 +327,22 @@ evalExpression context expression = do
         let CustardContext { custardContextBindings = bindings } = context
         return (context,
                 case Map.lookup name bindings of
-                  Nothing -> SomeCustardValue $ CustardBool False
-                  Just _ -> SomeCustardValue $ CustardBool True)
+                  Nothing -> CustardBool False
+                  Just _ -> CustardBool True)
       CustardFunctionCall functionExpression actualParameterExpressions -> do
-        function <- evalExpression context functionExpression
-                    >>= return . fst
         (context, actualParameters)
           <- foldM (\(context, values) subexpression -> do
                       (context, value) <- evalExpression context subexpression
                       return (context, values ++ [value]))
                    (context, [])
                    actualParameterExpressions
+        (context, function) <- evalExpression context functionExpression
         applyFunctionGivenContextAndValue context function actualParameters
       CustardLambdaExpression formalParameters body -> do
         let CustardContext { custardContextBindings = bindings } = context
         return (context, CustardLambda formalParameters bindings body)
-      CustardVariable name@(packageName, properName) -> do
-        let CustardContext { custardContextBindings = bindings } = context
-        case Map.lookup name bindings of
-          Nothing -> case Map.lookup ("Base", properName) bindings of
-                       Nothing -> do
-                         maybeValue <- getTopLevelBinding name
-                         case maybeValue of
-                           Just value -> do
-                             let CustardContext { custardContextBindings
-                                                    = oldBindings } = context
-                                 newBindings = Map.union
-                                                (Map.fromList [(name, value)])
-                                                oldBindings
-                                 context' = context { custardContextBindings
-                                                        = newBindings }
-                             return (context', value)
-                           Nothing -> error $ "Undefined variable "
-                                              ++ packageName ++ "."
-                                              ++ properName ++ "."
-                       Just value -> return (context, value)
-          Just value -> return (context, value)
+      CustardVariable name -> do
+        findSymbol context name
       CustardBindExpression subexpressions -> do
         if length subexpressions /= 2
           then error $ "Invalid number of parameters to bind()."
@@ -368,8 +351,7 @@ evalExpression context expression = do
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "Parameter to bind() is not a symbol."
-        value <- (evalExpression context $ head $ drop 1 subexpressions)
-                 >>= return . fst
+        (context, value) <- evalExpression context $ subexpressions !! 1
         let CustardContext { custardContextBindings = oldBindings } = context
             newBindings = Map.union (Map.fromList [(name, value)])
                                     oldBindings
@@ -379,8 +361,7 @@ evalExpression context expression = do
         if length subexpressions /= 1
           then error $ "Invalid number of parameters to bindmap()."
           else return ()
-        value <- (evalExpression context $ head subexpressions)
-                 >>= return . fst
+        (context, value) <- evalExpression context $ head subexpressions
         passedMap <- valueToMap value
         let CustardContext { custardContextBindings = oldBindings } = context
             newBindings = Map.union passedMap oldBindings
@@ -400,7 +381,8 @@ evalExpression context expression = do
                       return (context, values ++ [value]))
                    (context, [])
                    $ drop 1 subexpressions
-        bindQuery1 context (moduleName, queryName) inputs
+        context <- bindQuery1 context (moduleName, queryName) inputs
+        return (context, CustardNull)
       CustardBindQueryNExpression subexpressions -> do
         if length subexpressions < 1
           then error $ "Invalid number of parameters to bindQuery1()."
@@ -415,75 +397,104 @@ evalExpression context expression = do
                       return (context, values ++ [value]))
                    (context, [])
                    $ drop 1 subexpressions
-        bindQueryN context (moduleName, queryName) inputs
+        context <- bindQueryN context (moduleName, queryName) inputs
+        return (context, CustardNull)
       CustardSequence expressionA expressionB -> do
         (context, _) <- evalExpression context expressionA
         evalExpression context expressionB
 
 
-custardEqual :: AnyCustardValue
-              -> AnyCustardValue
-              -> FruitTart AnyCustardValue
+custardEqual :: CustardValue
+              -> CustardValue
+              -> FruitTart CustardValue
 custardEqual (CustardBool a) (CustardBool b)
-    = return $ SomeCustardValue $ CustardBool $ a == b
-custardEqual (TemplateInteger a) (TemplateInteger b)
-    = return $ SomeCustardValue $ CustardBool $ a == b
+    = return $ CustardBool $ a == b
+custardEqual (CustardInteger a) (CustardInteger b)
+    = return $ CustardBool $ a == b
 custardEqual (CustardCharacter a) (CustardCharacter b)
-    = return $ SomeCustardValue $ CustardBool $ a == b
+    = return $ CustardBool $ a == b
 custardEqual (CustardString a) (CustardString b)
-    = return $ SomeCustardValue $ CustardBool $ a == b
-custardEqual (TemplateOrdering a) (TemplateOrdering b)
-    = return $ SomeCustardValue $ CustardBool $ a == b
+    = return $ CustardBool $ a == b
+custardEqual (CustardOrdering a) (CustardOrdering b)
+    = return $ CustardBool $ a == b
 custardEqual _ _
     = error $ "Values in comparison are not the same type or "
             ++ "are not Booleans, Integers, Characters, Strings, or Orderings."
 
 
-custardNegate :: AnyCustardValue
-               -> FruitTart AnyCustardValue
+custardNegate :: CustardValue
+               -> FruitTart CustardValue
 custardNegate (CustardBool value)
-    = return $ SomeCustardValue $ CustardBool $ not value
+    = return $ CustardBool $ not value
 custardNegate _ = error "Value in logical operation is not a Boolean."
 
 
-custardAnd :: AnyCustardValue
-            -> AnyCustardValue
-            -> FruitTart AnyCustardValue
+custardAnd :: CustardValue
+            -> CustardValue
+            -> FruitTart CustardValue
 custardAnd (CustardBool a) (CustardBool b)
-    = return $ SomeCustardValue $ CustardBool $ a && b
+    = return $ CustardBool $ a && b
 custardAnd _ _ = error "Values in logical operation are not both Booleans."
 
 
-custardOr :: AnyCustardValue
-           -> AnyCustardValue
-           -> FruitTart AnyCustardValue
+custardOr :: CustardValue
+           -> CustardValue
+           -> FruitTart CustardValue
 custardOr (CustardBool a) (CustardBool b)
-    = return $ SomeCustardValue $ CustardBool $ a || b
+    = return $ CustardBool $ a || b
 custardOr _ _ = error "Values in logical operation are not both Booleans."
 
 
-custardCompare :: AnyCustardValue -> AnyCustardValue -> FruitTart Ordering
-custardCompare (TemplateInteger a) (TemplateInteger b) = return $ compare a b
+custardCompare :: CustardValue -> CustardValue -> FruitTart Ordering
+custardCompare (CustardInteger a) (CustardInteger b) = return $ compare a b
 custardCompare (CustardCharacter a) (CustardCharacter b) = return $ compare a b
 custardCompare _ _ = error $  "Values in comparison are not the same type or "
                      ++ " are not Integers or Characters."
 
 
-custardArithmetic :: AnyCustardValue
-                   -> AnyCustardValue
+custardArithmetic :: CustardValue
+                   -> CustardValue
                    -> (Int64 -> Int64 -> Int64)
-                   -> AnyCustardValue
-custardArithmetic (TemplateInteger a) (TemplateInteger b) operation
-    = return $ SomeCustardValue $ TemplateInteger $ operation a b
+                   -> FruitTart CustardValue
+custardArithmetic (CustardInteger a) (CustardInteger b) operation
+    = return $ CustardInteger $ operation a b
 custardArithmetic _ _ _ = error "Values in arithmetic are not both Integers."
+
+
+findSymbol :: CustardContext
+           -> (String, String)
+           -> FruitTart (CustardContext, CustardValue)
+findSymbol context name@(packageName, properName) = do
+  let CustardContext { custardContextBindings = bindings } = context
+  case Map.lookup name bindings of
+    Nothing -> case Map.lookup ("Base", properName) bindings of
+                 Nothing -> do
+                   maybeValue <- getTopLevelBinding name
+                   case maybeValue of
+                     Just value -> do
+                       let CustardContext {
+                                     custardContextBindings = oldBindings
+                                   } = context
+                           newBindings = Map.union
+                                          (Map.fromList [(name, value)])
+                                          oldBindings
+                           context' = context {
+                                        custardContextBindings = newBindings
+                                      }
+                       return (context', value)
+                     Nothing -> error $ "Undefined variable "
+                                        ++ packageName ++ "."
+                                        ++ properName ++ "."
+                 Just value -> return (context, value)
+    Just value -> return (context, value)
 
 
 applyFunctionGivenName :: CustardContextType
                        -> Map String String
                        -> String
                        -> String
-                       -> [AnyCustardValue]
-                       -> FruitTart (CustardContext, AnyCustardValue)
+                       -> [CustardValue]
+                       -> FruitTart (CustardContext, CustardValue)
 applyFunctionGivenName contextType
                        formInputMap
                        moduleName
@@ -495,33 +506,37 @@ applyFunctionGivenName contextType
                   custardContextParameters = parameters,
                   custardContextBindings = Map.empty
                 }
+  (context, function) <- findSymbol context (moduleName, functionName)
   applyFunctionGivenContextAndValue context function parameters
 
 
 applyFunctionGivenContextAndValue :: CustardContext
-                                  -> AnyCustardValue
-                                  -> [AnyCustardValue]
-                                  -> FruitTart (CustardContext, AnyCustardValue)
+                                  -> CustardValue
+                                  -> [CustardValue]
+                                  -> FruitTart (CustardContext, CustardValue)
 applyFunctionGivenContextAndValue context function actualParameters = do
   case function of
-    TemplateLambda formalParameters capturedBindings body -> do
+    CustardLambda formalParameters capturedBindings body -> do
       if length formalParameters /= length actualParameters
         then error $ "Expected " ++ (show $ length formalParameters)
                    ++ " parameters, but got " ++ (show $ length actualParameters)
                    ++ "."
         else return ()
-      let newBindings = Map.fromList $ zip (map (\(TemplateParameter key) -> key)
+      let newBindings = Map.fromList $ zip (map (\(CustardParameter key) -> key)
                                                 formalParameters)
                                            actualParameters
           subbindings = Map.union newBindings capturedBindings
-      letBindings subbindings (evalExpression context body >>= return . fst)
-    TemplateNativeLambda body -> do
-      body context actualParameters
+          context' = context { custardContextBindings = subbindings }
+      (_, result) <- evalExpression context' body
+      return (context, result)
+    CustardNativeLambda body -> do
+      result <- body context actualParameters
+      return (context, result)
     _ -> do
       error $ "Call to something not a function."
 
 
-getTopLevelBinding :: (String, String) -> FruitTart (Maybe AnyCustardValue)
+getTopLevelBinding :: (String, String) -> FruitTart (Maybe CustardValue)
 getTopLevelBinding variableName@(moduleName, functionName) = do
   case Map.lookup variableName builtinBindings of
     Just result -> return $ Just result
@@ -538,15 +553,15 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
                                    ++ "ORDER BY item")
                                   [SQLInteger functionID]
           let parameters = map (\[SQLText parameterName]
-                                 -> TemplateParameter (moduleName, parameterName))
+                                 -> CustardParameter (moduleName, parameterName))
                                parameterItems
-          return $ Just $ TemplateLambda parameters Map.empty compiledBody
+          return $ Just $ CustardLambda parameters Map.empty compiledBody
         _ -> return Nothing
 
 
 bindQuery1 :: CustardContext
            -> (String, String)
-           -> [AnyCustardValue]
+           -> [CustardValue]
            -> FruitTart CustardContext
 bindQuery1 context (moduleName, queryName) inputs = do
   error "Not yet implemented."
@@ -555,11 +570,88 @@ bindQuery1 context (moduleName, queryName) inputs = do
 
 bindQueryN :: CustardContext
            -> (String, String)
-           -> [AnyCustardValue]
+           -> [CustardValue]
            -> FruitTart CustardContext
 bindQueryN context (moduleName, queryName) inputs = do
   error "Not yet implemented."
   -- TODO
+
+
+namedQuery :: (String, String)
+           -> [SQLData]
+           -> FruitTart [Map (String, String) CustardValue]
+namedQuery (moduleName, queryName) queryValues = do
+  rows <- query ("SELECT id, body FROM queries "
+                 ++ " WHERE module = ? AND name = ?")
+                [SQLText moduleName, SQLText queryName]
+  case rows of
+    [[SQLInteger queryID, SQLText queryText]] -> do
+      valueNamesAndTypes <- getValueNamesAndTypes queryID
+      rows <- query queryText queryValues
+      return $ map (\row -> convertRowToBindings moduleName
+                                                 valueNamesAndTypes
+                                                 row)
+                   rows
+    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
+
+
+getValueNamesAndTypes :: Int64 -> FruitTart [(String, CustardValueType)]
+getValueNamesAndTypes queryID = do
+  rows <- query ("SELECT name, type FROM query_results "
+                 ++ "WHERE query = ? ORDER BY item")
+                [SQLInteger queryID]
+  return $ map (\[SQLText name, SQLText typeName] ->
+                 (name,
+                  case typeName of
+                    "boolean" -> CBool
+                    "integer" -> CInt
+                    "string" -> CString
+                    "maybeInteger" -> CMaybeInt
+                    "maybeString" -> CMaybeString
+                    _ -> CInt))
+               rows
+
+
+convertRowToBindings :: String -> [(String, CustardValueType)] -> [SQLData]
+                     -> Map (String, String) CustardValue
+convertRowToBindings moduleName valueNamesAndTypes row
+    = if length valueNamesAndTypes /= length row
+        then error $ "Provided with " ++ (show $ length valueNamesAndTypes)
+                   ++ " value names and types, but " ++ (show $ length row)
+                   ++ " values."
+        else
+           Map.fromList
+           $ map (\((columnName, valueType), value) ->
+                      ((moduleName, columnName),
+                       case valueType of
+                         CBool -> case value of
+                                    SQLInteger integer -> CustardBool
+                                                          $ integer /= 0
+                                    _ -> error "Value from query not an integer."
+                         CInt -> case value of
+                                   SQLInteger integer -> CustardInteger
+                                                         $ integer
+                                   _ -> error "Value from query not an integer."
+                         CString -> case value of
+                                      SQLText string -> CustardString string
+                                      _ -> error "Value from query not a string."
+                         CMaybeInt -> case value of
+                                        SQLNull -> CustardMaybe Nothing
+                                        SQLInteger integer -> CustardMaybe
+                                                              $ Just
+                                                              $ CustardInteger
+                                                              $ integer
+                                        _ -> error
+                                             "Value from query not an integer or null."
+                         CMaybeString -> case value of
+                                        SQLNull -> CustardMaybe Nothing
+                                        SQLText string -> CustardMaybe
+                                                          $ Just
+                                                          $ CustardString
+                                                          $ string
+                                        _ -> error
+                                             "Value from query not a string or null."))
+                 $ zip valueNamesAndTypes row
 
 
 {-
@@ -583,10 +675,8 @@ bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
   oldBindings <- liftIO $ takeMVar bindingsMVar
   let newBindings
           = Map.fromList [((moduleName, overallValueName),
-                           SomeCustardValue
-                           $ TemplateList
-                           $ map (\row -> SomeCustardValue
-                                          $ TemplateMap
+                           CustardList
+                           $ map (\row -> CustardMap
                                           $ convertRowToBindings moduleName
                                                                  valueNamesAndTypes
                                                                  row)
@@ -618,154 +708,67 @@ bindNamedQueryMultipleRows moduleName queryName queryValues = do
       bindQueryMultipleRows moduleName queryName valueNamesAndTypes queryText
                             queryValues
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
-
-
-getValueNamesAndTypes :: Int64 -> FruitTart [(String, TemplateValueType)]
-getValueNamesAndTypes queryID = do
-  rows <- query "SELECT name, type FROM query_results WHERE query = ? ORDER BY item"
-                [SQLInteger queryID]
-  return $ map (\[SQLText name, SQLText typeName] ->
-                 (name,
-                  case typeName of
-                    "boolean" -> TBool
-                    "integer" -> TInt
-                    "string" -> TString
-                    "maybeInteger" -> TMaybeInt
-                    "maybeString" -> TMaybeString
-                    _ -> TInt))
-               rows
-
-
-namedQuery :: String -> String -> [SQLData]
-           -> FruitTart [Map (String, String) AnyCustardValue]
-namedQuery moduleName queryName queryValues = do
-  rows <- query ("SELECT id, body FROM queries "
-                ++ " WHERE module = ? AND name = ?")
-                [SQLText moduleName, SQLText queryName]
-  case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      rows <- query queryText queryValues
-      return $ map (\row -> convertRowToBindings moduleName
-                                                 valueNamesAndTypes
-                                                 row)
-                   rows
-    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
-
-
-convertRowToBindings :: String -> [(String, TemplateValueType)] -> [SQLData]
-                     -> Map (String, String) AnyCustardValue
-convertRowToBindings moduleName valueNamesAndTypes row
-    = if length valueNamesAndTypes /= length row
-        then error $ "Provided with " ++ (show $ length valueNamesAndTypes)
-                   ++ " value names and types, but " ++ (show $ length row)
-                   ++ " values."
-        else
-           Map.fromList
-           $ map (\((columnName, valueType), value) ->
-                      ((moduleName, columnName),
-                       case valueType of
-                         TBool -> case value of
-                                    SQLInteger integer -> SomeCustardValue
-                                                          $ TemplateBool
-                                                          $ integer /= 0
-                                    _ -> error "Value from query not an integer."
-                         TInt -> case value of
-                                   SQLInteger integer -> SomeCustardValue
-                                                         $ TemplateInteger
-                                                         $ integer
-                                   _ -> error "Value from query not an integer."
-                         TString -> case value of
-                                      SQLText string -> SomeCustardValue
-                                                        $ CustardString string
-                                      _ -> error "Value from query not a string."
-                         TMaybeInt -> case value of
-                                        SQLNull -> SomeCustardValue
-                                                   $ TemplateMaybe Nothing
-                                        SQLInteger integer -> SomeCustardValue
-                                                              $ TemplateMaybe
-                                                              $ Just
-                                                              $ TemplateInteger
-                                                              $ integer
-                                        _ -> error
-                                             "Value from query not an integer or null."
-                         TMaybeString -> case value of
-                                        SQLNull -> SomeCustardValue
-                                                   $ TemplateMaybe Nothing
-                                        SQLText string -> SomeCustardValue
-                                                          $ TemplateMaybe
-                                                          $ Just
-                                                          $ CustardString
-                                                          $ string
-                                        _ -> error
-                                             "Value from query not a string or null."))
-                 $ zip valueNamesAndTypes row
  -}
 
 
-builtinBindings :: Map (String, String) AnyCustardValue
+builtinBindings :: Map (String, String) CustardValue
 builtinBindings = Map.fromList
                [(("Base", "parameters"),
-                 SomeCustardValue $ TemplateList []),
+                 CustardList []),
                 (("Base", "Null"),
-                 SomeCustardValue $ TemplateNull),
+                 CustardNull),
                 (("Base", "True"),
-                 SomeCustardValue $ CustardBool True),
+                 CustardBool True),
                 (("Base", "False"),
-                 SomeCustardValue $ CustardBool False),
+                 CustardBool False),
                 (("Base", "Nothing"),
-                 SomeCustardValue $ TemplateMaybe Nothing),
+                 CustardMaybe Nothing),
                 (("Base", "Just"),
-                 SomeCustardValue $ TemplateNativeLambda cfJust),
+                 CustardNativeLambda General.cfJust),
                 (("Base", "LT"),
-                 SomeCustardValue $ TemplateOrdering LT),
+                 CustardOrdering LT),
                 (("Base", "GT"),
-                 SomeCustardValue $ TemplateOrdering GT),
+                 CustardOrdering GT),
                 (("Base", "EQ"),
-                 SomeCustardValue $ TemplateOrdering EQ),
+                 CustardOrdering EQ),
                 (("Base", "parameter"),
-                 SomeCustardValue $ TemplateNativeLambda cfParameter),
+                 CustardNativeLambda General.cfParameter),
                 (("Base", "isNothing"),
-                 SomeCustardValue $ TemplateNativeLambda cfIsNothing),
+                 CustardNativeLambda General.cfIsNothing),
                 (("Base", "isJust"),
-                 SomeCustardValue $ TemplateNativeLambda cfIsJust),
+                 CustardNativeLambda General.cfIsJust),
                 (("Base", "fromJust"),
-                 SomeCustardValue $ TemplateNativeLambda cfFromJust),
+                 CustardNativeLambda General.cfFromJust),
                 (("Base", "stringWordCount"),
-                 SomeCustardValue $ TemplateNativeLambda cfStringWordCount),
+                 CustardNativeLambda General.cfStringWordCount),
                 (("Base", "compareIntegers"),
-                 SomeCustardValue $ TemplateNativeLambda cfCompareIntegers),
+                 CustardNativeLambda General.cfCompareIntegers),
                 (("Base", "showInteger"),
-                 SomeCustardValue $ TemplateNativeLambda cfShowInteger),
+                 CustardNativeLambda General.cfShowInteger),
                 (("Base", "showBool"),
-                 SomeCustardValue $ TemplateNativeLambda cfShowBool),
+                 CustardNativeLambda General.cfShowBool),
                 (("Base", "byteSizeToString"),
-                 SomeCustardValue $ TemplateNativeLambda cfByteSizeToString),
+                 CustardNativeLambda General.cfByteSizeToString),
                 (("Base", "timestampToString"),
-                 SomeCustardValue $ TemplateNativeLambda cfTimestampToString),
+                 CustardNativeLambda General.cfTimestampToString),
                 (("Base", "escapeAttribute"),
-                 SomeCustardValue $ TemplateNativeLambda cfEscapeAttribute),
+                 CustardNativeLambda General.cfEscapeAttribute),
                 (("Base", "escapeHTML"),
-                 SomeCustardValue $ TemplateNativeLambda cfEscapeHTML),
+                 CustardNativeLambda General.cfEscapeHTML),
                 (("Base", "newlinesToParagraphs"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     cfNewlinesToParagraphs),
+                 CustardNativeLambda General.cfNewlinesToParagraphs),
                 
                 -- Forms
                 (("Base", "formInput"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Forms.cfFormInput),
+                 CustardNativeLambda Forms.cfFormInput),
                 
                 -- Captchas
                 (("Base", "generateCaptcha"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Captchas.cfGenerateCaptcha),
+                 CustardNativeLambda Captchas.cfGenerateCaptcha),
                 (("Base", "checkCaptcha"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Captchas.cfCheckCaptcha),
+                 CustardNativeLambda Captchas.cfCheckCaptcha),
                 (("Base", "expireOldCaptchas"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Captchas.cfExpireOldCaptchas),
+                 CustardNativeLambda Captchas.cfExpireOldCaptchas),
                 
                 -- Everything below here is based on a corresponding function
                 -- in Haskell, which may or may not have an identical name.
@@ -773,593 +776,311 @@ builtinBindings = Map.fromList
                 -- Lists
                 -- Lists - Basic functions
                 (("Base", "head"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfHead),
+                 CustardNativeLambda Lists.cfHead),
                 (("Base", "last"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfLast),
+                 CustardNativeLambda Lists.cfLast),
                 (("Base", "tail"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfTail),
+                 CustardNativeLambda Lists.cfTail),
                 (("Base", "init"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfInit),
+                 CustardNativeLambda Lists.cfInit),
                 (("Base", "null"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfNull),
+                 CustardNativeLambda Lists.cfNull),
                 (("Base", "length"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfLength),
+                 CustardNativeLambda Lists.cfLength),
                 -- Lists - List transformations
                 (("Base", "map"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMap),
+                 CustardNativeLambda Lists.cfMap),
                 (("Base", "reverse"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfReverse),
+                 CustardNativeLambda Lists.cfReverse),
                 (("Base", "intersperse"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIntersperse),
+                 CustardNativeLambda Lists.cfIntersperse),
                 (("Base", "intercalate"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIntercalate),
+                 CustardNativeLambda Lists.cfIntercalate),
                 (("Base", "transpose"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfTranspose),
+                 CustardNativeLambda Lists.cfTranspose),
                 (("Base", "subsequences"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSubsequences),
+                 CustardNativeLambda Lists.cfSubsequences),
                 (("Base", "permutations"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfPermutations),
+                 CustardNativeLambda Lists.cfPermutations),
                 -- Lists - Reducing lists (folds)
                 (("Base", "foldl"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFoldl),
+                 CustardNativeLambda Lists.cfFoldl),
                 (("Base", "foldl1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFoldl1),
+                 CustardNativeLambda Lists.cfFoldl1),
                 (("Base", "foldr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFoldr),
+                 CustardNativeLambda Lists.cfFoldr),
                 (("Base", "foldr1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFoldr1),
+                 CustardNativeLambda Lists.cfFoldr1),
                 -- Lists - Reducing lists (folds) - Special folds
                 (("Base", "concat"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfConcat),
+                 CustardNativeLambda Lists.cfConcat),
                 (("Base", "concatMap"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfConcatMap),
+                 CustardNativeLambda Lists.cfConcatMap),
                 (("Base", "and"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfAnd),
+                 CustardNativeLambda Lists.cfAnd),
                 (("Base", "or"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfOr),
+                 CustardNativeLambda Lists.cfOr),
                 (("Base", "any"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfAny),
+                 CustardNativeLambda Lists.cfAny),
                 (("Base", "all"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfAll),
+                 CustardNativeLambda Lists.cfAll),
                 (("Base", "sum"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSum),
+                 CustardNativeLambda Lists.cfSum),
                 (("Base", "product"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfProduct),
+                 CustardNativeLambda Lists.cfProduct),
                 (("Base", "maximum"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMaximum),
+                 CustardNativeLambda Lists.cfMaximum),
                 (("Base", "minimum"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMinimum),
+                 CustardNativeLambda Lists.cfMinimum),
                 -- Lists - Building lists
                 -- Lists - Building lists - Scans
                 (("Base", "scanl"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfScanl),
+                 CustardNativeLambda Lists.cfScanl),
                 (("Base", "scanl1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfScanl1),
+                 CustardNativeLambda Lists.cfScanl1),
                 (("Base", "scanr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfScanr),
+                 CustardNativeLambda Lists.cfScanr),
                 (("Base", "scanr1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfScanr1),
+                 CustardNativeLambda Lists.cfScanr1),
                 -- Lists - Building lists - Accumulating maps
                 (("Base", "mapAccumL"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMapAccumL),
+                 CustardNativeLambda Lists.cfMapAccumL),
                 (("Base", "mapAccumR"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMapAccumR),
+                 CustardNativeLambda Lists.cfMapAccumR),
                 -- Lists - Building lists - Replicate
                 (("Base", "replicate"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfReplicate),
+                 CustardNativeLambda Lists.cfReplicate),
                 -- Lists - Building lists - Unfolding
                 (("Base", "unfoldr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfUnfoldr),
+                 CustardNativeLambda Lists.cfUnfoldr),
                 -- Lists - Sublists
                 -- Lists - Sublists - Extracting sublists
                 (("Base", "take"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfTake),
+                 CustardNativeLambda Lists.cfTake),
                 (("Base", "drop"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDrop),
+                 CustardNativeLambda Lists.cfDrop),
                 (("Base", "splitAt"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSplitAt),
+                 CustardNativeLambda Lists.cfSplitAt),
                 (("Base", "takeWhile"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfTakeWhile),
+                 CustardNativeLambda Lists.cfTakeWhile),
                 (("Base", "dropWhile"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDropWhile),
+                 CustardNativeLambda Lists.cfDropWhile),
                 (("Base", "span"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSpan),
+                 CustardNativeLambda Lists.cfSpan),
                 (("Base", "break"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfBreak),
+                 CustardNativeLambda Lists.cfBreak),
                 (("Base", "stripPrefix"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfStripPrefix),
+                 CustardNativeLambda Lists.cfStripPrefix),
                 (("Base", "group"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfGroup),
+                 CustardNativeLambda Lists.cfGroup),
                 (("Base", "inits"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfInits),
+                 CustardNativeLambda Lists.cfInits),
                 (("Base", "tails"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfTails),
+                 CustardNativeLambda Lists.cfTails),
                 -- Lists - Sublists - Predicates
                 (("Base", "isPrefixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIsPrefixOf),
+                 CustardNativeLambda Lists.cfIsPrefixOf),
                 (("Base", "isSuffixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIsSuffixOf),
+                 CustardNativeLambda Lists.cfIsSuffixOf),
                 (("Base", "isInfixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIsInfixOf),
+                 CustardNativeLambda Lists.cfIsInfixOf),
                 -- Lists - Searching lists
                 -- Lists - Searching lists - Searching by equality
                 (("Base", "elem"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfElem),
+                 CustardNativeLambda Lists.cfElem),
                 (("Base", "notElem"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfNotElem),
+                 CustardNativeLambda Lists.cfNotElem),
                 (("Base", "lookup"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfLookup),
+                 CustardNativeLambda Lists.cfLookup),
                 -- Lists - Searching lists - Searching with a predicate
                 (("Base", "find"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFind),
+                 CustardNativeLambda Lists.cfFind),
                 (("Base", "filter"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFilter),
+                 CustardNativeLambda Lists.cfFilter),
                 (("Base", "partition"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfPartition),
+                 CustardNativeLambda Lists.cfPartition),
                 -- Lists - Indexing lists
                 (("Base", "nth"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfNth),
+                 CustardNativeLambda Lists.cfNth),
                 (("Base", "elemIndex"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfElemIndex),
+                 CustardNativeLambda Lists.cfElemIndex),
                 (("Base", "elemIndices"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfElemIndices),
+                 CustardNativeLambda Lists.cfElemIndices),
                 (("Base", "findIndex"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFindIndex),
+                 CustardNativeLambda Lists.cfFindIndex),
                 (("Base", "findIndices"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfFindIndices),
+                 CustardNativeLambda Lists.cfFindIndices),
                 -- Lists - Special lists
                 -- Lists - "Set" operations
                 (("Base", "nub"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfNub),
+                 CustardNativeLambda Lists.cfNub),
                 (("Base", "delete"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDelete),
+                 CustardNativeLambda Lists.cfDelete),
                 (("Base", "deleteFirsts"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDeleteFirsts),
+                 CustardNativeLambda Lists.cfDeleteFirsts),
                 (("Base", "union"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfUnion),
+                 CustardNativeLambda Lists.cfUnion),
                 (("Base", "intersect"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIntersect),
+                 CustardNativeLambda Lists.cfIntersect),
                 -- Lists - Ordered lists
                 (("Base", "sort"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSort),
+                 CustardNativeLambda Lists.cfSort),
                 (("Base", "insert"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfInsert),
+                 CustardNativeLambda Lists.cfInsert),
                 -- Lists - Generalized functions
                 (("Base", "nubBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfNubBy),
+                 CustardNativeLambda Lists.cfNubBy),
                 (("Base", "deleteBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDeleteBy),
+                 CustardNativeLambda Lists.cfDeleteBy),
                 (("Base", "deleteFirstsBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfDeleteFirstsBy),
+                 CustardNativeLambda Lists.cfDeleteFirstsBy),
                 (("Base", "unionBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfUnionBy),
+                 CustardNativeLambda Lists.cfUnionBy),
                 (("Base", "intersectBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfIntersectBy),
+                 CustardNativeLambda Lists.cfIntersectBy),
                 (("Base", "groupBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfGroupBy),
+                 CustardNativeLambda Lists.cfGroupBy),
                 (("Base", "sortBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfSortBy),
+                 CustardNativeLambda Lists.cfSortBy),
                 (("Base", "insertBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfInsertBy),
+                 CustardNativeLambda Lists.cfInsertBy),
                 (("Base", "maximumBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMaximumBy),
+                 CustardNativeLambda Lists.cfMaximumBy),
                 (("Base", "minimumBy"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Lists.cfMinimumBy),
+                 CustardNativeLambda Lists.cfMinimumBy),
                 
                 -- Strings
                 -- Strings - Basic functions
                 (("Base", "stringHead"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringHead),
+                 CustardNativeLambda Strings.cfStringHead),
                 (("Base", "stringLast"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringLast),
+                 CustardNativeLambda Strings.cfStringLast),
                 (("Base", "stringTail"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringTail),
+                 CustardNativeLambda Strings.cfStringTail),
                 (("Base", "stringInit"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringInit),
+                 CustardNativeLambda Strings.cfStringInit),
                 (("Base", "stringNull"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringNull),
+                 CustardNativeLambda Strings.cfStringNull),
                 (("Base", "stringLength"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringLength),
+                 CustardNativeLambda Strings.cfStringLength),
                 -- Strings - String transformations
                 (("Base", "stringMap"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringMap),
+                 CustardNativeLambda Strings.cfStringMap),
                 (("Base", "stringReverse"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringReverse),
+                 CustardNativeLambda Strings.cfStringReverse),
                 (("Base", "stringIntersperse"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringIntersperse),
+                 CustardNativeLambda Strings.cfStringIntersperse),
                 (("Base", "stringIntercalate"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringIntercalate),
+                 CustardNativeLambda Strings.cfStringIntercalate),
                 (("Base", "stringTranspose"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringTranspose),
+                 CustardNativeLambda Strings.cfStringTranspose),
                 (("Base", "stringSubsequences"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringSubsequences),
+                 CustardNativeLambda Strings.cfStringSubsequences),
                 (("Base", "stringPermutations"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringPermutations),
+                 CustardNativeLambda Strings.cfStringPermutations),
                 -- Strings - Reducing strings (folds)
                 (("Base", "stringFoldl"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFoldl),
+                 CustardNativeLambda Strings.cfStringFoldl),
                 (("Base", "stringFoldl1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFoldl1),
+                 CustardNativeLambda Strings.cfStringFoldl1),
                 (("Base", "stringFoldr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFoldr),
+                 CustardNativeLambda Strings.cfStringFoldr),
                 (("Base", "stringFoldr1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFoldr1),
+                 CustardNativeLambda Strings.cfStringFoldr1),
                 -- Strings - Reducing strings (folds) - Special folds
                 (("Base", "stringConcat"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringConcat),
+                 CustardNativeLambda Strings.cfStringConcat),
                 (("Base", "stringConcatMap"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringConcatMap),
+                 CustardNativeLambda Strings.cfStringConcatMap),
                 (("Base", "stringAny"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringAny),
+                 CustardNativeLambda Strings.cfStringAny),
                 (("Base", "stringAll"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringAll),
+                 CustardNativeLambda Strings.cfStringAll),
                 -- Strings - Building strings
                 -- Strings - Building strings - Scans
                 (("Base", "stringScanl"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringScanl),
+                 CustardNativeLambda Strings.cfStringScanl),
                 (("Base", "stringScanl1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringScanl1),
+                 CustardNativeLambda Strings.cfStringScanl1),
                 (("Base", "stringScanr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringScanr),
+                 CustardNativeLambda Strings.cfStringScanr),
                 (("Base", "stringScanr1"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringScanr1),
+                 CustardNativeLambda Strings.cfStringScanr1),
                 -- Strings - Building strings - Accumulating maps
                 (("Base", "stringMapAccumL"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringMapAccumL),
+                 CustardNativeLambda Strings.cfStringMapAccumL),
                 (("Base", "stringMapAccumR"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringMapAccumR),
+                 CustardNativeLambda Strings.cfStringMapAccumR),
                 -- Strings - Building strings - Replicate
                 (("Base", "stringReplicate"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringReplicate),
+                 CustardNativeLambda Strings.cfStringReplicate),
                 -- Strings - Building strings - Unfolding
                 (("Base", "stringUnfoldr"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringUnfoldr),
+                 CustardNativeLambda Strings.cfStringUnfoldr),
                 -- Strings - Substrings
                 -- Strings - Substrings - Extracting sublists
                 (("Base", "stringTake"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringTake),
+                 CustardNativeLambda Strings.cfStringTake),
                 (("Base", "stringDrop"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringDrop),
+                 CustardNativeLambda Strings.cfStringDrop),
                 (("Base", "stringSplitAt"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringSplitAt),
+                 CustardNativeLambda Strings.cfStringSplitAt),
                 (("Base", "stringTakeWhile"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringTakeWhile),
+                 CustardNativeLambda Strings.cfStringTakeWhile),
                 (("Base", "stringDropWhile"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringDropWhile),
+                 CustardNativeLambda Strings.cfStringDropWhile),
                 (("Base", "stringSpan"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringSpan),
+                 CustardNativeLambda Strings.cfStringSpan),
                 (("Base", "stringBreak"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringBreak),
+                 CustardNativeLambda Strings.cfStringBreak),
                 (("Base", "stringStripPrefix"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringStripPrefix),
+                 CustardNativeLambda Strings.cfStringStripPrefix),
                 (("Base", "stringGroup"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringGroup),
+                 CustardNativeLambda Strings.cfStringGroup),
                 (("Base", "stringInits"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringInits),
+                 CustardNativeLambda Strings.cfStringInits),
                 (("Base", "stringTails"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringTails),
+                 CustardNativeLambda Strings.cfStringTails),
                 -- Strings - Substrings - Predicates
                 (("Base", "stringIsPrefixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringIsPrefixOf),
+                 CustardNativeLambda Strings.cfStringIsPrefixOf),
                 (("Base", "stringIsSuffixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringIsSuffixOf),
+                 CustardNativeLambda Strings.cfStringIsSuffixOf),
                 (("Base", "stringIsInfixOf"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringIsInfixOf),
+                 CustardNativeLambda Strings.cfStringIsInfixOf),
                 -- Strings - Searching strings
                 -- Strings - Searching strings - Searching by equality
                 (("Base", "stringElem"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringElem),
+                 CustardNativeLambda Strings.cfStringElem),
                 (("Base", "stringNotElem"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringNotElem),
+                 CustardNativeLambda Strings.cfStringNotElem),
                 (("Base", "stringLookup"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringLookup),
+                 CustardNativeLambda Strings.cfStringLookup),
                 -- Strings - Searching strings - Searching with a predicate
                 (("Base", "stringFind"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFind),
+                 CustardNativeLambda Strings.cfStringFind),
                 (("Base", "stringFilter"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFilter),
+                 CustardNativeLambda Strings.cfStringFilter),
                 (("Base", "stringPartition"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringPartition),
+                 CustardNativeLambda Strings.cfStringPartition),
                 -- Strings - Indexing strings
                 (("Base", "stringNth"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringNth),
+                 CustardNativeLambda Strings.cfStringNth),
                 (("Base", "stringElemIndex"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringElemIndex),
+                 CustardNativeLambda Strings.cfStringElemIndex),
                 (("Base", "stringElemIndices"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringElemIndices),
+                 CustardNativeLambda Strings.cfStringElemIndices),
                 (("Base", "stringFindIndex"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFindIndex),
+                 CustardNativeLambda Strings.cfStringFindIndex),
                 (("Base", "stringFindIndices"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringFindIndices),
+                 CustardNativeLambda Strings.cfStringFindIndices),
                 -- Strings - Text operations
                 (("Base", "stringLines"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringLines),
+                 CustardNativeLambda Strings.cfStringLines),
                 (("Base", "stringWords"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringWords),
+                 CustardNativeLambda Strings.cfStringWords),
                 (("Base", "stringUnlines"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringUnlines),
+                 CustardNativeLambda Strings.cfStringUnlines),
                 (("Base", "stringUnwords"),
-                 SomeCustardValue $ TemplateNativeLambda
-                                     Strings.cfStringUnwords)
+                 CustardNativeLambda Strings.cfStringUnwords)
                ]
-
-
-cfJust :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
-cfJust context parameters = do
-  requireNParameters parameters 1 "just"
-  return $ TemplateMaybe $ Just $ head parameters
-
-
-cfParameter :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
-cfParameter context parameters = do
-  requireNParameters parameters 1 "parameters"
-  n <- valueToInteger $ head parameters
-  bindings <- getBindings
-  parameters <- (return $ Map.lookup ("Base", "parameters") bindings)
-                >>= valueToList . fromJust
-  if n < (fromIntegral $ length parameters)
-    then return $ head $ drop (fromIntegral n) parameters
-    else error $ "Too few template parameters "
-               ++ "for parameter(" ++ (show n) ++ ")."
-
-
-cfIsNothing :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
-cfIsNothing context parameters = do
-  requireNParameters parameters 1 "isNothing"
-  value <- return $ head parameters
-  return $ case value of
-             TemplateMaybe Nothing -> CustardBool True
-             TemplateMaybe (Just _) -> CustardBool False
-             _ -> error $ "Parameter is not a Maybe in isNothing()."
-
-
-cfIsJust :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
-cfIsJust context parameters = do
-  requireNParameters parameters 1 "isJust"
-  value <- return $ head parameters
-  return $ case value of
-             TemplateMaybe Nothing -> CustardBool False
-             TemplateMaybe (Just _) -> CustardBool True
-             _ -> error $ "Parameter is not a Maybe in isJust()."
-
-
-cfFromJust :: CustardContext
-           -> [AnyCustardValue]
-           -> FruitTart AnyCustardValue
-cfFromJust context parameters = do
-  requireNParameters parameters 1 "fromJust"
-  value <- return $ head parameters
-  return $ case value of
-             TemplateMaybe Nothing
-                 -> error $ "Parameter is nothing in fromJust()."
-             TemplateMaybe (Just result) -> result
-             _ -> error $ "Parameter is not a Maybe in fromJust()."
-
-
-cfStringWordCount :: CustardContext
-                  -> [AnyCustardValue]
-                  -> FruitTart AnyCustardValue
-cfStringWordCount context parameters = do
-  requireNParameters parameters 1 "stringWordCount"
-  string <- valueToString $ head parameters
-  let wordCount "" = 0
-      wordCount string = case elemIndex ' ' string of
-                           Nothing -> 1
-                           Just index -> let (_, rest) = splitAt index string
-                                         in 1 + wordCount (drop 1 rest)
-  return $ TemplateInteger $ fromIntegral $ wordCount string
-
-
-cfCompareIntegers :: CustardContext
-                  -> [AnyCustardValue]
-                  -> FruitTart AnyCustardValue
-cfCompareIntegers context parameters = do
-  requireNParameters parameters 2 "compareIntegers"
-  a <- valueToInteger $ head parameters
-  b <- valueToInteger $ head $ drop 1 parameters
-  return $ TemplateOrdering $ compare a b
-
-
-cfShowInteger :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
-cfShowInteger context parameters = do
-  requireNParameters parameters 1 "showInteger"
-  integer <- valueToInteger $ head parameters
-  return $ CustardString $ show integer
-
-
-cfShowBool :: CustardContext
-           -> [AnyCustardValue]
-           -> FruitTart AnyCustardValue
-cfShowBool context parameters = do
-  requireNParameters parameters 1 "showBool"
-  bool <- valueToBoolean $ head parameters
-  return $ CustardString $ show bool
-
-
-cfByteSizeToString :: CustardContext
-                   -> [AnyCustardValue]
-                   -> FruitTart AnyCustardValue
-cfByteSizeToString context parameters = do
-  requireNParameters parameters 1 "byteSizeToString"
-  integer <- valueToInteger $ head parameters
-  return $ CustardString $ byteSizeToString integer
-
-
-cfTimestampToString :: CustardContext
-                    -> [AnyCustardValue]
-                    -> FruitTart AnyCustardValue
-cfTimestampToString context parameters = do
-  requireNParameters parameters 1 "timestampToString"
-  integer <- valueToInteger $ head parameters
-  return $ CustardString $ timestampToString integer
-
-
-cfEscapeAttribute :: CustardContext
-                  -> [AnyCustardValue]
-                  -> FruitTart AnyCustardValue
-cfEscapeAttribute context parameters = do
-  requireNParameters parameters 1 "escapeAttribute"
-  string <- valueToString $ head parameters
-  return $ CustardString $ escapeAttribute string
-
-
-cfEscapeHTML :: CustardContext
-             -> [AnyCustardValue]
-             -> FruitTart AnyCustardValue
-cfEscapeHTML context parameters = do
-  requireNParameters parameters 1 "escapeHTML"
-  string <- valueToString $ head parameters
-  return $ CustardString $ escapeHTML string
-
-
-cfNewlinesToParagraphs :: CustardContext
-                       -> [AnyCustardValue]
-                       -> FruitTart AnyCustardValue
-cfNewlinesToParagraphs context parameters = do
-  requireNParameters parameters 1 "newlinesToParagraphs"
-  string <- valueToString $ head parameters
-  return $ CustardString $ newlinesToParagraphs string

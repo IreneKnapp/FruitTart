@@ -1,16 +1,13 @@
-{-# LANGUAGE TypeSynonymInstances, ExistentialQuantification,
-             GADTs, EmptyDataDecls #-}
+{-# LANGUAGE TypeSynonymInstances, ExistentialQuantification #-}
 module Network.FruitTart.Types (
                                 -- General
                                 FruitTartState(..),
                                 FruitTart,
+                                ParameterType(..),
                                 
                                 -- Custard language
                                 CustardValueType(..),
-                                CustardStringTypeWitness,
-                                CustardLambdaTypeWitness,
                                 CustardValue(..),
-                                AnyCustardValue(..),
                                 CustardParameter(..),
                                 CustardExpression(..),
                                 CustardContext(..),
@@ -81,6 +78,10 @@ instance MonadFastCGI FruitTart where
       put state'
       return result
 
+data ParameterType = IDParameter
+                   | StringParameter
+                   | EitherStringIDParameter
+
 
 data CustardValueType = CBool
                       | CInt
@@ -90,33 +91,40 @@ data CustardValueType = CBool
 
 data CustardParameter = CustardParameter (String, String)
 
-data CustardStringTypeWitness
-data CustardLambdaTypeWitness
+data CustardValue = CustardNull
+                  | CustardBool Bool
+                  | CustardInteger Int64
+                  | CustardCharacter Char
+                  | CustardString String
+                  | CustardList [CustardValue]
+                  | CustardMaybe (Maybe CustardValue)
+                  | CustardOrdering Ordering
+                  | CustardMap (Map (String, String) CustardValue)
+                  | CustardLambda [CustardParameter]
+                                  (Map (String, String) CustardValue)
+                                  CustardExpression
+                  | CustardNativeLambda (CustardContext
+                                         -> [CustardValue]
+                                         -> FruitTart CustardValue)
 
-data CustardValue t where
-  CustardNull :: CustardValue ()
-  CustardBool :: Bool -> CustardValue Bool
-  CustardInteger :: Int64 -> CustardValue Int64
-  CustardCharacter :: Char -> CustardValue Char
-  CustardString :: String -> CustardValue CustardStringTypeWitness
-  CustardList :: [CustardValue a] -> CustardValue [a]
-  CustardMaybe :: (Maybe (CustardValue a)) -> CustardValue (Maybe a)
-  CustardOrdering :: Ordering -> CustardValue Ordering
-  CustardMap :: Map (String, String) AnyCustardValue
-             -> CustardValue (Map (String, String) AnyCustardValue)
-  CustardLambda :: [CustardParameter]
-                -> Map (String, String) AnyCustardValue
-                -> CustardExpression
-                -> CustardValue CustardLambdaTypeWitness
-  CustardNativeLambda :: (CustardContext
-                          -> [CustardValue a]
-                          -> FruitTart AnyCustardValue)
-                      -> CustardValue CustardLambdaTypeWitness
+instance Show CustardValue where
+  show CustardNull = "Null"
+  show (CustardBool True) = "True"
+  show (CustardBool False) = "False"
+  show (CustardInteger value) = show value
+  show (CustardCharacter value) = ['\'', value, '\'']
+  show (CustardString value) = show value
+  show (CustardList items) = "[" ++ intercalate ", " (map show items) ++ "]"
+  show (CustardMaybe Nothing) = "Nothing"
+  show (CustardMaybe (Just value)) = "Just(" ++ show value ++ ")"
+  show (CustardOrdering GT) = "GT"
+  show (CustardOrdering LT) = "LT"
+  show (CustardOrdering EQ) = "EQ"
+  show (CustardMap _) = "<Map>"
+  show (CustardLambda _ _ _) = "<Lambda>"
+  show (CustardNativeLambda _) = "<NativeLambda>"
 
-data AnyCustardValue = forall a . SomeCustardValue (CustardValue a)
-
-data CustardExpression = CustardStringLiteral (CustardValue CustardStringTypeWitness)
-                        | CustardIntegerLiteral (CustardValue Int64)
+data CustardExpression = CustardLiteral CustardValue
                         | CustardExpressionList [CustardExpression]
                         | CustardOperationConcatenate CustardExpression
                                                        CustardExpression
@@ -163,14 +171,13 @@ data CustardExpression = CustardStringLiteral (CustardValue CustardStringTypeWit
 data CustardContext = CustardContext {
     custardContextType :: CustardContextType,
     custardContextFormInputMap :: Map String String,
-    custardContextParameters :: [AnyCustardValue],
-    custardContextBindings :: Map (String, String) AnyCustardValue
+    custardContextParameters :: [CustardValue],
+    custardContextBindings :: Map (String, String) CustardValue
   }
 
 data CustardContextType = ControllerContext | TemplateContext
 
-data CustardToken = TokenStringValue (CustardValue CustardStringTypeWitness)
-                   | TokenIntegerValue (CustardValue Int64)
+data CustardToken = TokenValue CustardValue
                    | TokenSymbol String String
                    | TokenIf
                    | TokenCase

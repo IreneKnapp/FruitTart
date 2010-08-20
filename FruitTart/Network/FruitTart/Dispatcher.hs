@@ -12,6 +12,7 @@ import Data.List
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe
+import Data.Ord
 import Network.FastCGI
 import Numeric
 import Prelude hiding (catch)
@@ -34,8 +35,10 @@ processRequest  = do
                                                   Map.empty
                                                   "Base"
                                                   "error500"
-                                                  [])
+                                                  []
+                           return ())
                          (\e -> do
+                           return (e :: SomeException)
                            setResponseStatus 500
                            setResponseHeader HttpContentType
                                              "text/html; charset=UTF8"
@@ -52,7 +55,6 @@ processRequest' :: FruitTart ()
 processRequest' = do
   initializeSession
   formInput <- processFormInput
-  callModuleInitRequestMethods
   setMimeType
   maybeURL <- getQueryString
   let url = fromJust maybeURL
@@ -66,13 +68,27 @@ processRequest' = do
     else do
       maybeControllerModuleName <- lookupController controllerName
       case maybeControllerModuleName of
-        Nothing -> errorControllerUndefined controllerName
+        Nothing -> do
+          applyFunctionGivenName ControllerContext
+                                 Map.empty
+                                 "Base"
+                                 "errorControllerUndefined"
+                                 [CustardString controllerName]
+          return ()
         Just controllerModuleName
           -> do
            maybeActionIDAndFunctionName
              <- lookupAction controllerModuleName actionName method
            case maybeActionIDAndFunctionName of
-             Nothing -> errorActionUndefined controllerName actionName method
+             Nothing -> do
+               applyFunctionGivenName ControllerContext
+                                      Map.empty
+                                      "Base"
+                                      "errorActionUndefined"
+                                      [CustardString controllerName,
+                                       CustardString actionName,
+                                       CustardString method]
+               return ()
              Just (actionID, functionName) -> do
                (mandatoryParameterTypes,
                 optionalParameterTypes,
@@ -107,7 +123,7 @@ lookupParameterTypes :: Int64
                      -> FruitTart ([CustardValueType],
                                    [CustardValueType],
                                    Map String CustardValueType)
-lookupParameterTypes = do
+lookupParameterTypes actionID = do
   return ([], [], Map.empty)
   -- TODO
 
@@ -117,8 +133,12 @@ decodeParameters :: [String]
                  -> [CustardValueType]
                  -> [CustardValueType]
                  -> Map String CustardValueType
-                 -> FruitTart [AnyCustardValue]
-decodeParameters = do
+                 -> FruitTart [CustardValue]
+decodeParameters unnamedParameters
+                 namedParameters
+                 mandatoryParameterTypes
+                 optionalParameterTypes
+                 namedParameterTypes = do
   return []
   -- TODO
 
@@ -239,15 +259,6 @@ parseFormURLEncoded input =
     in Map.fromList nameValuePairs
 
 
-callModuleInitRequestMethods :: FruitTart ()
-callModuleInitRequestMethods = do
-  FruitTartState { interfacesMapMVar = interfacesMapMVar } <- get
-  interfacesMap <- liftIO $ readMVar interfacesMapMVar
-  mapM (\interface -> interfaceInitRequest interface)
-       $ Map.elems interfacesMap
-  return ()
-
-
 setMimeType :: FruitTart ()
 setMimeType = do
   maybeAccept <- getRequestHeader HttpAccept
@@ -311,7 +322,7 @@ parseURL url =
     in (controller, action, urlParameters, Map.fromList namedParameters)
 
 
-canonicalURL :: String -> String -> [String] -> [(String, String)] -> String
+canonicalURL :: String -> String -> [String] -> Map String String -> String
 canonicalURL controllerName actionName urlParameters namedParameters =
     let basePart = "/"
                    ++ (map toLower controllerName) ++ "/"
@@ -323,5 +334,14 @@ canonicalURL controllerName actionName urlParameters namedParameters =
                                                         ":",
                                                         value,
                                                         "/"])
-                              namedParameters
+                                           $ sortBy (comparing fst)
+                                           $ Map.toList namedParameters
     in concat [basePart, urlParametersPart, namedParametersPart]
+
+
+defaultController :: String
+defaultController = "issues"
+
+
+defaultAction :: String
+defaultAction = "index"

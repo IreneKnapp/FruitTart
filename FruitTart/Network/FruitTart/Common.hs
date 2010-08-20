@@ -75,14 +75,6 @@ errorInvalidID kind =
     error404 $ "No " ++ kind ++ " by that ID exists." 
 
 
-defaultController :: String
-defaultController = "issues"
-
-
-defaultAction :: String
-defaultAction = "index"
-
-
 getSessionID :: FruitTart Int64
 getSessionID = do
   FruitTartState { sessionID = sessionID } <- get

@@ -99,708 +99,649 @@ import Network.FruitTart.Util
 
 
 cfHead :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfHead context parameters = do
   requireNParameters parameters 1 "head"
   case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items) -> return $ SomeCustardValue $ head items
+    CustardList [] -> errorListEmpty
+    CustardList items -> return $ head items
     _ -> errorNotAList
 
 
 cfLast :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfLast context parameters = do
   requireNParameters parameters 1 "last"
   case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items) -> return $ SomeCustardValue $ last items
+    CustardList [] -> errorListEmpty
+    CustardList items -> return $ last items
     _ -> errorNotAList
 
 
 cfTail :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfTail context parameters = do
   requireNParameters parameters 1 "tail"
   case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ CustardList $ tail items
+    CustardList [] -> errorListEmpty
+    CustardList items -> return $ CustardList $ tail items
     _ -> errorNotAList
 
 
 cfInit :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfInit context parameters = do
   requireNParameters parameters 1 "init"
   case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ CustardList $ init items
+    CustardList [] -> errorListEmpty
+    CustardList items -> return $ CustardList $ init items
     _ -> errorNotAList
 
 
 cfNull :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfNull context parameters = do
   requireNParameters parameters 1 "null"
   case head parameters of
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ CustardBool $ null items
+    CustardList items -> return $ CustardBool $ null items
     _ -> errorNotAList
 
 
 cfLength :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfLength context parameters = do
   requireNParameters parameters 1 "length"
   case head parameters of
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ CustardInteger $ fromIntegral $ length items
+    CustardList items -> return $ CustardInteger $ fromIntegral $ length items
     _ -> errorNotAList
 
 
 cfMap :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfMap context parameters = do
   requireNParameters parameters 2 "map"
   let function = head parameters
   case head $ drop 1 parameters of
-    SomeCustardValue (CustardList items) -> do
+    CustardList items -> do
       (_, items) <- foldM (\(context, results) a -> do
                             (context, result)
                               <- applyFunctionGivenContextAndValue
-                                  context function [SomeCustardValue a]
+                                  context function [a]
                             return (context, results ++ [result]))
                          (context, [])
                          items
-      typecheckAndHomogenizeList items
+      typecheckList items
+      return $ CustardList items
     _ -> errorNotAList
 
 
 cfReverse :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfReverse context parameters = do
   requireNParameters parameters 1 "reverse"
   case head parameters of
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ CustardList $ reverse items
+    CustardList items -> return $ CustardList $ reverse items
     _ -> errorNotAList
 
 
 cfIntersperse :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
+              -> [CustardValue]
+              -> FruitTart CustardValue
 cfIntersperse context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIntercalate :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
+              -> [CustardValue]
+              -> FruitTart CustardValue
 cfIntercalate context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfTranspose :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfTranspose context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSubsequences :: CustardContext
-               -> [AnyCustardValue]
-               -> FruitTart AnyCustardValue
+               -> [CustardValue]
+               -> FruitTart CustardValue
 cfSubsequences context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfPermutations :: CustardContext
-               -> [AnyCustardValue]
-               -> FruitTart AnyCustardValue
+               -> [CustardValue]
+               -> FruitTart CustardValue
 cfPermutations context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFoldl :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfFoldl context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFoldl1 :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfFoldl1 context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFoldr :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfFoldr context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFoldr1 :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfFoldr1 context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfConcat :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfConcat context parameters = do
-  requireNParameters parameters 1 "concat"
-  case head parameters of
-    SomeCustardValue (CustardList items@(CustardList _ : _))
-      -> return $ SomeCustardValue
-                $ CustardList
-                $ concat
-                $ map (\(CustardList sublist) -> sublist) items
-    _ -> errorNotAListOfLists
+  error "Not implemented."
+  -- TODO
 
 
 cfConcatMap :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfConcatMap context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfAnd :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfAnd context parameters = do
-  requireNParameters parameters 1 "and"
-  case head parameters of
-    SomeCustardValue (CustardList [])
-      -> return $ SomeCustardValue $ CustardBool $ and []
-    SomeCustardValue (CustardList items@(CustardBool _ : _))
-      -> return $ SomeCustardValue
-                $ CustardBool
-                $ and
-                $ map (\(CustardBool item) -> item) items
-    _ -> errorNotAListOfBooleans
+  error "Not implemented."
+  -- TODO
 
 
 cfOr :: CustardContext
-     -> [AnyCustardValue]
-     -> FruitTart AnyCustardValue
+     -> [CustardValue]
+     -> FruitTart CustardValue
 cfOr context parameters = do
-  requireNParameters parameters 1 "or"
-  case head parameters of
-    SomeCustardValue (CustardList [])
-      -> return $ SomeCustardValue $ CustardBool $ and []
-    SomeCustardValue (CustardList items@(CustardBool _ : _))
-      -> return $ SomeCustardValue
-                $ CustardBool
-                $ or
-                $ map (\(CustardBool item) -> item) items
-    _ -> errorNotAListOfBooleans
+  error "Not implemented."
+  -- TODO
 
 
 cfAny :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfAny context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfAll :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfAll context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSum :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfSum context parameters = do
-  requireNParameters parameters 1 "sum"
-  case head parameters of
-    SomeCustardValue (CustardList [])
-      -> return $ SomeCustardValue $ CustardInteger $ sum []
-    SomeCustardValue (CustardList items@(CustardInteger _ : _))
-      -> return $ SomeCustardValue
-                $ CustardBool
-                $ sum
-                $ map (\(CustardInteger item) -> item) items
-    _ -> errorNotAListOfIntegers
+  error "Not implemented."
+  -- TODO
 
 
 cfProduct :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfProduct context parameters = do
-  requireNParameters parameters 1 "product"
-  case head parameters of
-    SomeCustardValue (CustardList [])
-      -> return $ SomeCustardValue $ CustardInteger $ product []
-    SomeCustardValue (CustardList items@(CustardInteger _ : _))
-      -> return $ SomeCustardValue
-                $ CustardBool
-                $ product
-                $ map (\(CustardInteger item) -> item) items
-    _ -> errorNotAListOfIntegers
+  error "Not implemented."
+  -- TODO
 
 
 cfMaximum :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfMaximum context parameters = do
-  requireNParameters parameters 1 "maximum"
-  case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items@(CustardInteger _ : _))
-      -> mapM valueToInteger items
-         >>= return . SomeCustardValue . CustardInteger . maximum
-    SomeCustardValue (CustardList items@(CustardCharacter _ : _))
-      -> mapM valueToCharacter items
-         >>= return . SomeCustardValue . CustardCharacter . maximum
-    _ -> errorNotAListOfIntegersOrCharacters
+  error "Not implemented."
+  -- TODO
 
 
 cfMinimum :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfMinimum context parameters = do
-  requireNParameters parameters 1 "minimum"
-  case head parameters of
-    SomeCustardValue (CustardList []) -> errorListEmpty
-    SomeCustardValue (CustardList items@(CustardInteger _ : _))
-      -> mapM valueToInteger items
-         >>= return . SomeCustardValue . CustardInteger . minimum
-    SomeCustardValue (CustardList items@(CustardCharacter _ : _))
-      -> mapM valueToCharacter items
-         >>= return . SomeCustardValue . CustardCharacter . minimum
-    _ -> errorNotAListOfIntegersOrCharacters
+  error "Not implemented."
+  -- TODO
 
 
 cfScanl :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfScanl context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfScanl1 :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfScanl1 context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfScanr :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfScanr context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfScanr1 :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfScanr1 context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfMapAccumL :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfMapAccumL context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfMapAccumR :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfMapAccumR context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfReplicate :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfReplicate context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfUnfoldr :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfUnfoldr context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfTake :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfTake context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDrop :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfDrop context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSplitAt :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfSplitAt context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfTakeWhile :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfTakeWhile context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDropWhile :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfDropWhile context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSpan :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfSpan context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfBreak :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfBreak context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfStripPrefix :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
+              -> [CustardValue]
+              -> FruitTart CustardValue
 cfStripPrefix context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfGroup :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfGroup context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfInits :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfInits context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfTails :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfTails context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIsPrefixOf :: CustardContext
-             -> [AnyCustardValue]
-             -> FruitTart AnyCustardValue
+             -> [CustardValue]
+             -> FruitTart CustardValue
 cfIsPrefixOf context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIsSuffixOf :: CustardContext
-             -> [AnyCustardValue]
-             -> FruitTart AnyCustardValue
+             -> [CustardValue]
+             -> FruitTart CustardValue
 cfIsSuffixOf context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIsInfixOf :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfIsInfixOf context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfElem :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfElem context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfNotElem :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfNotElem context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfLookup :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfLookup context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFind :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfFind context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFilter :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfFilter context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfPartition :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfPartition context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfNth :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfNth context parameters = do
   requireNParameters parameters 2 "nth"
   n <- valueToInteger $ head parameters
   case head $ drop 1 parameters of
-    SomeCustardValue (CustardList items)
-      -> return $ SomeCustardValue $ items !! n
+    CustardList items -> return $ items !! fromIntegral n
     _ -> errorNotAList
 
 
 cfElemIndex :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfElemIndex context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfElemIndices :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
+              -> [CustardValue]
+              -> FruitTart CustardValue
 cfElemIndices context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFindIndex :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfFindIndex context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfFindIndices :: CustardContext
-              -> [AnyCustardValue]
-              -> FruitTart AnyCustardValue
+              -> [CustardValue]
+              -> FruitTart CustardValue
 cfFindIndices context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfNub :: CustardContext
-      -> [AnyCustardValue]
-      -> FruitTart AnyCustardValue
+      -> [CustardValue]
+      -> FruitTart CustardValue
 cfNub context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDelete :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfDelete context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDeleteFirsts :: CustardContext
-               -> [AnyCustardValue]
-               -> FruitTart AnyCustardValue
+               -> [CustardValue]
+               -> FruitTart CustardValue
 cfDeleteFirsts context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfUnion :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfUnion context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIntersect :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfIntersect context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSort :: CustardContext
-       -> [AnyCustardValue]
-       -> FruitTart AnyCustardValue
+       -> [CustardValue]
+       -> FruitTart CustardValue
 cfSort context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfInsert :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfInsert context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfNubBy :: CustardContext
-        -> [AnyCustardValue]
-        -> FruitTart AnyCustardValue
+        -> [CustardValue]
+        -> FruitTart CustardValue
 cfNubBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDeleteBy :: CustardContext
-           -> [AnyCustardValue]
-           -> FruitTart AnyCustardValue
+           -> [CustardValue]
+           -> FruitTart CustardValue
 cfDeleteBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfDeleteFirstsBy :: CustardContext
-                 -> [AnyCustardValue]
-                 -> FruitTart AnyCustardValue
+                 -> [CustardValue]
+                 -> FruitTart CustardValue
 cfDeleteFirstsBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfUnionBy :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfUnionBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfIntersectBy :: CustardContext
-               -> [AnyCustardValue]
-               -> FruitTart AnyCustardValue
+               -> [CustardValue]
+               -> FruitTart CustardValue
 cfIntersectBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfGroupBy :: CustardContext
-          -> [AnyCustardValue]
-          -> FruitTart AnyCustardValue
+          -> [CustardValue]
+          -> FruitTart CustardValue
 cfGroupBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfSortBy :: CustardContext
-         -> [AnyCustardValue]
-         -> FruitTart AnyCustardValue
+         -> [CustardValue]
+         -> FruitTart CustardValue
 cfSortBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfInsertBy :: CustardContext
-           -> [AnyCustardValue]
-           -> FruitTart AnyCustardValue
+           -> [CustardValue]
+           -> FruitTart CustardValue
 cfInsertBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfMaximumBy :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfMaximumBy context parameters = do
   error "Not implemented."
   -- TODO
 
 
 cfMinimumBy :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfMinimumBy context parameters = do
   error "Not implemented."
   -- TODO

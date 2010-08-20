@@ -21,15 +21,14 @@ import Network.FruitTart.Util
 
 
 cfFormInput :: CustardContext
-            -> [AnyCustardValue]
-            -> FruitTart AnyCustardValue
+            -> [CustardValue]
+            -> FruitTart CustardValue
 cfFormInput context parameters = do
   requireControllerContext context "formInput"
   requireNParameters parameters 1 "formInput"
   name <- valueToString $ head parameters
   let CustardContext { custardContextFormInputMap = formInputMap } = context
-  return $ SomeCustardValue
-         $ CustardMaybe
+  return $ CustardMaybe
          $ case Map.lookup name formInputMap of
              Nothing -> Nothing
              Just value -> Just $ CustardString value

@@ -22,7 +22,7 @@ getTemplateWithParameters :: String
                           -> String
 			  -> CustardContextType
 			  -> Map String String
-                          -> [AnyCustardValue]
+                          -> [CustardValue]
                           -> FruitTart String
 
 
@@ -30,14 +30,14 @@ applyFunctionGivenName :: CustardContextType
                        -> Map String String
                        -> String
                        -> String
-                       -> [AnyCustardValue]
-                       -> FruitTart (CustardContext, AnyCustardValue)
+                       -> [CustardValue]
+                       -> FruitTart (CustardContext, CustardValue)
 
 
 applyFunctionGivenContextAndValue :: CustardContext
-                                  -> AnyCustardValue
-                                  -> [AnyCustardValue]
-                                  -> FruitTart (CustardContext, AnyCustardValue)
+                                  -> CustardValue
+                                  -> [CustardValue]
+                                  -> FruitTart (CustardContext, CustardValue)
 
 
-builtinBindings :: Map (String, String) AnyCustardValue
+builtinBindings :: Map (String, String) CustardValue
