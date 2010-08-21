@@ -16,9 +16,12 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Prelude hiding (catch)
 
+import qualified Network.FastCGI as FCGI
+
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
 import qualified Network.FruitTart.Custard.Functions.General as General
+import qualified Network.FruitTart.Custard.Functions.HTTP as HTTP
 import qualified Network.FruitTart.Custard.Functions.Forms as Forms
 import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
@@ -296,24 +299,7 @@ evalExpression context expression = do
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "First parameter to query() is not a symbol."
-        mapM (\parameter -> case parameter of
-               CustardBool True
-                 -> return $ SQLInteger 1
-               CustardBool False
-                 -> return $ SQLInteger 0
-               CustardMaybe Nothing
-                 -> return $ SQLNull
-               CustardMaybe (Just (CustardInteger integer))
-                 -> return $ SQLInteger integer
-               CustardMaybe (Just (CustardString string))
-                 -> return $ SQLText string
-               CustardInteger integer
-                 -> return $ SQLInteger integer
-               CustardString string
-                 -> return $ SQLText string
-               _ -> error "Invalid type for query parameter.")
-             parameters
-             >>= namedQuery (moduleName, queryName)
+        namedQuery (moduleName, queryName) parameters
         return (context, CustardNull)
       CustardBoundExpression subexpressions -> do
         if length subexpressions /= 1
@@ -502,7 +488,7 @@ applyFunctionGivenName contextType
   let context = CustardContext {
                   custardContextType = contextType,
                   custardContextFormInputMap = formInputMap,
-                  custardContextParameters = parameters,
+                  custardContextParameters = [],
                   custardContextBindings = Map.empty
                 }
   (context, function) <- findSymbol context (moduleName, functionName)
@@ -563,28 +549,39 @@ bindQuery1 :: CustardContext
            -> [CustardValue]
            -> FruitTart CustardContext
 bindQuery1 context (moduleName, queryName) inputs = do
-  error "Not yet implemented."
-  -- TODO
+  rows <- namedQuery (moduleName, queryName) inputs
+  case rows of
+    [] -> error "No results from query."
+    (row:_) -> do
+      let CustardContext { custardContextBindings = oldBindings } = context
+          newBindings = Map.union row oldBindings
+          context' = context { custardContextBindings = newBindings }
+      return context'
 
 
 bindQueryN :: CustardContext
            -> (String, String)
            -> [CustardValue]
            -> FruitTart CustardContext
-bindQueryN context (moduleName, queryName) inputs = do
-  error "Not yet implemented."
-  -- TODO
+bindQueryN context name inputs = do
+  rows <- namedQuery name inputs
+  let value = CustardList $ map CustardMap rows
+      CustardContext { custardContextBindings = oldBindings } = context
+      newBindings = Map.union (Map.fromList [(name, value)]) oldBindings
+      context' = context { custardContextBindings = newBindings }
+  return context'
 
 
 namedQuery :: (String, String)
-           -> [SQLData]
+           -> [CustardValue]
            -> FruitTart [Map (String, String) CustardValue]
-namedQuery (moduleName, queryName) queryValues = do
+namedQuery (moduleName, queryName) inputs = do
   rows <- query ("SELECT id, body FROM queries "
                  ++ " WHERE module = ? AND name = ?")
                 [SQLText moduleName, SQLText queryName]
   case rows of
     [[SQLInteger queryID, SQLText queryText]] -> do
+      queryValues <- mapM convertQueryValue inputs
       valueNamesAndTypes <- getValueNamesAndTypes queryID
       rows <- query queryText queryValues
       return $ map (\row -> convertRowToBindings moduleName
@@ -592,6 +589,19 @@ namedQuery (moduleName, queryName) queryValues = do
                                                  row)
                    rows
     _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
+
+
+convertQueryValue :: CustardValue -> FruitTart SQLData
+convertQueryValue (CustardBool True) = return $ SQLInteger 1
+convertQueryValue (CustardBool False) = return $ SQLInteger 0
+convertQueryValue (CustardMaybe Nothing) = return $ SQLNull
+convertQueryValue (CustardMaybe (Just (CustardInteger integer)))
+  = return $ SQLInteger integer
+convertQueryValue (CustardMaybe (Just (CustardString string)))
+  = return $ SQLText string
+convertQueryValue (CustardInteger integer) = return $ SQLInteger integer
+convertQueryValue (CustardString string) = return $ SQLText string
+convertQueryValue _ = error "Invalid type for query parameter."
 
 
 getValueNamesAndTypes :: Int64 -> FruitTart [(String, CustardValueType)]
@@ -757,6 +767,200 @@ builtinBindings = Map.fromList
                 (("Base", "newlinesToParagraphs"),
                  CustardNativeLambda General.cfNewlinesToParagraphs),
                 
+                -- HTTP
+                (("Base", "log"),
+                 CustardNativeLambda HTTP.cfLog),
+                (("Base", "getRequestVariable"),
+                 CustardNativeLambda HTTP.cfGetRequestVariable),
+                (("Base", "getAllRequestVariables"),
+                 CustardNativeLambda HTTP.cfGetAllRequestVariables),
+                (("Base", "HttpAccept"),
+                 CustardHTTPHeader FCGI.HttpAccept),
+                (("Base", "HttpAcceptCharset"),
+                 CustardHTTPHeader FCGI.HttpAcceptCharset),
+                (("Base", "HttpAcceptEncoding"),
+                 CustardHTTPHeader FCGI.HttpAcceptEncoding),
+                (("Base", "HttpAcceptLanguage"),
+                 CustardHTTPHeader FCGI.HttpAcceptLanguage),
+                (("Base", "HttpAuthorization"),
+                 CustardHTTPHeader FCGI.HttpAuthorization),
+                (("Base", "HttpExpect"),
+                 CustardHTTPHeader FCGI.HttpExpect),
+                (("Base", "HttpFrom"),
+                 CustardHTTPHeader FCGI.HttpFrom),
+                (("Base", "HttpHost"),
+                 CustardHTTPHeader FCGI.HttpHost),
+                (("Base", "HttpIfMatch"),
+                 CustardHTTPHeader FCGI.HttpIfMatch),
+                (("Base", "HttpIfModifiedSince"),
+                 CustardHTTPHeader FCGI.HttpIfModifiedSince),
+                (("Base", "HttpIfNoneMatch"),
+                 CustardHTTPHeader FCGI.HttpIfNoneMatch),
+                (("Base", "HttpIfRange"),
+                 CustardHTTPHeader FCGI.HttpIfRange),
+                (("Base", "HttpIfUnmodifiedSince"),
+                 CustardHTTPHeader FCGI.HttpIfUnmodifiedSince),
+                (("Base", "HttpMaxForwards"),
+                 CustardHTTPHeader FCGI.HttpMaxForwards),
+                (("Base", "HttpProxyAuthorization"),
+                 CustardHTTPHeader FCGI.HttpProxyAuthorization),
+                (("Base", "HttpRange"),
+                 CustardHTTPHeader FCGI.HttpRange),
+                (("Base", "HttpReferer"),
+                 CustardHTTPHeader FCGI.HttpReferer),
+                (("Base", "HttpTE"),
+                 CustardHTTPHeader FCGI.HttpTE),
+                (("Base", "HttpUserAgent"),
+                 CustardHTTPHeader FCGI.HttpUserAgent),
+                (("Base", "HttpAcceptRanges"),
+                 CustardHTTPHeader FCGI.HttpAcceptRanges),
+                (("Base", "HttpAge"),
+                 CustardHTTPHeader FCGI.HttpAge),
+                (("Base", "HttpETag"),
+                 CustardHTTPHeader FCGI.HttpETag),
+                (("Base", "HttpLocation"),
+                 CustardHTTPHeader FCGI.HttpLocation),
+                (("Base", "HttpProxyAuthenticate"),
+                 CustardHTTPHeader FCGI.HttpProxyAuthenticate),
+                (("Base", "HttpRetryAfter"),
+                 CustardHTTPHeader FCGI.HttpRetryAfter),
+                (("Base", "HttpServer"),
+                 CustardHTTPHeader FCGI.HttpServer),
+                (("Base", "HttpVary"),
+                 CustardHTTPHeader FCGI.HttpVary),
+                (("Base", "HttpWWWAuthenticate"),
+                 CustardHTTPHeader FCGI.HttpWWWAuthenticate),
+                (("Base", "HttpAllow"),
+                 CustardHTTPHeader FCGI.HttpAllow),
+                (("Base", "HttpContentEncoding"),
+                 CustardHTTPHeader FCGI.HttpContentEncoding),
+                (("Base", "HttpContentLanguage"),
+                 CustardHTTPHeader FCGI.HttpContentLanguage),
+                (("Base", "HttpContentLength"),
+                 CustardHTTPHeader FCGI.HttpContentLength),
+                (("Base", "HttpContentLocation"),
+                 CustardHTTPHeader FCGI.HttpContentLocation),
+                (("Base", "HttpContentMD5"),
+                 CustardHTTPHeader FCGI.HttpContentMD5),
+                (("Base", "HttpContentRange"),
+                 CustardHTTPHeader FCGI.HttpContentRange),
+                (("Base", "HttpContentType"),
+                 CustardHTTPHeader FCGI.HttpContentType),
+                (("Base", "HttpExpires"),
+                 CustardHTTPHeader FCGI.HttpExpires),
+                (("Base", "HttpLastModified"),
+                 CustardHTTPHeader FCGI.HttpLastModified),
+                (("Base", "HttpConnection"),
+                 CustardHTTPHeader FCGI.HttpConnection),
+                (("Base", "HttpCookie"),
+                 CustardHTTPHeader FCGI.HttpCookie),
+                (("Base", "HttpSetCookie"),
+                 CustardHTTPHeader FCGI.HttpSetCookie),
+                (("Base", "getRequestHeader"),
+                 CustardNativeLambda HTTP.cfGetRequestHeader),
+                (("Base", "cookieName"),
+                 CustardNativeLambda HTTP.cfCookieName),
+                (("Base", "cookieValue"),
+                 CustardNativeLambda HTTP.cfCookieValue),
+                (("Base", "cookieVersion"),
+                 CustardNativeLambda HTTP.cfCookieVersion),
+                (("Base", "cookiePath"),
+                 CustardNativeLambda HTTP.cfCookiePath),
+                (("Base", "cookieDomain"),
+                 CustardNativeLambda HTTP.cfCookieDomain),
+                (("Base", "cookieMaxAge"),
+                 CustardNativeLambda HTTP.cfCookieMaxAge),
+                (("Base", "cookieSecure"),
+                 CustardNativeLambda HTTP.cfCookieSecure),
+                (("Base", "cookieComment"),
+                 CustardNativeLambda HTTP.cfCookieComment),
+                (("Base", "getCookie"),
+                 CustardNativeLambda HTTP.cfGetCookie),
+                (("Base", "getAllCookies"),
+                 CustardNativeLambda HTTP.cfGetAllCookies),
+                (("Base", "getCookieValue"),
+                 CustardNativeLambda HTTP.cfGetCookieValue),
+                (("Base", "getDocumentRoot"),
+                 CustardNativeLambda HTTP.cfGetDocumentRoot),
+                (("Base", "getGatewayInterface"),
+                 CustardNativeLambda HTTP.cfGetGatewayInterface),
+                (("Base", "getPathInfo"),
+                 CustardNativeLambda HTTP.cfGetPathInfo),
+                (("Base", "getPathTranslated"),
+                 CustardNativeLambda HTTP.cfGetPathTranslated),
+                (("Base", "getQueryString"),
+                 CustardNativeLambda HTTP.cfGetQueryString),
+                (("Base", "getRedirectStatus"),
+                 CustardNativeLambda HTTP.cfGetRedirectStatus),
+                (("Base", "getRedirectURI"),
+                 CustardNativeLambda HTTP.cfGetRedirectURI),
+                (("Base", "getRemoteAddress"),
+                 CustardNativeLambda HTTP.cfGetRemoteAddress),
+                (("Base", "getRemotePort"),
+                 CustardNativeLambda HTTP.cfGetRemotePort),
+                (("Base", "getRemoteHost"),
+                 CustardNativeLambda HTTP.cfGetRemoteHost),
+                (("Base", "getRemoteIdent"),
+                 CustardNativeLambda HTTP.cfGetRemoteIdent),
+                (("Base", "getRemoteUser"),
+                 CustardNativeLambda HTTP.cfGetRemoteUser),
+                (("Base", "getRequestMethod"),
+                 CustardNativeLambda HTTP.cfGetRequestMethod),
+                (("Base", "getRequestURI"),
+                 CustardNativeLambda HTTP.cfGetRequestURI),
+                (("Base", "getScriptFilename"),
+                 CustardNativeLambda HTTP.cfGetScriptFilename),
+                (("Base", "getScriptName"),
+                 CustardNativeLambda HTTP.cfGetScriptName),
+                (("Base", "getServerAddress"),
+                 CustardNativeLambda HTTP.cfGetServerAddress),
+                (("Base", "getServerName"),
+                 CustardNativeLambda HTTP.cfGetServerName),
+                (("Base", "getServerPort"),
+                 CustardNativeLambda HTTP.cfGetServerPort),
+                (("Base", "getServerProtocol"),
+                 CustardNativeLambda HTTP.cfGetServerProtocol),
+                (("Base", "getServerSoftware"),
+                 CustardNativeLambda HTTP.cfGetServerSoftware),
+                (("Base", "getAuthenticationType"),
+                 CustardNativeLambda HTTP.cfGetAuthenticationType),
+                (("Base", "getContentLength"),
+                 CustardNativeLambda HTTP.cfGetContentLength),
+                (("Base", "getContentType"),
+                 CustardNativeLambda HTTP.cfGetContentType),
+                (("Base", "setResponseStatus"),
+                 CustardNativeLambda HTTP.cfSetResponseStatus),
+                (("Base", "getResponseStatus"),
+                 CustardNativeLambda HTTP.cfGetResponseStatus),
+                (("Base", "setResponseHeader"),
+                 CustardNativeLambda HTTP.cfSetResponseHeader),
+                (("Base", "unsetResponseHeader"),
+                 CustardNativeLambda HTTP.cfUnsetResponseHeader),
+                (("Base", "getResponseHeader"),
+                 CustardNativeLambda HTTP.cfGetResponseHeader),
+                (("Base", "setCookie"),
+                 CustardNativeLambda HTTP.cfSetCookie),
+                (("Base", "unsetCookie"),
+                 CustardNativeLambda HTTP.cfUnsetCookie),
+                (("Base", "makeSimpleCookie"),
+                 CustardNativeLambda HTTP.cfMakeSimpleCookie),
+                (("Base", "makeCookie"),
+                 CustardNativeLambda HTTP.cfMakeCookie),
+                (("Base", "permanentRedirect"),
+                 CustardNativeLambda HTTP.cfPermanentRedirect),
+                (("Base", "seeOtherRedirect"),
+                 CustardNativeLambda HTTP.cfSeeOtherRedirect),
+                (("Base", "sendResponseHeaders"),
+                 CustardNativeLambda HTTP.cfSendResponseHeaders),
+                (("Base", "responseHeadersSent"),
+                 CustardNativeLambda HTTP.cfResponseHeadersSent),
+                (("Base", "put"),
+                 CustardNativeLambda HTTP.cfPut),
+                (("Base", "putString"),
+                 CustardNativeLambda HTTP.cfPutString),
+                (("Base", "closeOutput"),
+                 CustardNativeLambda HTTP.cfCloseOutput),
+                
                 -- Forms
                 (("Base", "formInput"),
                  CustardNativeLambda Forms.cfFormInput),
@@ -764,6 +968,8 @@ builtinBindings = Map.fromList
                 -- Captchas
                 (("Base", "generateCaptcha"),
                  CustardNativeLambda Captchas.cfGenerateCaptcha),
+                (("Base", "lookupCaptcha"),
+                 CustardNativeLambda Captchas.cfLookupCaptcha),
                 (("Base", "checkCaptcha"),
                  CustardNativeLambda Captchas.cfCheckCaptcha),
                 (("Base", "expireOldCaptchas"),

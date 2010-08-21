@@ -310,10 +310,13 @@ readString input
 
 readSymbol :: String -> (Maybe String, String, String)
 readSymbol input
-    = let (fullName, rest) = span (\c -> (isAlpha c) || (c == '.')) input
-          (lastComponentReversed, _) = span isAlpha (reverse fullName)
+    = let (fullName, rest)
+            = span (\c -> (isAlpha c) || (isDigit c) || (c == '.')) input
+          (lastComponentReversed, _)
+            = span (\c -> (isAlpha c) || (isDigit c)) (reverse fullName)
           lastComponent = reverse lastComponentReversed
-          maybeOtherComponents = if (length fullName > (length lastComponent + 1))
+          maybeOtherComponents = if (length fullName
+                                     > (length lastComponent + 1))
                                    then Just $ take (length fullName
                                                      - length lastComponent
                                                      - 1) fullName

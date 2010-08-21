@@ -7,7 +7,12 @@ module Network.FruitTart.Custard.Functions.Util
    valueToString,
    valueToListOfStrings,
    valueToListOfMaps,
+   valueToMaybeString,
+   valueToMaybeInteger,
    valueToMap,
+   valueToByteString,
+   valueToHTTPHeader,
+   valueToHTTPCookie,
    typecheckList,
    errorNotAList,
    errorNotAListOfBooleans,
@@ -32,6 +37,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Prelude hiding (catch)
+
+import qualified Network.FastCGI as FCGI
 
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Types
@@ -75,10 +82,42 @@ valueToListOfMaps (CustardList maps@(CustardMap _ : _))
 valueToListOfMaps value = error $ "Value is not a List of Maps."
 
 
+valueToMaybeString :: CustardValue -> FruitTart (Maybe String)
+valueToMaybeString (CustardMaybe Nothing) = return Nothing
+valueToMaybeString (CustardMaybe (Just (CustardString string)))
+  = return $ Just string
+valueToMaybeString value = error "Value is not a Maybe containing a String."
+
+
+valueToMaybeInteger :: CustardValue -> FruitTart (Maybe Int64)
+valueToMaybeInteger (CustardMaybe Nothing) = return Nothing
+valueToMaybeInteger (CustardMaybe (Just (CustardInteger integer)))
+  = return $ Just integer
+valueToMaybeInteger value = error "Value is not a Maybe containing an Integer."
+
+
 valueToMap :: CustardValue
            -> FruitTart (Map (String, String) CustardValue)
 valueToMap (CustardMap theMap) = return theMap
 valueToMap value = error $ "Value is not a Map."
+
+
+valueToByteString :: CustardValue
+                  -> FruitTart ByteString
+valueToByteString (CustardData byteString) = return byteString
+valueToByteString value = error $ "Value is not Data."
+
+
+valueToHTTPHeader :: CustardValue
+                  -> FruitTart FCGI.Header
+valueToHTTPHeader (CustardHTTPHeader header) = return header
+valueToHTTPHeader value = error $ "Value is not an HTTPHeader."
+
+
+valueToHTTPCookie :: CustardValue
+                 -> FruitTart FCGI.Cookie
+valueToHTTPCookie (CustardHTTPCookie cookie) = return cookie
+valueToHTTPCookie value = error $ "Value is not an HTTPCookie."
 
 
 typecheckList :: [CustardValue] -> FruitTart ()

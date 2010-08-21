@@ -1,9 +1,16 @@
-module Network.FruitTart.Custard.Functions.Captchas where
+module Network.FruitTart.Custard.Functions.Captchas (
+                                                     cfGenerateCaptcha,
+                                                     cfLookupCaptcha,
+                                                     cfCheckCaptcha,
+                                                     cfExpireOldCaptchas
+                                                    )
+  where
 
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
-import Data.ByteString hiding (map, concat, index)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.Char
 import Data.Int
 import Data.List
@@ -34,6 +41,22 @@ cfGenerateCaptcha context parameters = do
   captchaCache' <- return $ Map.insert timestamp (string, byteString) captchaCache
   liftIO $ putMVar captchaCacheMVar captchaCache'
   return $ CustardInteger timestamp
+
+
+cfLookupCaptcha :: CustardContext
+                -> [CustardValue]
+                -> FruitTart CustardValue
+cfLookupCaptcha context parameters = do
+  requireControllerContext context "lookupCaptcha"
+  requireNParameters parameters 1 "checkCaptcha"
+  timestamp <- valueToInteger $ head parameters
+  expireOldCaptchas
+  captchaCacheMVar <- getCaptchaCacheMVar
+  captchaCache <- liftIO $ readMVar captchaCacheMVar
+  captcha <- return $ Map.lookup timestamp captchaCache
+  return $ CustardMaybe $ case captcha of
+    Nothing -> Nothing
+    Just (_, bytestring) -> Just $ CustardData bytestring
 
 
 cfCheckCaptcha :: CustardContext

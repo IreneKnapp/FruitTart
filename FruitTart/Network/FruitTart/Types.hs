@@ -28,6 +28,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 
+import Network.Socket.Internal (HostAddress)
+
 import Database.SQLite3
 import Network.FastCGI
 
@@ -96,15 +98,20 @@ data CustardValue = CustardNull
                   | CustardCharacter Char
                   | CustardString String
                   | CustardList [CustardValue]
+                  | CustardTuple [CustardValue]
                   | CustardMaybe (Maybe CustardValue)
                   | CustardOrdering Ordering
                   | CustardMap (Map (String, String) CustardValue)
+                  | CustardData ByteString
                   | CustardLambda [CustardParameter]
                                   (Map (String, String) CustardValue)
                                   CustardExpression
                   | CustardNativeLambda (CustardContext
                                          -> [CustardValue]
                                          -> FruitTart CustardValue)
+                  | CustardHostAddress HostAddress
+                  | CustardHTTPHeader Header
+                  | CustardHTTPCookie Cookie
 
 instance Show CustardValue where
   show CustardNull = "Null"

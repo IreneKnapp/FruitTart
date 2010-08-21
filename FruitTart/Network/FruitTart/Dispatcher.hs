@@ -36,6 +36,7 @@ processRequest  = do
                                                   "Base"
                                                   "error500"
                                                   []
+                           fCloseOutput
                            return ())
                          (\e -> do
                            return (e :: SomeException)
@@ -48,7 +49,8 @@ processRequest  = do
                                      ++ "<h1>500 Internal Server Error</h1><p>"
                                      ++ "FruitTart encountered an error while "
                                      ++ "processing this request.  The logfile "
-                                     ++ "has more details.</p></body></html>"))
+                                     ++ "has more details.</p></body></html>"
+                           fCloseOutput))
 
 
 processRequest' :: FruitTart ()
@@ -74,6 +76,7 @@ processRequest' = do
                                  "Base"
                                  "errorControllerUndefined"
                                  [CustardString controllerName]
+          fCloseOutput
           return ()
         Just controllerModuleName
           -> do
@@ -88,6 +91,7 @@ processRequest' = do
                                       [CustardString controllerName,
                                        CustardString actionName,
                                        CustardString method]
+               fCloseOutput
                return ()
              Just (actionID, functionName) -> do
                (mandatoryParameterTypes,
@@ -106,15 +110,16 @@ processRequest' = do
                                            "Base"
                                            "errorActionParameters"
                                            [CustardString controllerName,
-                                            CustardString actionName,
-                                            CustardString method]
+                                            CustardString actionName]
+                    fCloseOutput
                     return ()
                  Just parameters -> do
                    applyFunctionGivenName ControllerContext
                                           formInput
-                                          controllerName
+                                          controllerModuleName
                                           functionName
                                           parameters
+                   fCloseOutput
                    return ()
   endSession
 
