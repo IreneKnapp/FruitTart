@@ -4,7 +4,6 @@ module Network.FruitTart.Custard.Functions.General (
                                                     cfIsNothing,
                                                     cfIsJust,
                                                     cfFromJust,
-                                                    cfStringWordCount,
                                                     cfCompareIntegers,
                                                     cfShowInteger,
                                                     cfShowBool,
@@ -87,20 +86,6 @@ cfFromJust context parameters = do
                  -> error $ "Parameter is nothing in fromJust()."
              CustardMaybe (Just result) -> result
              _ -> error $ "Parameter is not a Maybe in fromJust()."
-
-
-cfStringWordCount :: CustardContext
-                  -> [CustardValue]
-                  -> FruitTart CustardValue
-cfStringWordCount context parameters = do
-  requireNParameters parameters 1 "stringWordCount"
-  string <- valueToString $ head parameters
-  let wordCount "" = 0
-      wordCount string = case elemIndex ' ' string of
-                           Nothing -> 1
-                           Just index -> let (_, rest) = splitAt index string
-                                         in 1 + wordCount (drop 1 rest)
-  return $ CustardInteger $ fromIntegral $ wordCount string
 
 
 cfCompareIntegers :: CustardContext

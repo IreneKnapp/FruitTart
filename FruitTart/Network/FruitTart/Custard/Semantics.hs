@@ -45,7 +45,8 @@ getTemplateWithParameters moduleName
                   custardContextType = contextType,
                   custardContextFormInputMap = formInputMap,
                   custardContextParameters = parameters,
-                  custardContextBindings = Map.empty
+                  custardContextLexicalBindings = Map.empty,
+                  custardContextGlobalBindings = Map.empty
                 }
   getTemplateWithContext moduleName templateName context
 
@@ -93,7 +94,8 @@ eval moduleName body = do
                   custardContextType = TemplateContext,
                   custardContextFormInputMap = Map.empty,
                   custardContextParameters = [],
-                  custardContextBindings = Map.empty
+                  custardContextLexicalBindings = Map.empty,
+                  custardContextGlobalBindings = Map.empty
                 }
   FruitTartState { database = database } <- get
   expression <- liftIO $ readExpression database moduleName body
@@ -255,7 +257,10 @@ evalExpression context expression = do
                       return (context, values ++ [value]))
                    (context, [])
                    $ drop 1 subexpressions
-        let subcontext = context { custardContextParameters = subparameters }
+        let subcontext = context {
+                           custardContextParameters = subparameters,
+                           custardContextType = TemplateContext
+                         }
         result <- getTemplateWithContext moduleName templateName subcontext
         return (context, CustardString result)
       CustardIterateExpression subexpressions -> do
@@ -275,11 +280,15 @@ evalExpression context expression = do
                    (context, [])
                    $ drop 2 subexpressions
         results <- mapM (\row -> do
-                           let CustardContext { custardContextBindings
+                           let CustardContext { custardContextLexicalBindings
                                                   = oldBindings } = context
                                newBindings = Map.union row oldBindings
-                               subcontext = context { custardContextBindings
-                                                        = newBindings }
+                               subcontext
+                                 = context {
+                                     custardContextLexicalBindings
+                                       = newBindings,
+                                     custardContextType = TemplateContext
+                                   }
                            getTemplateWithContext moduleName
                                                   templateName
                                                   subcontext)
@@ -309,10 +318,15 @@ evalExpression context expression = do
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "Parameter to bound() is not a symbol."
-        let CustardContext { custardContextBindings = bindings } = context
+        let CustardContext {
+                      custardContextLexicalBindings = lexicalBindings,
+                      custardContextGlobalBindings = globalBindings
+                    } = context
         return (context,
-                case Map.lookup name bindings of
-                  Nothing -> CustardBool False
+                case Map.lookup name lexicalBindings of
+                  Nothing -> case Map.lookup name globalBindings of
+                               Nothing -> CustardBool False
+                               Just _ -> CustardBool True
                   Just _ -> CustardBool True)
       CustardFunctionCall functionExpression actualParameterExpressions -> do
         (context, actualParameters)
@@ -324,7 +338,8 @@ evalExpression context expression = do
         (context, function) <- evalExpression context functionExpression
         applyFunctionGivenContextAndValue context function actualParameters
       CustardLambdaExpression formalParameters body -> do
-        let CustardContext { custardContextBindings = bindings } = context
+        let CustardContext { custardContextLexicalBindings = bindings }
+              = context
         return (context, CustardLambda formalParameters bindings body)
       CustardVariable name -> do
         findSymbol context name
@@ -337,10 +352,11 @@ evalExpression context expression = do
                  CustardVariable result -> return result
                  _ -> error $ "Parameter to bind() is not a symbol."
         (context, value) <- evalExpression context $ subexpressions !! 1
-        let CustardContext { custardContextBindings = oldBindings } = context
+        let CustardContext { custardContextGlobalBindings = oldBindings }
+              = context
             newBindings = Map.union (Map.fromList [(name, value)])
                                     oldBindings
-            context' = context { custardContextBindings = newBindings }
+            context' = context { custardContextGlobalBindings = newBindings }
         return (context', CustardNull)
       CustardBindMapExpression subexpressions -> do
         if length subexpressions /= 1
@@ -348,9 +364,10 @@ evalExpression context expression = do
           else return ()
         (context, value) <- evalExpression context $ head subexpressions
         passedMap <- valueToMap value
-        let CustardContext { custardContextBindings = oldBindings } = context
+        let CustardContext { custardContextGlobalBindings = oldBindings }
+              = context
             newBindings = Map.union passedMap oldBindings
-            context' = context { custardContextBindings = newBindings }
+            context' = context { custardContextGlobalBindings = newBindings }
         return (context', CustardNull)
       CustardBindQuery1Expression subexpressions -> do
         if length subexpressions < 1
@@ -450,7 +467,11 @@ findSymbol :: CustardContext
            -> (String, String)
            -> FruitTart (CustardContext, CustardValue)
 findSymbol context name@(packageName, properName) = do
-  let CustardContext { custardContextBindings = bindings } = context
+  let CustardContext {
+          custardContextLexicalBindings = lexicalBindings,
+          custardContextGlobalBindings = globalBindings
+        } = context
+      bindings = Map.union lexicalBindings globalBindings
   case Map.lookup name bindings of
     Nothing -> case Map.lookup ("Base", properName) bindings of
                  Nothing -> do
@@ -458,13 +479,13 @@ findSymbol context name@(packageName, properName) = do
                    case maybeValue of
                      Just value -> do
                        let CustardContext {
-                                     custardContextBindings = oldBindings
+                                     custardContextGlobalBindings = oldBindings
                                    } = context
                            newBindings = Map.union
                                           (Map.fromList [(name, value)])
                                           oldBindings
                            context' = context {
-                                        custardContextBindings = newBindings
+                                        custardContextGlobalBindings = newBindings
                                       }
                        return (context', value)
                      Nothing -> error $ "Undefined variable "
@@ -489,7 +510,8 @@ applyFunctionGivenName contextType
                   custardContextType = contextType,
                   custardContextFormInputMap = formInputMap,
                   custardContextParameters = [],
-                  custardContextBindings = Map.empty
+                  custardContextLexicalBindings = Map.empty,
+                  custardContextGlobalBindings = Map.empty
                 }
   (context, function) <- findSymbol context (moduleName, functionName)
   applyFunctionGivenContextAndValue context function parameters
@@ -511,9 +533,13 @@ applyFunctionGivenContextAndValue context function actualParameters = do
                                                 formalParameters)
                                            actualParameters
           subbindings = Map.union newBindings capturedBindings
-          context' = context { custardContextBindings = subbindings }
-      (_, result) <- evalExpression context' body
-      return (context, result)
+          context' = context { custardContextLexicalBindings = subbindings }
+      (outputContext, result) <- evalExpression context' body
+      let CustardContext { custardContextGlobalBindings = outputBindings }
+            = outputContext
+          outputContext'
+            = context { custardContextGlobalBindings = outputBindings }
+      return (outputContext, result)
     CustardNativeLambda body -> do
       result <- body context actualParameters
       return (context, result)
@@ -553,9 +579,9 @@ bindQuery1 context (moduleName, queryName) inputs = do
   case rows of
     [] -> error "No results from query."
     (row:_) -> do
-      let CustardContext { custardContextBindings = oldBindings } = context
+      let CustardContext { custardContextGlobalBindings = oldBindings } = context
           newBindings = Map.union row oldBindings
-          context' = context { custardContextBindings = newBindings }
+          context' = context { custardContextGlobalBindings = newBindings }
       return context'
 
 
@@ -566,9 +592,9 @@ bindQueryN :: CustardContext
 bindQueryN context name inputs = do
   rows <- namedQuery name inputs
   let value = CustardList $ map CustardMap rows
-      CustardContext { custardContextBindings = oldBindings } = context
+      CustardContext { custardContextGlobalBindings = oldBindings } = context
       newBindings = Map.union (Map.fromList [(name, value)]) oldBindings
-      context' = context { custardContextBindings = newBindings }
+      context' = context { custardContextGlobalBindings = newBindings }
   return context'
 
 
@@ -748,8 +774,6 @@ builtinBindings = Map.fromList
                  CustardNativeLambda General.cfIsJust),
                 (("Base", "fromJust"),
                  CustardNativeLambda General.cfFromJust),
-                (("Base", "stringWordCount"),
-                 CustardNativeLambda General.cfStringWordCount),
                 (("Base", "compareIntegers"),
                  CustardNativeLambda General.cfCompareIntegers),
                 (("Base", "showInteger"),

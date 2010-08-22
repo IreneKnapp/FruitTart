@@ -178,7 +178,8 @@ data CustardContext = CustardContext {
     custardContextType :: CustardContextType,
     custardContextFormInputMap :: Map String String,
     custardContextParameters :: [CustardValue],
-    custardContextBindings :: Map (String, String) CustardValue
+    custardContextLexicalBindings :: Map (String, String) CustardValue,
+    custardContextGlobalBindings :: Map (String, String) CustardValue
   }
 
 data CustardContextType = ControllerContext | TemplateContext
