@@ -23,6 +23,7 @@ import Network.FruitTart.Custard.Functions.Util
 import qualified Network.FruitTart.Custard.Functions.General as General
 import qualified Network.FruitTart.Custard.Functions.HTTP as HTTP
 import qualified Network.FruitTart.Custard.Functions.Forms as Forms
+import qualified Network.FruitTart.Custard.Functions.Sessions as Sessions
 import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
 import qualified Network.FruitTart.Custard.Functions.Strings as Strings
@@ -987,6 +988,10 @@ builtinBindings = Map.fromList
                 -- Forms
                 (("Base", "formInput"),
                  CustardNativeLambda Forms.cfFormInput),
+                
+                -- Sessions
+                (("Base", "getSessionID"),
+                 CustardNativeLambda Sessions.cfGetSessionID),
                 
                 -- Captchas
                 (("Base", "generateCaptcha"),
