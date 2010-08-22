@@ -36,9 +36,13 @@ import Network.FruitTart.Util
         query               { TokenQuery }
         bound               { TokenBound }
         bind                { TokenBind }
-        bindmap             { TokenBindMap }
+        bindMap             { TokenBindMap }
         bindQuery1          { TokenBindQuery1 }
         bindQueryN          { TokenBindQueryN }
+        let                 { TokenLet }
+        letMap              { TokenLetMap }
+        letQuery1           { TokenLetQuery1 }
+        letQueryN           { TokenLetQueryN }
         '('                 { TokenLeftParen }
         ')'                 { TokenRightParen }
         '['                 { TokenLeftSquareBracket }
@@ -95,12 +99,20 @@ FunctionCallExpression
                       { CustardBoundExpression $3 }
                       | bind '(' ExpressionList ')'
                       { CustardBindExpression $3 }
-                      | bindmap '(' ExpressionList ')'
+                      | bindMap '(' ExpressionList ')'
                       { CustardBindMapExpression $3 }
                       | bindQuery1 '(' ExpressionList ')'
                       { CustardBindQuery1Expression $3 }
                       | bindQueryN '(' ExpressionList ')'
                       { CustardBindQueryNExpression $3 }
+                      | let '(' ExpressionList ')'
+                      { CustardLetExpression $3 }
+                      | letMap '(' ExpressionList ')'
+                      { CustardLetMapExpression $3 }
+                      | letQuery1 '(' ExpressionList ')'
+                      { CustardLetQuery1Expression $3 }
+                      | letQueryN '(' ExpressionList ')'
+                      { CustardLetQueryNExpression $3 }
 		      | PrimaryExpression
 		      { $1 }
 
@@ -280,9 +292,13 @@ lexer database defaultPackage all@(c:_)
                      | symbol == "query" -> return TokenQuery
                      | symbol == "bound" -> return TokenBound
                      | symbol == "bind" -> return TokenBind
-                     | symbol == "bindmap" -> return TokenBindMap
+                     | symbol == "bindMap" -> return TokenBindMap
                      | symbol == "bindQuery1" -> return TokenBindQuery1
                      | symbol == "bindQueryN" -> return TokenBindQueryN
+                     | symbol == "let" -> return TokenLet
+                     | symbol == "letMap" -> return TokenLetMap
+                     | symbol == "letQuery1" -> return TokenLetQuery1
+                     | symbol == "letQueryN" -> return TokenLetQueryN
                      | otherwise -> intern database defaultPackage symbol
       Just package -> intern database package symbol
     restTokens <- lexer database defaultPackage rest

@@ -362,7 +362,7 @@ evalExpression context expression = do
         return (context', CustardNull)
       CustardBindMapExpression subexpressions -> do
         if length subexpressions /= 1
-          then error $ "Invalid number of parameters to bindmap()."
+          then error $ "Invalid number of parameters to bindMap()."
           else return ()
         (context, value) <- evalExpression context $ head subexpressions
         passedMap <- valueToMap value
@@ -389,12 +389,12 @@ evalExpression context expression = do
         return (context, CustardNull)
       CustardBindQueryNExpression subexpressions -> do
         if length subexpressions < 1
-          then error $ "Invalid number of parameters to bindQuery1()."
+          then error $ "Invalid number of parameters to bindQueryN()."
           else return ()
         (moduleName, queryName)
             <- case head subexpressions of
                  CustardVariable result -> return result
-                 _ -> error $ "Parameter to bindQuery1() is not a symbol."
+                 _ -> error $ "Parameter to bindQueryN() is not a symbol."
         (context, inputs)
           <- foldM (\(context, values) subexpression -> do
                       (context, value) <- evalExpression context subexpression
@@ -402,6 +402,64 @@ evalExpression context expression = do
                    (context, [])
                    $ drop 1 subexpressions
         context <- bindQueryN context (moduleName, queryName) inputs
+        return (context, CustardNull)
+      CustardLetExpression subexpressions -> do
+        if length subexpressions /= 2
+          then error $ "Invalid number of parameters to let()."
+          else return ()
+        name
+            <- case head subexpressions of
+                 CustardVariable result -> return result
+                 _ -> error $ "Parameter to let() is not a symbol."
+        (context, value) <- evalExpression context $ subexpressions !! 1
+        let CustardContext { custardContextLexicalBindings = oldBindings }
+              = context
+            newBindings = Map.union (Map.fromList [(name, value)])
+                                    oldBindings
+            context' = context { custardContextLexicalBindings = newBindings }
+        return (context', CustardNull)
+      CustardLetMapExpression subexpressions -> do
+        if length subexpressions /= 1
+          then error $ "Invalid number of parameters to letMap()."
+          else return ()
+        (context, value) <- evalExpression context $ head subexpressions
+        passedMap <- valueToMap value
+        let CustardContext { custardContextLexicalBindings = oldBindings }
+              = context
+            newBindings = Map.union passedMap oldBindings
+            context' = context { custardContextLexicalBindings = newBindings }
+        return (context', CustardNull)
+      CustardLetQuery1Expression subexpressions -> do
+        if length subexpressions < 1
+          then error $ "Invalid number of parameters to letQuery1()."
+          else return ()
+        (moduleName, queryName)
+            <- case head subexpressions of
+                 CustardVariable result -> return result
+                 _ -> error $ "Parameter to letQuery1() is not a symbol."
+        (context, inputs)
+          <- foldM (\(context, values) subexpression -> do
+                      (context, value) <- evalExpression context subexpression
+                      return (context, values ++ [value]))
+                   (context, [])
+                   $ drop 1 subexpressions
+        context <- letQuery1 context (moduleName, queryName) inputs
+        return (context, CustardNull)
+      CustardLetQueryNExpression subexpressions -> do
+        if length subexpressions < 1
+          then error $ "Invalid number of parameters to letQueryN()."
+          else return ()
+        (moduleName, queryName)
+            <- case head subexpressions of
+                 CustardVariable result -> return result
+                 _ -> error $ "Parameter to letQueryN() is not a symbol."
+        (context, inputs)
+          <- foldM (\(context, values) subexpression -> do
+                      (context, value) <- evalExpression context subexpression
+                      return (context, values ++ [value]))
+                   (context, [])
+                   $ drop 1 subexpressions
+        context <- letQueryN context (moduleName, queryName) inputs
         return (context, CustardNull)
       CustardSequence expressionA expressionB -> do
         (context, _) <- evalExpression context expressionA
@@ -597,6 +655,34 @@ bindQueryN context name inputs = do
       CustardContext { custardContextGlobalBindings = oldBindings } = context
       newBindings = Map.union (Map.fromList [(name, value)]) oldBindings
       context' = context { custardContextGlobalBindings = newBindings }
+  return context'
+
+
+letQuery1 :: CustardContext
+          -> (String, String)
+          -> [CustardValue]
+          -> FruitTart CustardContext
+letQuery1 context (moduleName, queryName) inputs = do
+  rows <- namedQuery (moduleName, queryName) inputs
+  case rows of
+    [] -> error "No results from query."
+    (row:_) -> do
+      let CustardContext { custardContextLexicalBindings = oldBindings } = context
+          newBindings = Map.union row oldBindings
+          context' = context { custardContextLexicalBindings = newBindings }
+      return context'
+
+
+letQueryN :: CustardContext
+          -> (String, String)
+          -> [CustardValue]
+          -> FruitTart CustardContext
+letQueryN context name inputs = do
+  rows <- namedQuery name inputs
+  let value = CustardList $ map CustardMap rows
+      CustardContext { custardContextLexicalBindings = oldBindings } = context
+      newBindings = Map.union (Map.fromList [(name, value)]) oldBindings
+      context' = context { custardContextLexicalBindings = newBindings }
   return context'
 
 

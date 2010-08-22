@@ -172,6 +172,10 @@ data CustardExpression = CustardLiteral CustardValue
                         | CustardBindMapExpression [CustardExpression]
                         | CustardBindQuery1Expression [CustardExpression]
                         | CustardBindQueryNExpression [CustardExpression]
+                        | CustardLetExpression [CustardExpression]
+                        | CustardLetMapExpression [CustardExpression]
+                        | CustardLetQuery1Expression [CustardExpression]
+                        | CustardLetQueryNExpression [CustardExpression]
                         | CustardSequence CustardExpression CustardExpression
 
 data CustardContext = CustardContext {
@@ -196,6 +200,10 @@ data CustardToken = TokenValue CustardValue
                    | TokenBindMap
                    | TokenBindQuery1
                    | TokenBindQueryN
+                   | TokenLet
+                   | TokenLetMap
+                   | TokenLetQuery1
+                   | TokenLetQueryN
                    | TokenLeftParen
                    | TokenRightParen
                    | TokenLeftSquareBracket
