@@ -67,7 +67,7 @@ getTemplateWithContext moduleName templateName context = do
     else return ()
   foldM (\(context, accumulator) ([SQLText kind, SQLText body], index) -> do
           case kind of
-            "content" -> return (context, body)
+            "content" -> return (context, accumulator ++ body)
             "expression" ->
                 fCatch (do
                          FruitTartState { database = database } <- get
