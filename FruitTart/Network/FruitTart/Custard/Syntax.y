@@ -6,8 +6,9 @@ module Network.FruitTart.Custard.Syntax (
                                         )
     where
 
+import Control.Monad
 import Data.Char
-import Data.Foldable
+import Data.Foldable hiding (elem)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -334,36 +335,42 @@ symbolTokenName (TokenSymbol _ result) = result
 
 intern :: Database -> String -> String -> IO CustardToken
 intern database moduleName properName = do
-  importedModules
-    <- earlyQuery database
-                  (  "SELECT imported_module FROM module_imports "
-                  ++ "WHERE importing_module = ?")
-                  [SQLText moduleName]
-  maybeDefiningModule
-    <- foldlM (\maybeDefiningModule (importedModule, allowInternal) -> do
-                 case maybeDefiningModule of
-                   Just _ -> return maybeDefiningModule
-                   Nothing -> do
-                     foundHere <- getSymbolExists database
-                                                  (importedModule, properName)
-                     visible
-                       <- if foundHere
-                            then if allowInternal
-                              then return True
-                              else getSymbolExported database
-                                                     (importedModule,
-                                                      properName)
-                            else return False
-                     return $ if visible
-                                then Just importedModule
-                                else Nothing)
-              Nothing
-              $ (moduleName, True)
-                : map (\[SQLText importedModule] -> (importedModule, False))
-                      importedModules
+  let visitModule visitedModules moduleName allowInternal = do
+        if elem moduleName visitedModules
+          then return (Nothing, visitedModules)
+          else do
+            visitedModules <- return $ moduleName : visitedModules
+            foundHere <- getSymbolExists database (moduleName, properName)
+            if foundHere && allowInternal
+              then return (Just moduleName, visitedModules)
+              else do
+                symbolExported <- getSymbolExported database
+                                                    (moduleName, properName)
+                if foundHere && symbolExported
+                  then return (Just moduleName, visitedModules)
+                  else do
+                    importedModules <- getImportedModules database moduleName
+                    foldM (\(maybeResult, visitedModules) importedModule -> do
+                             case maybeResult of
+                               Just _ -> return (maybeResult, visitedModules)
+                               Nothing -> visitModule visitedModules
+                                                      importedModule
+                                                      False)
+                          (Nothing, visitedModules)
+                          importedModules
+  (maybeDefiningModule, _) <- visitModule [] moduleName True
   case maybeDefiningModule of
     Just definingModule -> return $ TokenSymbol definingModule properName
     Nothing -> return $ TokenSymbol moduleName properName
+
+
+getImportedModules :: Database -> String -> IO [String]
+getImportedModules database importingModule = do
+  rows <- earlyQuery database
+                     (  "SELECT imported_module FROM module_imports "
+                     ++ "WHERE importing_module = ?")
+                     [SQLText importingModule]
+  return $ map (\[SQLText importedModule] -> importedModule) rows
 
 
 getSymbolExists :: Database -> (String, String) -> IO Bool

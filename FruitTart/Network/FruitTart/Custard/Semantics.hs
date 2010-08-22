@@ -308,8 +308,9 @@ evalExpression context expression = do
             <- case head subexpressions of
                  CustardVariable result -> return result
                  _ -> error $ "First parameter to query() is not a symbol."
-        namedQuery (moduleName, queryName) parameters
-        return (context, CustardNull)
+        rows <- namedQuery (moduleName, queryName) parameters
+        let value = CustardList $ map CustardMap rows
+        return (context, value)
       CustardBoundExpression subexpressions -> do
         if length subexpressions /= 1
           then error $ "Invalid number of parameters to bound()."
@@ -748,9 +749,7 @@ bindNamedQueryMultipleRows moduleName queryName queryValues = do
 
 builtinBindings :: Map (String, String) CustardValue
 builtinBindings = Map.fromList
-               [(("Base", "parameters"),
-                 CustardList []),
-                (("Base", "Null"),
+               [(("Base", "Null"),
                  CustardNull),
                 (("Base", "True"),
                  CustardBool True),
