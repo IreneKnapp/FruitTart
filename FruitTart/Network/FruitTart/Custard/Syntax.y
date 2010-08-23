@@ -2,7 +2,8 @@
 module Network.FruitTart.Custard.Syntax (
                                          readExpression,
                                          parser,
-                                         lexer
+                                         lexer,
+                                         intern
                                         )
     where
 

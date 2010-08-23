@@ -632,9 +632,14 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
                                    ++ "WHERE function = ? "
                                    ++ "ORDER BY item")
                                   [SQLInteger functionID]
-          let parameters = map (\[SQLText parameterName]
-                                 -> CustardParameter (moduleName, parameterName))
-                               parameterItems
+          FruitTartState { database = database } <- get
+          parameters <- mapM (\[SQLText parameterName] -> do
+                               TokenSymbol moduleName parameterName
+                                 <- liftIO
+                                    $ intern database moduleName parameterName
+                               return $ CustardParameter
+                                         (moduleName, parameterName))
+                             parameterItems
           return $ Just $ CustardLambda parameters Map.empty compiledBody
         _ -> return Nothing
 
