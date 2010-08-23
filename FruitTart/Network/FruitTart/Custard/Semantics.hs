@@ -99,7 +99,10 @@ eval moduleName body = do
                   custardContextGlobalBindings = Map.empty
                 }
   FruitTartState { database = database } <- get
-  expression <- liftIO $ readExpression database moduleName body
+  expression <- fCatch (liftIO $ readExpression database moduleName body)
+                       (\e -> error $ "While evaluating expression "
+                                      ++ (show body)
+                                      ++ ": " ++ (show (e :: SomeException)))
   (_, result) <- evalExpression context expression
   return result
 
@@ -617,7 +620,13 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
       case found of
         [[SQLInteger functionID, SQLText functionBody]] -> do
           FruitTartState { database = database } <- get
-          compiledBody <- liftIO $ readExpression database moduleName functionBody
+          compiledBody
+            <- fCatch (liftIO $ readExpression database moduleName functionBody)
+                      (\e -> error $ "While reading expression "
+                                     ++ (show functionBody)
+                                     ++ " from body of function "
+                                     ++ moduleName ++ "." ++ functionName
+                                     ++ ": " ++ (show (e :: SomeException)))
           parameterItems <- query ("SELECT name "
                                    ++ "FROM function_parameters "
                                    ++ "WHERE function = ? "

@@ -23,6 +23,7 @@ import Network.FruitTart.Util
 
 %name parser Expression
 %tokentype { CustardToken }
+%monad { IO }
 %error { parseError }
 
 %token
@@ -194,10 +195,10 @@ LambdaList1	      : LambdaList1 ',' symbol
 readExpression :: Database -> String -> String -> IO CustardExpression
 readExpression database defaultPackage input = do
   tokens <- lexer database defaultPackage input
-  return $ parser tokens
+  parser tokens
 
 
-parseError :: [CustardToken] -> a
+parseError :: [CustardToken] -> IO a
 parseError _ = error $ "Expression-parsing error."
 
 
