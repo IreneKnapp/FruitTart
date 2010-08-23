@@ -35,9 +35,7 @@ Executable FruitTart
                  Network.FruitTart.Custard.Functions.Sessions,
                  Network.FruitTart.Custard.Functions.Captchas,
                  Network.FruitTart.Custard.Functions.Lists,
-                 Network.FruitTart.Custard.Functions.Strings,
-                 Network.FruitTart.Base.View.Login,
-                 Network.FruitTart.Base.View.PopupMessage
+                 Network.FruitTart.Custard.Functions.Strings
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,
