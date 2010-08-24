@@ -93,6 +93,7 @@ data CustardValueType = CBool
 data CustardParameter = CustardParameter (String, String)
 
 data CustardValue = CustardNull
+                  | CustardSymbol String String
                   | CustardBool Bool
                   | CustardInteger Int64
                   | CustardCharacter Char
@@ -115,6 +116,8 @@ data CustardValue = CustardNull
 
 instance Show CustardValue where
   show CustardNull = "Null"
+  show (CustardSymbol moduleName properName)
+    = "quote(" ++ moduleName ++ "." ++ properName ++ ")"
   show (CustardBool True) = "True"
   show (CustardBool False) = "False"
   show (CustardInteger value) = show value
@@ -157,6 +160,7 @@ data CustardExpression = CustardLiteral CustardValue
                                                    CustardExpression
                         | CustardOperationDivide CustardExpression
                                                  CustardExpression
+                        | CustardQuoteExpression [CustardExpression]
                         | CustardIfExpression [CustardExpression]
                         | CustardCaseExpression [CustardExpression]
                         | CustardCallExpression [CustardExpression]
@@ -190,6 +194,7 @@ data CustardContextType = ControllerContext | TemplateContext
 
 data CustardToken = TokenValue CustardValue
                    | TokenSymbol String String
+                   | TokenQuote
                    | TokenIf
                    | TokenCase
                    | TokenCall

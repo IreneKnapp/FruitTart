@@ -31,6 +31,7 @@ import Network.FruitTart.Util
         string              { TokenValue $$ }
         integer             { TokenValue $$ }
         symbol              { TokenSymbol _ _ }
+        quote               { TokenQuote }
         if                  { TokenIf }
         case                { TokenCase }
         call                { TokenCall }
@@ -87,6 +88,8 @@ PrimaryExpression     : string
 FunctionCallExpression
                       : FunctionCallExpression '(' ExpressionList ')'
                       { CustardFunctionCall $1 $3 }
+                      | quote '(' ExpressionList ')'
+                      { CustardQuoteExpression $3 }
                       | if '(' ExpressionList ')'
                       { CustardIfExpression $3 }
                       | case '(' ExpressionList ')'
@@ -287,7 +290,8 @@ lexer database defaultPackage all@(c:_)
     let (maybePackage, symbol, rest) = readSymbol all
     token <- case maybePackage of
       Nothing -> case symbol of
-                   _ | symbol == "if" -> return TokenIf
+                   _ | symbol == "quote" -> return TokenQuote
+                     | symbol == "if" -> return TokenIf
                      | symbol == "case" -> return TokenCase
                      | symbol == "call" -> return TokenCall
                      | symbol == "iterate" -> return TokenIterate
@@ -368,14 +372,20 @@ intern database moduleName properName = do
                   then return (Just moduleName, visitedModules)
                   else do
                     importedModules <- getImportedModules database moduleName
-                    foldM (\(maybeResult, visitedModules) importedModule -> do
-                             case maybeResult of
-                               Just _ -> return (maybeResult, visitedModules)
-                               Nothing -> visitModule visitedModules
-                                                      importedModule
-                                                      False)
-                          (Nothing, visitedModules)
-                          importedModules
+                    (maybeResult, visitedModules)
+                      <- foldM (\(maybeResult, visitedModules) importedModule -> do
+                                  case maybeResult of
+                                    Just _ -> return (maybeResult, visitedModules)
+                                    Nothing -> visitModule visitedModules
+                                                           importedModule
+                                                           False)
+                               (Nothing, visitedModules)
+                               importedModules
+                    case maybeResult of
+                      Just _ -> return (maybeResult, visitedModules)
+                      Nothing -> if symbolExported
+                                   then return (Just moduleName, visitedModules)
+                                   else return (Nothing, visitedModules)
   (maybeDefiningModule, _) <- visitModule [] moduleName True
   case maybeDefiningModule of
     Just definingModule -> return $ TokenSymbol definingModule properName

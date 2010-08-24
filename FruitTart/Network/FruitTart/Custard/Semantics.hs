@@ -214,6 +214,15 @@ evalExpression context expression = do
         (context, bValue) <- evalExpression context bExpression
         result <- custardArithmetic aValue bValue div
         return (context, result)
+      CustardQuoteExpression subexpressions -> do
+        if length subexpressions /= 1
+           then error $ "Invalid number of parameters to quote()."
+           else return ()
+        (moduleName, properName)
+            <- case head subexpressions of
+                 CustardVariable result -> return result
+                 _ -> error $ "Parameter to quote() is not a symbol."
+        return (context, CustardSymbol moduleName properName)
       CustardIfExpression subexpressions -> do
         if length subexpressions /= 3
           then error $ "Invalid number of parameters to if()."
@@ -536,25 +545,22 @@ findSymbol context name@(packageName, properName) = do
         } = context
       bindings = Map.union lexicalBindings globalBindings
   case Map.lookup name bindings of
-    Nothing -> case Map.lookup ("Base", properName) bindings of
-                 Nothing -> do
-                   maybeValue <- getTopLevelBinding name
-                   case maybeValue of
-                     Just value -> do
-                       let CustardContext {
-                                     custardContextGlobalBindings = oldBindings
-                                   } = context
-                           newBindings = Map.union
-                                          (Map.fromList [(name, value)])
-                                          oldBindings
-                           context' = context {
-                                        custardContextGlobalBindings = newBindings
-                                      }
-                       return (context', value)
-                     Nothing -> error $ "Undefined variable "
-                                        ++ packageName ++ "."
-                                        ++ properName ++ "."
-                 Just value -> return (context, value)
+    Nothing -> do
+      maybeValue <- getTopLevelBinding name
+      case maybeValue of
+        Just value -> do
+          let CustardContext {
+                        custardContextGlobalBindings = oldBindings
+                      } = context
+              newBindings = Map.union (Map.fromList [(name, value)])
+                                      oldBindings
+              context' = context {
+                                  custardContextGlobalBindings = newBindings
+                                }
+          return (context', value)
+        Nothing -> error $ "Undefined variable "
+                           ++ packageName ++ "."
+                           ++ properName ++ "."
     Just value -> return (context, value)
 
 
@@ -589,7 +595,8 @@ applyFunctionGivenContextAndValue context function actualParameters = do
     CustardLambda formalParameters capturedBindings body -> do
       if length formalParameters /= length actualParameters
         then error $ "Expected " ++ (show $ length formalParameters)
-                   ++ " parameters, but got " ++ (show $ length actualParameters)
+                   ++ " parameters, but got "
+                   ++ (show $ length actualParameters)
                    ++ "."
         else return ()
       let newBindings = Map.fromList $ zip (map (\(CustardParameter key) -> key)
