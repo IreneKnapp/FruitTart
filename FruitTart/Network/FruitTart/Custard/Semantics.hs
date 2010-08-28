@@ -613,14 +613,25 @@ applyFunctionGivenContextAndValue context function actualParameters = do
                                            actualParameters
           subbindings = Map.union newBindings capturedBindings
           context' = context { custardContextLexicalBindings = subbindings }
-      (outputContext, result) <- evalExpression context' body
+      (outputContext, result)
+        <- fCatch (evalExpression context' body)
+                  (\e -> do
+                     let displayName = case maybeVariableName of
+                                         Nothing -> "anonymous function"
+                                         Just (moduleName, properName)
+                                           -> moduleName ++ "." ++ properName
+                     error $ "In " ++ displayName ++ ": "
+                             ++ (show (e :: SomeException)))
       let CustardContext { custardContextGlobalBindings = outputBindings }
             = outputContext
           outputContext'
             = context { custardContextGlobalBindings = outputBindings }
       return (outputContext, result)
     CustardNativeLambda (moduleName, properName) body -> do
-      result <- body context actualParameters
+      result <- fCatch (body context actualParameters)
+                       (\e -> error $ "In builtin "
+                                      ++ moduleName ++ "." ++ properName
+                                      ++ ": " ++ (show (e :: SomeException)))
       return (context, result)
     _ -> do
       error $ "Call to something not a function."

@@ -403,8 +403,8 @@ getImportedModules database importingModule = do
 
 getSymbolExists :: Database -> (String, String) -> IO Bool
 getSymbolExists database variableName = do
-  let builtinExists' = builtinExists variableName
-  if builtinExists'
+  let builtinExists = computeBuiltinExists variableName
+  if builtinExists
     then return True
     else do
       functionExists <- getFunctionExists database variableName
@@ -433,8 +433,8 @@ getSymbolExported database (moduleName, properName) = do
              _ -> True
 
 
-builtinExists :: (String, String) -> Bool
-builtinExists variableName =
+computeBuiltinExists :: (String, String) -> Bool
+computeBuiltinExists variableName =
   case Map.lookup variableName builtinBindings of
     Just _ -> True
     Nothing -> False
