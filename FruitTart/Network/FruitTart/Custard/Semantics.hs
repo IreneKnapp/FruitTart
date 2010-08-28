@@ -624,9 +624,8 @@ applyFunctionGivenContextAndValue context function actualParameters = do
                              ++ (show (e :: SomeException)))
       let CustardContext { custardContextGlobalBindings = outputBindings }
             = outputContext
-          outputContext'
-            = context { custardContextGlobalBindings = outputBindings }
-      return (outputContext, result)
+          outputContext' = context { custardContextGlobalBindings = outputBindings }
+      return (outputContext', result)
     CustardNativeLambda (moduleName, properName) body -> do
       result <- fCatch (body context actualParameters)
                        (\e -> error $ "In builtin "
