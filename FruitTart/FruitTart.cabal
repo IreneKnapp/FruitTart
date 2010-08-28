@@ -35,6 +35,7 @@ Executable FruitTart
                  Network.FruitTart.Custard.Functions.Forms,
                  Network.FruitTart.Custard.Functions.Sessions,
                  Network.FruitTart.Custard.Functions.Captchas,
+                 Network.FruitTart.Custard.Functions.Passwords,
                  Network.FruitTart.Custard.Functions.Lists,
                  Network.FruitTart.Custard.Functions.Strings,
                  Network.FruitTart.Custard.Functions.Maps
