@@ -175,21 +175,21 @@ typecheckList items = do
       process witness@(Just (CustardMap _))
               (item@(CustardMap _):rest)
         = process witness rest
-      process Nothing (item@(CustardLambda _ _ _):rest)
+      process Nothing (item@(CustardLambda _ _ _ _):rest)
         = process (Just item) rest
-      process witness@(Just (CustardLambda _ _ _))
-              (item@(CustardLambda _ _ _):rest)
+      process witness@(Just (CustardLambda _ _ _ _))
+              (item@(CustardLambda _ _ _ _):rest)
         = process witness rest
-      process witness@(Just (CustardLambda _ _ _))
-              (item@(CustardNativeLambda _):rest)
+      process witness@(Just (CustardLambda _ _ _ _))
+              (item@(CustardNativeLambda _ _):rest)
         = process witness rest
-      process Nothing (item@(CustardNativeLambda _):rest)
+      process Nothing (item@(CustardNativeLambda _ _):rest)
         = process (Just item) rest
-      process witness@(Just (CustardNativeLambda _))
-              (item@(CustardLambda _ _ _):rest)
+      process witness@(Just (CustardNativeLambda _ _))
+              (item@(CustardLambda _ _ _ _):rest)
         = process witness rest
-      process witness@(Just (CustardNativeLambda _))
-              (item@(CustardNativeLambda _):rest)
+      process witness@(Just (CustardNativeLambda _ _))
+              (item@(CustardNativeLambda _ _):rest)
         = process witness rest
       process _ _ = errorListHeterogeneous
   process Nothing items

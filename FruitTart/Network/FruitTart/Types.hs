@@ -104,10 +104,12 @@ data CustardValue = CustardNull
                   | CustardOrdering Ordering
                   | CustardMap (Map (String, String) CustardValue)
                   | CustardData ByteString
-                  | CustardLambda [CustardParameter]
+                  | CustardLambda (Maybe (String, String))
+                                  [CustardParameter]
                                   (Map (String, String) CustardValue)
                                   CustardExpression
-                  | CustardNativeLambda (CustardContext
+                  | CustardNativeLambda (String, String)
+                                        (CustardContext
                                          -> [CustardValue]
                                          -> FruitTart CustardValue)
                   | CustardHostAddress HostAddress
@@ -130,8 +132,12 @@ instance Show CustardValue where
   show (CustardOrdering LT) = "LT"
   show (CustardOrdering EQ) = "EQ"
   show (CustardMap _) = "<Map>"
-  show (CustardLambda _ _ _) = "<Lambda>"
-  show (CustardNativeLambda _) = "<NativeLambda>"
+  show (CustardLambda Nothing _ _ _)
+    = "<Lambda>"
+  show (CustardLambda (Just (moduleName, properName)) _ _ _)
+    = "<Lambda " ++ moduleName ++ "." ++ properName ++ ">"
+  show (CustardNativeLambda (moduleName, properName) _)
+    = "<NativeLambda " ++ moduleName ++ "." ++ properName ++ ">"
 
 data CustardExpression = CustardLiteral CustardValue
                         | CustardExpressionList [CustardExpression]

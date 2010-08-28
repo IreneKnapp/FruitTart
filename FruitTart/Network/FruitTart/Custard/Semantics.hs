@@ -356,7 +356,7 @@ evalExpression context expression = do
       CustardLambdaExpression formalParameters body -> do
         let CustardContext { custardContextLexicalBindings = bindings }
               = context
-        return (context, CustardLambda formalParameters bindings body)
+        return (context, CustardLambda Nothing formalParameters bindings body)
       CustardVariable name -> do
         findSymbol context name
       CustardBindExpression subexpressions -> do
@@ -594,12 +594,19 @@ applyFunctionGivenContextAndValue :: CustardContext
                                   -> FruitTart (CustardContext, CustardValue)
 applyFunctionGivenContextAndValue context function actualParameters = do
   case function of
-    CustardLambda formalParameters capturedBindings body -> do
+    CustardLambda maybeVariableName
+                  formalParameters
+                  capturedBindings
+                  body -> do
       if length formalParameters /= length actualParameters
-        then error $ "Expected " ++ (show $ length formalParameters)
-                   ++ " parameters, but got "
-                   ++ (show $ length actualParameters)
-                   ++ "."
+        then do
+          let displayName = case maybeVariableName of
+                              Nothing -> "anonymous function"
+                              Just (moduleName, properName)
+                                -> moduleName ++ "." ++ properName
+          error $ "Expected " ++ (show $ length formalParameters)
+                   ++ " parameters to " ++ displayName
+                   ++ ", but got " ++ (show $ length actualParameters) ++ "."
         else return ()
       let newBindings = Map.fromList $ zip (map (\(CustardParameter key) -> key)
                                                 formalParameters)
@@ -612,7 +619,7 @@ applyFunctionGivenContextAndValue context function actualParameters = do
           outputContext'
             = context { custardContextGlobalBindings = outputBindings }
       return (outputContext, result)
-    CustardNativeLambda body -> do
+    CustardNativeLambda (moduleName, properName) body -> do
       result <- body context actualParameters
       return (context, result)
     _ -> do
@@ -649,7 +656,10 @@ getTopLevelBinding variableName@(moduleName, functionName) = do
                                return $ CustardParameter
                                          (moduleName, parameterName))
                              parameterItems
-          return $ Just $ CustardLambda parameters Map.empty compiledBody
+          return $ Just $ CustardLambda (Just variableName)
+                                        parameters
+                                        Map.empty
+                                        compiledBody
         _ -> return Nothing
 
 
@@ -868,7 +878,8 @@ builtinBindings = Map.fromList
                 (("Base", "Nothing"),
                  CustardMaybe Nothing),
                 (("Base", "Just"),
-                 CustardNativeLambda General.cfJust),
+                 CustardNativeLambda ("Base", "cfJust")
+                                     General.cfJust),
                 (("Base", "LT"),
                  CustardOrdering LT),
                 (("Base", "GT"),
@@ -876,759 +887,1059 @@ builtinBindings = Map.fromList
                 (("Base", "EQ"),
                  CustardOrdering EQ),
                 (("Base", "parameter"),
-                 CustardNativeLambda General.cfParameter),
+                 CustardNativeLambda ("Base", "cfParameter")
+                                     General.cfParameter),
                 (("Base", "isNothing"),
-                 CustardNativeLambda General.cfIsNothing),
+                 CustardNativeLambda ("Base", "cfIsNothing")
+                                     General.cfIsNothing),
                 (("Base", "isJust"),
-                 CustardNativeLambda General.cfIsJust),
+                 CustardNativeLambda ("Base", "cfIsJust")
+                                     General.cfIsJust),
                 (("Base", "fromJust"),
-                 CustardNativeLambda General.cfFromJust),
+                 CustardNativeLambda ("Base", "cfFromJust")
+                                     General.cfFromJust),
                 (("Base", "compareIntegers"),
-                 CustardNativeLambda General.cfCompareIntegers),
+                 CustardNativeLambda ("Base", "cfCompareIntegers")
+                                     General.cfCompareIntegers),
                 (("Base", "showInteger"),
-                 CustardNativeLambda General.cfShowInteger),
+                 CustardNativeLambda ("Base", "cfShowInteger")
+                                     General.cfShowInteger),
                 (("Base", "showBool"),
-                 CustardNativeLambda General.cfShowBool),
+                 CustardNativeLambda ("Base", "cfShowBool")
+                                     General.cfShowBool),
                 (("Base", "byteSizeToString"),
-                 CustardNativeLambda General.cfByteSizeToString),
+                 CustardNativeLambda ("Base", "cfByteSizeToString")
+                                     General.cfByteSizeToString),
                 (("Base", "timestampToString"),
-                 CustardNativeLambda General.cfTimestampToString),
+                 CustardNativeLambda ("Base", "cfTimestampToString")
+                                     General.cfTimestampToString),
                 (("Base", "escapeAttribute"),
-                 CustardNativeLambda General.cfEscapeAttribute),
+                 CustardNativeLambda ("Base", "cfEscapeAttribute")
+                                     General.cfEscapeAttribute),
                 (("Base", "escapeHTML"),
-                 CustardNativeLambda General.cfEscapeHTML),
+                 CustardNativeLambda ("Base", "cfEscapeHTML")
+                                     General.cfEscapeHTML),
                 (("Base", "newlinesToParagraphs"),
-                 CustardNativeLambda General.cfNewlinesToParagraphs),
+                 CustardNativeLambda ("Base", "cfNewlinesToParagraphs")
+                                     General.cfNewlinesToParagraphs),
                 
                 -- Symbols
-                (("Base", "symbolName"),
-                 CustardNativeLambda Symbols.cfSymbolName),
-                (("Base", "symbolModule"),
-                 CustardNativeLambda Symbols.cfSymbolModule),
-                (("Base", "makeSymbol"),
-                 CustardNativeLambda Symbols.cfMakeSymbol),
+                (("Base.Symbols", "symbolName"),
+                 CustardNativeLambda ("Base.Symbols", "cfSymbolName")
+                                     Symbols.cfSymbolName),
+                (("Base.Symbols", "symbolModule"),
+                 CustardNativeLambda ("Base.Symbols", "cfSymbolModule")
+                                     Symbols.cfSymbolModule),
+                (("Base.Symbols", "makeSymbol"),
+                 CustardNativeLambda ("Base.Symbols", "cfMakeSymbol")
+                                     Symbols.cfMakeSymbol),
                 
                 -- HTTP
-                (("Base", "log"),
-                 CustardNativeLambda HTTP.cfLog),
-                (("Base", "getRequestVariable"),
-                 CustardNativeLambda HTTP.cfGetRequestVariable),
-                (("Base", "getAllRequestVariables"),
-                 CustardNativeLambda HTTP.cfGetAllRequestVariables),
-                (("Base", "HttpAccept"),
+                (("Base.HTTP", "log"),
+                 CustardNativeLambda ("Base.HTTP", "cfLog")
+                                     HTTP.cfLog),
+                (("Base.HTTP", "getRequestVariable"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRequestVariable")
+                                     HTTP.cfGetRequestVariable),
+                (("Base.HTTP", "getAllRequestVariables"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetAllRequestVariables")
+                                     HTTP.cfGetAllRequestVariables),
+                (("Base.HTTP", "HttpAccept"),
                  CustardHTTPHeader FCGI.HttpAccept),
-                (("Base", "HttpAcceptCharset"),
+                (("Base.HTTP", "HttpAcceptCharset"),
                  CustardHTTPHeader FCGI.HttpAcceptCharset),
-                (("Base", "HttpAcceptEncoding"),
+                (("Base.HTTP", "HttpAcceptEncoding"),
                  CustardHTTPHeader FCGI.HttpAcceptEncoding),
-                (("Base", "HttpAcceptLanguage"),
+                (("Base.HTTP", "HttpAcceptLanguage"),
                  CustardHTTPHeader FCGI.HttpAcceptLanguage),
-                (("Base", "HttpAuthorization"),
+                (("Base.HTTP", "HttpAuthorization"),
                  CustardHTTPHeader FCGI.HttpAuthorization),
-                (("Base", "HttpExpect"),
+                (("Base.HTTP", "HttpExpect"),
                  CustardHTTPHeader FCGI.HttpExpect),
-                (("Base", "HttpFrom"),
+                (("Base.HTTP", "HttpFrom"),
                  CustardHTTPHeader FCGI.HttpFrom),
-                (("Base", "HttpHost"),
+                (("Base.HTTP", "HttpHost"),
                  CustardHTTPHeader FCGI.HttpHost),
-                (("Base", "HttpIfMatch"),
+                (("Base.HTTP", "HttpIfMatch"),
                  CustardHTTPHeader FCGI.HttpIfMatch),
-                (("Base", "HttpIfModifiedSince"),
+                (("Base.HTTP", "HttpIfModifiedSince"),
                  CustardHTTPHeader FCGI.HttpIfModifiedSince),
-                (("Base", "HttpIfNoneMatch"),
+                (("Base.HTTP", "HttpIfNoneMatch"),
                  CustardHTTPHeader FCGI.HttpIfNoneMatch),
-                (("Base", "HttpIfRange"),
+                (("Base.HTTP", "HttpIfRange"),
                  CustardHTTPHeader FCGI.HttpIfRange),
-                (("Base", "HttpIfUnmodifiedSince"),
+                (("Base.HTTP", "HttpIfUnmodifiedSince"),
                  CustardHTTPHeader FCGI.HttpIfUnmodifiedSince),
-                (("Base", "HttpMaxForwards"),
+                (("Base.HTTP", "HttpMaxForwards"),
                  CustardHTTPHeader FCGI.HttpMaxForwards),
-                (("Base", "HttpProxyAuthorization"),
+                (("Base.HTTP", "HttpProxyAuthorization"),
                  CustardHTTPHeader FCGI.HttpProxyAuthorization),
-                (("Base", "HttpRange"),
+                (("Base.HTTP", "HttpRange"),
                  CustardHTTPHeader FCGI.HttpRange),
-                (("Base", "HttpReferer"),
+                (("Base.HTTP", "HttpReferer"),
                  CustardHTTPHeader FCGI.HttpReferer),
-                (("Base", "HttpTE"),
+                (("Base.HTTP", "HttpTE"),
                  CustardHTTPHeader FCGI.HttpTE),
-                (("Base", "HttpUserAgent"),
+                (("Base.HTTP", "HttpUserAgent"),
                  CustardHTTPHeader FCGI.HttpUserAgent),
-                (("Base", "HttpAcceptRanges"),
+                (("Base.HTTP", "HttpAcceptRanges"),
                  CustardHTTPHeader FCGI.HttpAcceptRanges),
-                (("Base", "HttpAge"),
+                (("Base.HTTP", "HttpAge"),
                  CustardHTTPHeader FCGI.HttpAge),
-                (("Base", "HttpETag"),
+                (("Base.HTTP", "HttpETag"),
                  CustardHTTPHeader FCGI.HttpETag),
-                (("Base", "HttpLocation"),
+                (("Base.HTTP", "HttpLocation"),
                  CustardHTTPHeader FCGI.HttpLocation),
-                (("Base", "HttpProxyAuthenticate"),
+                (("Base.HTTP", "HttpProxyAuthenticate"),
                  CustardHTTPHeader FCGI.HttpProxyAuthenticate),
-                (("Base", "HttpRetryAfter"),
+                (("Base.HTTP", "HttpRetryAfter"),
                  CustardHTTPHeader FCGI.HttpRetryAfter),
-                (("Base", "HttpServer"),
+                (("Base.HTTP", "HttpServer"),
                  CustardHTTPHeader FCGI.HttpServer),
-                (("Base", "HttpVary"),
+                (("Base.HTTP", "HttpVary"),
                  CustardHTTPHeader FCGI.HttpVary),
-                (("Base", "HttpWWWAuthenticate"),
+                (("Base.HTTP", "HttpWWWAuthenticate"),
                  CustardHTTPHeader FCGI.HttpWWWAuthenticate),
-                (("Base", "HttpAllow"),
+                (("Base.HTTP", "HttpAllow"),
                  CustardHTTPHeader FCGI.HttpAllow),
-                (("Base", "HttpContentEncoding"),
+                (("Base.HTTP", "HttpContentEncoding"),
                  CustardHTTPHeader FCGI.HttpContentEncoding),
-                (("Base", "HttpContentLanguage"),
+                (("Base.HTTP", "HttpContentLanguage"),
                  CustardHTTPHeader FCGI.HttpContentLanguage),
-                (("Base", "HttpContentLength"),
+                (("Base.HTTP", "HttpContentLength"),
                  CustardHTTPHeader FCGI.HttpContentLength),
-                (("Base", "HttpContentLocation"),
+                (("Base.HTTP", "HttpContentLocation"),
                  CustardHTTPHeader FCGI.HttpContentLocation),
-                (("Base", "HttpContentMD5"),
+                (("Base.HTTP", "HttpContentMD5"),
                  CustardHTTPHeader FCGI.HttpContentMD5),
-                (("Base", "HttpContentRange"),
+                (("Base.HTTP", "HttpContentRange"),
                  CustardHTTPHeader FCGI.HttpContentRange),
-                (("Base", "HttpContentType"),
+                (("Base.HTTP", "HttpContentType"),
                  CustardHTTPHeader FCGI.HttpContentType),
-                (("Base", "HttpExpires"),
+                (("Base.HTTP", "HttpExpires"),
                  CustardHTTPHeader FCGI.HttpExpires),
-                (("Base", "HttpLastModified"),
+                (("Base.HTTP", "HttpLastModified"),
                  CustardHTTPHeader FCGI.HttpLastModified),
-                (("Base", "HttpConnection"),
+                (("Base.HTTP", "HttpConnection"),
                  CustardHTTPHeader FCGI.HttpConnection),
-                (("Base", "HttpCookie"),
+                (("Base.HTTP", "HttpCookie"),
                  CustardHTTPHeader FCGI.HttpCookie),
-                (("Base", "HttpSetCookie"),
+                (("Base.HTTP", "HttpSetCookie"),
                  CustardHTTPHeader FCGI.HttpSetCookie),
-                (("Base", "getRequestHeader"),
-                 CustardNativeLambda HTTP.cfGetRequestHeader),
-                (("Base", "cookieName"),
-                 CustardNativeLambda HTTP.cfCookieName),
-                (("Base", "cookieValue"),
-                 CustardNativeLambda HTTP.cfCookieValue),
-                (("Base", "cookieVersion"),
-                 CustardNativeLambda HTTP.cfCookieVersion),
-                (("Base", "cookiePath"),
-                 CustardNativeLambda HTTP.cfCookiePath),
-                (("Base", "cookieDomain"),
-                 CustardNativeLambda HTTP.cfCookieDomain),
-                (("Base", "cookieMaxAge"),
-                 CustardNativeLambda HTTP.cfCookieMaxAge),
-                (("Base", "cookieSecure"),
-                 CustardNativeLambda HTTP.cfCookieSecure),
-                (("Base", "cookieComment"),
-                 CustardNativeLambda HTTP.cfCookieComment),
-                (("Base", "getCookie"),
-                 CustardNativeLambda HTTP.cfGetCookie),
-                (("Base", "getAllCookies"),
-                 CustardNativeLambda HTTP.cfGetAllCookies),
-                (("Base", "getCookieValue"),
-                 CustardNativeLambda HTTP.cfGetCookieValue),
-                (("Base", "getDocumentRoot"),
-                 CustardNativeLambda HTTP.cfGetDocumentRoot),
-                (("Base", "getGatewayInterface"),
-                 CustardNativeLambda HTTP.cfGetGatewayInterface),
-                (("Base", "getPathInfo"),
-                 CustardNativeLambda HTTP.cfGetPathInfo),
-                (("Base", "getPathTranslated"),
-                 CustardNativeLambda HTTP.cfGetPathTranslated),
-                (("Base", "getQueryString"),
-                 CustardNativeLambda HTTP.cfGetQueryString),
-                (("Base", "getRedirectStatus"),
-                 CustardNativeLambda HTTP.cfGetRedirectStatus),
-                (("Base", "getRedirectURI"),
-                 CustardNativeLambda HTTP.cfGetRedirectURI),
-                (("Base", "getRemoteAddress"),
-                 CustardNativeLambda HTTP.cfGetRemoteAddress),
-                (("Base", "getRemotePort"),
-                 CustardNativeLambda HTTP.cfGetRemotePort),
-                (("Base", "getRemoteHost"),
-                 CustardNativeLambda HTTP.cfGetRemoteHost),
-                (("Base", "getRemoteIdent"),
-                 CustardNativeLambda HTTP.cfGetRemoteIdent),
-                (("Base", "getRemoteUser"),
-                 CustardNativeLambda HTTP.cfGetRemoteUser),
-                (("Base", "getRequestMethod"),
-                 CustardNativeLambda HTTP.cfGetRequestMethod),
-                (("Base", "getRequestURI"),
-                 CustardNativeLambda HTTP.cfGetRequestURI),
-                (("Base", "getScriptFilename"),
-                 CustardNativeLambda HTTP.cfGetScriptFilename),
-                (("Base", "getScriptName"),
-                 CustardNativeLambda HTTP.cfGetScriptName),
-                (("Base", "getServerAddress"),
-                 CustardNativeLambda HTTP.cfGetServerAddress),
-                (("Base", "getServerName"),
-                 CustardNativeLambda HTTP.cfGetServerName),
-                (("Base", "getServerPort"),
-                 CustardNativeLambda HTTP.cfGetServerPort),
-                (("Base", "getServerProtocol"),
-                 CustardNativeLambda HTTP.cfGetServerProtocol),
-                (("Base", "getServerSoftware"),
-                 CustardNativeLambda HTTP.cfGetServerSoftware),
-                (("Base", "getAuthenticationType"),
-                 CustardNativeLambda HTTP.cfGetAuthenticationType),
-                (("Base", "getContentLength"),
-                 CustardNativeLambda HTTP.cfGetContentLength),
-                (("Base", "getContentType"),
-                 CustardNativeLambda HTTP.cfGetContentType),
-                (("Base", "setResponseStatus"),
-                 CustardNativeLambda HTTP.cfSetResponseStatus),
-                (("Base", "getResponseStatus"),
-                 CustardNativeLambda HTTP.cfGetResponseStatus),
-                (("Base", "setResponseHeader"),
-                 CustardNativeLambda HTTP.cfSetResponseHeader),
-                (("Base", "unsetResponseHeader"),
-                 CustardNativeLambda HTTP.cfUnsetResponseHeader),
-                (("Base", "getResponseHeader"),
-                 CustardNativeLambda HTTP.cfGetResponseHeader),
-                (("Base", "setCookie"),
-                 CustardNativeLambda HTTP.cfSetCookie),
-                (("Base", "unsetCookie"),
-                 CustardNativeLambda HTTP.cfUnsetCookie),
-                (("Base", "makeSimpleCookie"),
-                 CustardNativeLambda HTTP.cfMakeSimpleCookie),
-                (("Base", "makeCookie"),
-                 CustardNativeLambda HTTP.cfMakeCookie),
-                (("Base", "permanentRedirect"),
-                 CustardNativeLambda HTTP.cfPermanentRedirect),
-                (("Base", "seeOtherRedirect"),
-                 CustardNativeLambda HTTP.cfSeeOtherRedirect),
-                (("Base", "sendResponseHeaders"),
-                 CustardNativeLambda HTTP.cfSendResponseHeaders),
-                (("Base", "responseHeadersSent"),
-                 CustardNativeLambda HTTP.cfResponseHeadersSent),
-                (("Base", "put"),
-                 CustardNativeLambda HTTP.cfPut),
-                (("Base", "putString"),
-                 CustardNativeLambda HTTP.cfPutString),
-                (("Base", "closeOutput"),
-                 CustardNativeLambda HTTP.cfCloseOutput),
+                (("Base.HTTP", "getRequestHeader"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRequestHeader")
+                                     HTTP.cfGetRequestHeader),
+                (("Base.HTTP", "cookieName"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieName")
+                                     HTTP.cfCookieName),
+                (("Base.HTTP", "cookieValue"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieValue")
+                                     HTTP.cfCookieValue),
+                (("Base.HTTP", "cookieVersion"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieVersion")
+                                     HTTP.cfCookieVersion),
+                (("Base.HTTP", "cookiePath"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookiePath")
+                                     HTTP.cfCookiePath),
+                (("Base.HTTP", "cookieDomain"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieDomain")
+                                     HTTP.cfCookieDomain),
+                (("Base.HTTP", "cookieMaxAge"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieMaxAge")
+                                     HTTP.cfCookieMaxAge),
+                (("Base.HTTP", "cookieSecure"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieSecure")
+                                     HTTP.cfCookieSecure),
+                (("Base.HTTP", "cookieComment"),
+                 CustardNativeLambda ("Base.HTTP", "cfCookieComment")
+                                     HTTP.cfCookieComment),
+                (("Base.HTTP", "getCookie"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetCookie")
+                                     HTTP.cfGetCookie),
+                (("Base.HTTP", "getAllCookies"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetAllCookies")
+                                     HTTP.cfGetAllCookies),
+                (("Base.HTTP", "getCookieValue"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetCookieValue")
+                                     HTTP.cfGetCookieValue),
+                (("Base.HTTP", "getDocumentRoot"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetDocumentRoot")
+                                     HTTP.cfGetDocumentRoot),
+                (("Base.HTTP", "getGatewayInterface"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetGatewayInterface")
+                                     HTTP.cfGetGatewayInterface),
+                (("Base.HTTP", "getPathInfo"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetPathInfo")
+                                     HTTP.cfGetPathInfo),
+                (("Base.HTTP", "getPathTranslated"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetPathTranslated")
+                                     HTTP.cfGetPathTranslated),
+                (("Base.HTTP", "getQueryString"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetQueryString")
+                                     HTTP.cfGetQueryString),
+                (("Base.HTTP", "getRedirectStatus"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRedirectStatus")
+                                     HTTP.cfGetRedirectStatus),
+                (("Base.HTTP", "getRedirectURI"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRedirectURI")
+                                     HTTP.cfGetRedirectURI),
+                (("Base.HTTP", "getRemoteAddress"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRemoteAddress")
+                                     HTTP.cfGetRemoteAddress),
+                (("Base.HTTP", "getRemotePort"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRemotePort")
+                                     HTTP.cfGetRemotePort),
+                (("Base.HTTP", "getRemoteHost"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRemoteHost")
+                                     HTTP.cfGetRemoteHost),
+                (("Base.HTTP", "getRemoteIdent"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRemoteIdent")
+                                     HTTP.cfGetRemoteIdent),
+                (("Base.HTTP", "getRemoteUser"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRemoteUser")
+                                     HTTP.cfGetRemoteUser),
+                (("Base.HTTP", "getRequestMethod"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRequestMethod")
+                                     HTTP.cfGetRequestMethod),
+                (("Base.HTTP", "getRequestURI"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetRequestURI")
+                                     HTTP.cfGetRequestURI),
+                (("Base.HTTP", "getScriptFilename"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetScriptFilename")
+                                     HTTP.cfGetScriptFilename),
+                (("Base.HTTP", "getScriptName"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetScriptName")
+                                     HTTP.cfGetScriptName),
+                (("Base.HTTP", "getServerAddress"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetServerAddress")
+                                     HTTP.cfGetServerAddress),
+                (("Base.HTTP", "getServerName"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetServerName")
+                                     HTTP.cfGetServerName),
+                (("Base.HTTP", "getServerPort"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetServerPort")
+                                     HTTP.cfGetServerPort),
+                (("Base.HTTP", "getServerProtocol"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetServerProtocol")
+                                     HTTP.cfGetServerProtocol),
+                (("Base.HTTP", "getServerSoftware"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetServerSoftware")
+                                     HTTP.cfGetServerSoftware),
+                (("Base.HTTP", "getAuthenticationType"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetAuthenticationType")
+                                     HTTP.cfGetAuthenticationType),
+                (("Base.HTTP", "getContentLength"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetContentLength")
+                                     HTTP.cfGetContentLength),
+                (("Base.HTTP", "getContentType"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetContentType")
+                                     HTTP.cfGetContentType),
+                (("Base.HTTP", "setResponseStatus"),
+                 CustardNativeLambda ("Base.HTTP", "cfSetResponseStatus")
+                                     HTTP.cfSetResponseStatus),
+                (("Base.HTTP", "getResponseStatus"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetResponseStatus")
+                                     HTTP.cfGetResponseStatus),
+                (("Base.HTTP", "setResponseHeader"),
+                 CustardNativeLambda ("Base.HTTP", "cfSetResponseHeader")
+                                     HTTP.cfSetResponseHeader),
+                (("Base.HTTP", "unsetResponseHeader"),
+                 CustardNativeLambda ("Base.HTTP", "cfUnsetResponseHeader")
+                                     HTTP.cfUnsetResponseHeader),
+                (("Base.HTTP", "getResponseHeader"),
+                 CustardNativeLambda ("Base.HTTP", "cfGetResponseHeader")
+                                     HTTP.cfGetResponseHeader),
+                (("Base.HTTP", "setCookie"),
+                 CustardNativeLambda ("Base.HTTP", "cfSetCookie")
+                                     HTTP.cfSetCookie),
+                (("Base.HTTP", "unsetCookie"),
+                 CustardNativeLambda ("Base.HTTP", "cfUnsetCookie")
+                                     HTTP.cfUnsetCookie),
+                (("Base.HTTP", "makeSimpleCookie"),
+                 CustardNativeLambda ("Base.HTTP", "cfMakeSimpleCookie")
+                                     HTTP.cfMakeSimpleCookie),
+                (("Base.HTTP", "makeCookie"),
+                 CustardNativeLambda ("Base.HTTP", "cfMakeCookie")
+                                     HTTP.cfMakeCookie),
+                (("Base.HTTP", "permanentRedirect"),
+                 CustardNativeLambda ("Base.HTTP", "cfPermanentRedirect")
+                                     HTTP.cfPermanentRedirect),
+                (("Base.HTTP", "seeOtherRedirect"),
+                 CustardNativeLambda ("Base.HTTP", "cfSeeOtherRedirect")
+                                     HTTP.cfSeeOtherRedirect),
+                (("Base.HTTP", "sendResponseHeaders"),
+                 CustardNativeLambda ("Base.HTTP", "cfSendResponseHeaders")
+                                     HTTP.cfSendResponseHeaders),
+                (("Base.HTTP", "responseHeadersSent"),
+                 CustardNativeLambda ("Base.HTTP", "cfResponseHeadersSent")
+                                     HTTP.cfResponseHeadersSent),
+                (("Base.HTTP", "put"),
+                 CustardNativeLambda ("Base.HTTP", "cfPut")
+                                     HTTP.cfPut),
+                (("Base.HTTP", "putString"),
+                 CustardNativeLambda ("Base.HTTP", "cfPutString")
+                                     HTTP.cfPutString),
+                (("Base.HTTP", "closeOutput"),
+                 CustardNativeLambda ("Base.HTTP", "cfCloseOutput")
+                                     HTTP.cfCloseOutput),
                 
                 -- Forms
-                (("Base", "formInput"),
-                 CustardNativeLambda Forms.cfFormInput),
+                (("Base.Forms", "formInput"),
+                 CustardNativeLambda ("Base.Forms", "cfFormInput")
+                                     Forms.cfFormInput),
                 
                 -- Sessions
-                (("Base", "getSessionID"),
-                 CustardNativeLambda Sessions.cfGetSessionID),
+                (("Base.Sessions", "getSessionID"),
+                 CustardNativeLambda ("Base.Sessions", "cfGetSessionID")
+                                     Sessions.cfGetSessionID),
                 
                 -- Captchas
-                (("Base", "generateCaptcha"),
-                 CustardNativeLambda Captchas.cfGenerateCaptcha),
-                (("Base", "lookupCaptcha"),
-                 CustardNativeLambda Captchas.cfLookupCaptcha),
-                (("Base", "checkCaptcha"),
-                 CustardNativeLambda Captchas.cfCheckCaptcha),
-                (("Base", "expireOldCaptchas"),
-                 CustardNativeLambda Captchas.cfExpireOldCaptchas),
+                (("Base.Captchas", "generateCaptcha"),
+                 CustardNativeLambda ("Base.Captchas", "cfGenerateCaptcha")
+                                     Captchas.cfGenerateCaptcha),
+                (("Base.Captchas", "lookupCaptcha"),
+                 CustardNativeLambda ("Base.Captchas", "cfLookupCaptcha")
+                                     Captchas.cfLookupCaptcha),
+                (("Base.Captchas", "checkCaptcha"),
+                 CustardNativeLambda ("Base.Captchas", "cfCheckCaptcha")
+                                     Captchas.cfCheckCaptcha),
+                (("Base.Captchas", "expireOldCaptchas"),
+                 CustardNativeLambda ("Base.Captchas", "cfExpireOldCaptchas")
+                                     Captchas.cfExpireOldCaptchas),
                 
                 -- Everything below here is based on a corresponding function
                 -- in Haskell, which may or may not have an identical name.
                 
                 -- Lists
                 -- Lists - Basic functions
-                (("Base", "head"),
-                 CustardNativeLambda Lists.cfHead),
-                (("Base", "last"),
-                 CustardNativeLambda Lists.cfLast),
-                (("Base", "tail"),
-                 CustardNativeLambda Lists.cfTail),
-                (("Base", "init"),
-                 CustardNativeLambda Lists.cfInit),
-                (("Base", "null"),
-                 CustardNativeLambda Lists.cfNull),
-                (("Base", "length"),
-                 CustardNativeLambda Lists.cfLength),
+                (("Base.Lists", "head"),
+                 CustardNativeLambda ("Base.Lists", "cfHead")
+                                     Lists.cfHead),
+                (("Base.Lists", "last"),
+                 CustardNativeLambda ("Base.Lists", "cfLast")
+                                     Lists.cfLast),
+                (("Base.Lists", "tail"),
+                 CustardNativeLambda ("Base.Lists", "cfTail")
+                                     Lists.cfTail),
+                (("Base.Lists", "init"),
+                 CustardNativeLambda ("Base.Lists", "cfInit")
+                                     Lists.cfInit),
+                (("Base.Lists", "null"),
+                 CustardNativeLambda ("Base.Lists", "cfNull")
+                                     Lists.cfNull),
+                (("Base.Lists", "length"),
+                 CustardNativeLambda ("Base.Lists", "cfLength")
+                                     Lists.cfLength),
                 -- Lists - List transformations
-                (("Base", "map"),
-                 CustardNativeLambda Lists.cfMap),
-                (("Base", "reverse"),
-                 CustardNativeLambda Lists.cfReverse),
-                (("Base", "intersperse"),
-                 CustardNativeLambda Lists.cfIntersperse),
-                (("Base", "intercalate"),
-                 CustardNativeLambda Lists.cfIntercalate),
-                (("Base", "transpose"),
-                 CustardNativeLambda Lists.cfTranspose),
-                (("Base", "subsequences"),
-                 CustardNativeLambda Lists.cfSubsequences),
-                (("Base", "permutations"),
-                 CustardNativeLambda Lists.cfPermutations),
+                (("Base.Lists", "map"),
+                 CustardNativeLambda ("Base.Lists", "cfMap")
+                                     Lists.cfMap),
+                (("Base.Lists", "reverse"),
+                 CustardNativeLambda ("Base.Lists", "cfReverse")
+                                     Lists.cfReverse),
+                (("Base.Lists", "intersperse"),
+                 CustardNativeLambda ("Base.Lists", "cfIntersperse")
+                                     Lists.cfIntersperse),
+                (("Base.Lists", "intercalate"),
+                 CustardNativeLambda ("Base.Lists", "cfIntercalate")
+                                     Lists.cfIntercalate),
+                (("Base.Lists", "transpose"),
+                 CustardNativeLambda ("Base.Lists", "cfTranspose")
+                                     Lists.cfTranspose),
+                (("Base.Lists", "subsequences"),
+                 CustardNativeLambda ("Base.Lists", "cfSubsequences")
+                                     Lists.cfSubsequences),
+                (("Base.Lists", "permutations"),
+                 CustardNativeLambda ("Base.Lists", "cfPermutations")
+                                     Lists.cfPermutations),
                 -- Lists - Reducing lists (folds)
-                (("Base", "foldl"),
-                 CustardNativeLambda Lists.cfFoldl),
-                (("Base", "foldl1"),
-                 CustardNativeLambda Lists.cfFoldl1),
-                (("Base", "foldr"),
-                 CustardNativeLambda Lists.cfFoldr),
-                (("Base", "foldr1"),
-                 CustardNativeLambda Lists.cfFoldr1),
+                (("Base.Lists", "foldl"),
+                 CustardNativeLambda ("Base.Lists", "cfFoldl")
+                                     Lists.cfFoldl),
+                (("Base.Lists", "foldl1"),
+                 CustardNativeLambda ("Base.Lists", "cfFoldl1")
+                                     Lists.cfFoldl1),
+                (("Base.Lists", "foldr"),
+                 CustardNativeLambda ("Base.Lists", "cfFoldr")
+                                     Lists.cfFoldr),
+                (("Base.Lists", "foldr1"),
+                 CustardNativeLambda ("Base.Lists", "cfFoldr1")
+                                     Lists.cfFoldr1),
                 -- Lists - Reducing lists (folds) - Special folds
-                (("Base", "concat"),
-                 CustardNativeLambda Lists.cfConcat),
-                (("Base", "concatMap"),
-                 CustardNativeLambda Lists.cfConcatMap),
-                (("Base", "and"),
-                 CustardNativeLambda Lists.cfAnd),
-                (("Base", "or"),
-                 CustardNativeLambda Lists.cfOr),
-                (("Base", "any"),
-                 CustardNativeLambda Lists.cfAny),
-                (("Base", "all"),
-                 CustardNativeLambda Lists.cfAll),
-                (("Base", "sum"),
-                 CustardNativeLambda Lists.cfSum),
-                (("Base", "product"),
-                 CustardNativeLambda Lists.cfProduct),
-                (("Base", "maximum"),
-                 CustardNativeLambda Lists.cfMaximum),
-                (("Base", "minimum"),
-                 CustardNativeLambda Lists.cfMinimum),
+                (("Base.Lists", "concat"),
+                 CustardNativeLambda ("Base.Lists", "cfConcat")
+                                     Lists.cfConcat),
+                (("Base.Lists", "concatMap"),
+                 CustardNativeLambda ("Base.Lists", "cfConcatMap")
+                                     Lists.cfConcatMap),
+                (("Base.Lists", "and"),
+                 CustardNativeLambda ("Base.Lists", "cfAnd")
+                                     Lists.cfAnd),
+                (("Base.Lists", "or"),
+                 CustardNativeLambda ("Base.Lists", "cfOr")
+                                     Lists.cfOr),
+                (("Base.Lists", "any"),
+                 CustardNativeLambda ("Base.Lists", "cfAny")
+                                     Lists.cfAny),
+                (("Base.Lists", "all"),
+                 CustardNativeLambda ("Base.Lists", "cfAll")
+                                     Lists.cfAll),
+                (("Base.Lists", "sum"),
+                 CustardNativeLambda ("Base.Lists", "cfSum")
+                                     Lists.cfSum),
+                (("Base.Lists", "product"),
+                 CustardNativeLambda ("Base.Lists", "cfProduct")
+                                     Lists.cfProduct),
+                (("Base.Lists", "maximum"),
+                 CustardNativeLambda ("Base.Lists", "cfMaximum")
+                                     Lists.cfMaximum),
+                (("Base.Lists", "minimum"),
+                 CustardNativeLambda ("Base.Lists", "cfMinimum")
+                                     Lists.cfMinimum),
                 -- Lists - Building lists
                 -- Lists - Building lists - Scans
-                (("Base", "scanl"),
-                 CustardNativeLambda Lists.cfScanl),
-                (("Base", "scanl1"),
-                 CustardNativeLambda Lists.cfScanl1),
-                (("Base", "scanr"),
-                 CustardNativeLambda Lists.cfScanr),
-                (("Base", "scanr1"),
-                 CustardNativeLambda Lists.cfScanr1),
+                (("Base.Lists", "scanl"),
+                 CustardNativeLambda ("Base.Lists", "cfScanl")
+                                     Lists.cfScanl),
+                (("Base.Lists", "scanl1"),
+                 CustardNativeLambda ("Base.Lists", "cfScanl1")
+                                     Lists.cfScanl1),
+                (("Base.Lists", "scanr"),
+                 CustardNativeLambda ("Base.Lists", "cfScanr")
+                                     Lists.cfScanr),
+                (("Base.Lists", "scanr1"),
+                 CustardNativeLambda ("Base.Lists", "cfScanr1")
+                                     Lists.cfScanr1),
                 -- Lists - Building lists - Accumulating maps
-                (("Base", "mapAccumL"),
-                 CustardNativeLambda Lists.cfMapAccumL),
-                (("Base", "mapAccumR"),
-                 CustardNativeLambda Lists.cfMapAccumR),
+                (("Base.Lists", "mapAccumL"),
+                 CustardNativeLambda ("Base.Lists", "cfMapAccumL")
+                                     Lists.cfMapAccumL),
+                (("Base.Lists", "mapAccumR"),
+                 CustardNativeLambda ("Base.Lists", "cfMapAccumR")
+                                     Lists.cfMapAccumR),
                 -- Lists - Building lists - Replicate
-                (("Base", "replicate"),
-                 CustardNativeLambda Lists.cfReplicate),
+                (("Base.Lists", "replicate"),
+                 CustardNativeLambda ("Base.Lists", "cfReplicate")
+                                     Lists.cfReplicate),
                 -- Lists - Building lists - Unfolding
-                (("Base", "unfoldr"),
-                 CustardNativeLambda Lists.cfUnfoldr),
+                (("Base.Lists", "unfoldr"),
+                 CustardNativeLambda ("Base.Lists", "cfUnfoldr")
+                                     Lists.cfUnfoldr),
                 -- Lists - Sublists
                 -- Lists - Sublists - Extracting sublists
-                (("Base", "take"),
-                 CustardNativeLambda Lists.cfTake),
-                (("Base", "drop"),
-                 CustardNativeLambda Lists.cfDrop),
-                (("Base", "splitAt"),
-                 CustardNativeLambda Lists.cfSplitAt),
-                (("Base", "takeWhile"),
-                 CustardNativeLambda Lists.cfTakeWhile),
-                (("Base", "dropWhile"),
-                 CustardNativeLambda Lists.cfDropWhile),
-                (("Base", "span"),
-                 CustardNativeLambda Lists.cfSpan),
-                (("Base", "break"),
-                 CustardNativeLambda Lists.cfBreak),
-                (("Base", "stripPrefix"),
-                 CustardNativeLambda Lists.cfStripPrefix),
-                (("Base", "group"),
-                 CustardNativeLambda Lists.cfGroup),
-                (("Base", "inits"),
-                 CustardNativeLambda Lists.cfInits),
-                (("Base", "tails"),
-                 CustardNativeLambda Lists.cfTails),
+                (("Base.Lists", "take"),
+                 CustardNativeLambda ("Base.Lists", "cfTake")
+                                     Lists.cfTake),
+                (("Base.Lists", "drop"),
+                 CustardNativeLambda ("Base.Lists", "cfDrop")
+                                     Lists.cfDrop),
+                (("Base.Lists", "splitAt"),
+                 CustardNativeLambda ("Base.Lists", "cfSplitAt")
+                                     Lists.cfSplitAt),
+                (("Base.Lists", "takeWhile"),
+                 CustardNativeLambda ("Base.Lists", "cfTakeWhile")
+                                     Lists.cfTakeWhile),
+                (("Base.Lists", "dropWhile"),
+                 CustardNativeLambda ("Base.Lists", "cfDropWhile")
+                                     Lists.cfDropWhile),
+                (("Base.Lists", "span"),
+                 CustardNativeLambda ("Base.Lists", "cfSpan")
+                                     Lists.cfSpan),
+                (("Base.Lists", "break"),
+                 CustardNativeLambda ("Base.Lists", "cfBreak")
+                                     Lists.cfBreak),
+                (("Base.Lists", "stripPrefix"),
+                 CustardNativeLambda ("Base.Lists", "cfStripPrefix")
+                                     Lists.cfStripPrefix),
+                (("Base.Lists", "group"),
+                 CustardNativeLambda ("Base.Lists", "cfGroup")
+                                     Lists.cfGroup),
+                (("Base.Lists", "inits"),
+                 CustardNativeLambda ("Base.Lists", "cfInits")
+                                     Lists.cfInits),
+                (("Base.Lists", "tails"),
+                 CustardNativeLambda ("Base.Lists", "cfTails")
+                                     Lists.cfTails),
                 -- Lists - Sublists - Predicates
-                (("Base", "isPrefixOf"),
-                 CustardNativeLambda Lists.cfIsPrefixOf),
-                (("Base", "isSuffixOf"),
-                 CustardNativeLambda Lists.cfIsSuffixOf),
-                (("Base", "isInfixOf"),
-                 CustardNativeLambda Lists.cfIsInfixOf),
+                (("Base.Lists", "isPrefixOf"),
+                 CustardNativeLambda ("Base.Lists", "cfIsPrefixOf")
+                                     Lists.cfIsPrefixOf),
+                (("Base.Lists", "isSuffixOf"),
+                 CustardNativeLambda ("Base.Lists", "cfIsSuffixOf")
+                                     Lists.cfIsSuffixOf),
+                (("Base.Lists", "isInfixOf"),
+                 CustardNativeLambda ("Base.Lists", "cfIsInfixOf")
+                                     Lists.cfIsInfixOf),
                 -- Lists - Searching lists
                 -- Lists - Searching lists - Searching by equality
-                (("Base", "elem"),
-                 CustardNativeLambda Lists.cfElem),
-                (("Base", "notElem"),
-                 CustardNativeLambda Lists.cfNotElem),
-                (("Base", "lookup"),
-                 CustardNativeLambda Lists.cfLookup),
+                (("Base.Lists", "elem"),
+                 CustardNativeLambda ("Base.Lists", "cfElem")
+                                     Lists.cfElem),
+                (("Base.Lists", "notElem"),
+                 CustardNativeLambda ("Base.Lists", "cfNotElem")
+                                     Lists.cfNotElem),
+                (("Base.Lists", "lookup"),
+                 CustardNativeLambda ("Base.Lists", "cfLookup")
+                                     Lists.cfLookup),
                 -- Lists - Searching lists - Searching with a predicate
-                (("Base", "find"),
-                 CustardNativeLambda Lists.cfFind),
-                (("Base", "filter"),
-                 CustardNativeLambda Lists.cfFilter),
-                (("Base", "partition"),
-                 CustardNativeLambda Lists.cfPartition),
+                (("Base.Lists", "find"),
+                 CustardNativeLambda ("Base.Lists", "cfFind")
+                                     Lists.cfFind),
+                (("Base.Lists", "filter"),
+                 CustardNativeLambda ("Base.Lists", "cfFilter")
+                                     Lists.cfFilter),
+                (("Base.Lists", "partition"),
+                 CustardNativeLambda ("Base.Lists", "cfPartition")
+                                     Lists.cfPartition),
                 -- Lists - Indexing lists
-                (("Base", "nth"),
-                 CustardNativeLambda Lists.cfNth),
-                (("Base", "elemIndex"),
-                 CustardNativeLambda Lists.cfElemIndex),
-                (("Base", "elemIndices"),
-                 CustardNativeLambda Lists.cfElemIndices),
-                (("Base", "findIndex"),
-                 CustardNativeLambda Lists.cfFindIndex),
-                (("Base", "findIndices"),
-                 CustardNativeLambda Lists.cfFindIndices),
+                (("Base.Lists", "nth"),
+                 CustardNativeLambda ("Base.Lists", "cfNth")
+                                     Lists.cfNth),
+                (("Base.Lists", "elemIndex"),
+                 CustardNativeLambda ("Base.Lists", "cfElemIndex")
+                                     Lists.cfElemIndex),
+                (("Base.Lists", "elemIndices"),
+                 CustardNativeLambda ("Base.Lists", "cfElemIndices")
+                                     Lists.cfElemIndices),
+                (("Base.Lists", "findIndex"),
+                 CustardNativeLambda ("Base.Lists", "cfFindIndex")
+                                     Lists.cfFindIndex),
+                (("Base.Lists", "findIndices"),
+                 CustardNativeLambda ("Base.Lists", "cfFindIndices")
+                                     Lists.cfFindIndices),
                 -- Lists - Special lists
                 -- Lists - "Set" operations
-                (("Base", "nub"),
-                 CustardNativeLambda Lists.cfNub),
-                (("Base", "delete"),
-                 CustardNativeLambda Lists.cfDelete),
-                (("Base", "deleteFirsts"),
-                 CustardNativeLambda Lists.cfDeleteFirsts),
-                (("Base", "union"),
-                 CustardNativeLambda Lists.cfUnion),
-                (("Base", "intersect"),
-                 CustardNativeLambda Lists.cfIntersect),
+                (("Base.Lists", "nub"),
+                 CustardNativeLambda ("Base.Lists", "cfNub")
+                                     Lists.cfNub),
+                (("Base.Lists", "delete"),
+                 CustardNativeLambda ("Base.Lists", "cfDelete")
+                                     Lists.cfDelete),
+                (("Base.Lists", "deleteFirsts"),
+                 CustardNativeLambda ("Base.Lists", "cfDeleteFirsts")
+                                     Lists.cfDeleteFirsts),
+                (("Base.Lists", "union"),
+                 CustardNativeLambda ("Base.Lists", "cfUnion")
+                                     Lists.cfUnion),
+                (("Base.Lists", "intersect"),
+                 CustardNativeLambda ("Base.Lists", "cfIntersect")
+                                     Lists.cfIntersect),
                 -- Lists - Ordered lists
-                (("Base", "sort"),
-                 CustardNativeLambda Lists.cfSort),
-                (("Base", "insert"),
-                 CustardNativeLambda Lists.cfInsert),
+                (("Base.Lists", "sort"),
+                 CustardNativeLambda ("Base.Lists", "cfSort")
+                                     Lists.cfSort),
+                (("Base.Lists", "insert"),
+                 CustardNativeLambda ("Base.Lists", "cfInsert")
+                                     Lists.cfInsert),
                 -- Lists - Generalized functions
-                (("Base", "nubBy"),
-                 CustardNativeLambda Lists.cfNubBy),
-                (("Base", "deleteBy"),
-                 CustardNativeLambda Lists.cfDeleteBy),
-                (("Base", "deleteFirstsBy"),
-                 CustardNativeLambda Lists.cfDeleteFirstsBy),
-                (("Base", "unionBy"),
-                 CustardNativeLambda Lists.cfUnionBy),
-                (("Base", "intersectBy"),
-                 CustardNativeLambda Lists.cfIntersectBy),
-                (("Base", "groupBy"),
-                 CustardNativeLambda Lists.cfGroupBy),
-                (("Base", "sortBy"),
-                 CustardNativeLambda Lists.cfSortBy),
-                (("Base", "insertBy"),
-                 CustardNativeLambda Lists.cfInsertBy),
-                (("Base", "maximumBy"),
-                 CustardNativeLambda Lists.cfMaximumBy),
-                (("Base", "minimumBy"),
-                 CustardNativeLambda Lists.cfMinimumBy),
+                (("Base.Lists", "nubBy"),
+                 CustardNativeLambda ("Base.Lists", "cfNubBy")
+                                     Lists.cfNubBy),
+                (("Base.Lists", "deleteBy"),
+                 CustardNativeLambda ("Base.Lists", "cfDeleteBy")
+                                     Lists.cfDeleteBy),
+                (("Base.Lists", "deleteFirstsBy"),
+                 CustardNativeLambda ("Base.Lists", "cfDeleteFirstsBy")
+                                     Lists.cfDeleteFirstsBy),
+                (("Base.Lists", "unionBy"),
+                 CustardNativeLambda ("Base.Lists", "cfUnionBy")
+                                     Lists.cfUnionBy),
+                (("Base.Lists", "intersectBy"),
+                 CustardNativeLambda ("Base.Lists", "cfIntersectBy")
+                                     Lists.cfIntersectBy),
+                (("Base.Lists", "groupBy"),
+                 CustardNativeLambda ("Base.Lists", "cfGroupBy")
+                                     Lists.cfGroupBy),
+                (("Base.Lists", "sortBy"),
+                 CustardNativeLambda ("Base.Lists", "cfSortBy")
+                                     Lists.cfSortBy),
+                (("Base.Lists", "insertBy"),
+                 CustardNativeLambda ("Base.Lists", "cfInsertBy")
+                                     Lists.cfInsertBy),
+                (("Base.Lists", "maximumBy"),
+                 CustardNativeLambda ("Base.Lists", "cfMaximumBy")
+                                     Lists.cfMaximumBy),
+                (("Base.Lists", "minimumBy"),
+                 CustardNativeLambda ("Base.Lists", "cfMinimumBy")
+                                     Lists.cfMinimumBy),
                 
                 -- Strings
                 -- Strings - Basic functions
-                (("Base", "stringHead"),
-                 CustardNativeLambda Strings.cfStringHead),
-                (("Base", "stringLast"),
-                 CustardNativeLambda Strings.cfStringLast),
-                (("Base", "stringTail"),
-                 CustardNativeLambda Strings.cfStringTail),
-                (("Base", "stringInit"),
-                 CustardNativeLambda Strings.cfStringInit),
-                (("Base", "stringNull"),
-                 CustardNativeLambda Strings.cfStringNull),
-                (("Base", "stringLength"),
-                 CustardNativeLambda Strings.cfStringLength),
+                (("Base.Strings", "stringHead"),
+                 CustardNativeLambda ("Base.Strings", "cfStringHead")
+                                     Strings.cfStringHead),
+                (("Base.Strings", "stringLast"),
+                 CustardNativeLambda ("Base.Strings", "cfStringLast")
+                                     Strings.cfStringLast),
+                (("Base.Strings", "stringTail"),
+                 CustardNativeLambda ("Base.Strings", "cfStringTail")
+                                     Strings.cfStringTail),
+                (("Base.Strings", "stringInit"),
+                 CustardNativeLambda ("Base.Strings", "cfStringInit")
+                                     Strings.cfStringInit),
+                (("Base.Strings", "stringNull"),
+                 CustardNativeLambda ("Base.Strings", "cfStringNull")
+                                     Strings.cfStringNull),
+                (("Base.Strings", "stringLength"),
+                 CustardNativeLambda ("Base.Strings", "cfStringLength")
+                                     Strings.cfStringLength),
                 -- Strings - String transformations
-                (("Base", "stringMap"),
-                 CustardNativeLambda Strings.cfStringMap),
-                (("Base", "stringReverse"),
-                 CustardNativeLambda Strings.cfStringReverse),
-                (("Base", "stringIntersperse"),
-                 CustardNativeLambda Strings.cfStringIntersperse),
-                (("Base", "stringIntercalate"),
-                 CustardNativeLambda Strings.cfStringIntercalate),
-                (("Base", "stringTranspose"),
-                 CustardNativeLambda Strings.cfStringTranspose),
-                (("Base", "stringSubsequences"),
-                 CustardNativeLambda Strings.cfStringSubsequences),
-                (("Base", "stringPermutations"),
-                 CustardNativeLambda Strings.cfStringPermutations),
+                (("Base.Strings", "stringMap"),
+                 CustardNativeLambda ("Base.Strings", "cfStringMap")
+                                     Strings.cfStringMap),
+                (("Base.Strings", "stringReverse"),
+                 CustardNativeLambda ("Base.Strings", "cfStringReverse")
+                                     Strings.cfStringReverse),
+                (("Base.Strings", "stringIntersperse"),
+                 CustardNativeLambda ("Base.Strings", "cfStringIntersperse")
+                                     Strings.cfStringIntersperse),
+                (("Base.Strings", "stringIntercalate"),
+                 CustardNativeLambda ("Base.Strings", "cfStringIntercalate")
+                                     Strings.cfStringIntercalate),
+                (("Base.Strings", "stringTranspose"),
+                 CustardNativeLambda ("Base.Strings", "cfStringTranspose")
+                                     Strings.cfStringTranspose),
+                (("Base.Strings", "stringSubsequences"),
+                 CustardNativeLambda ("Base.Strings", "cfStringSubsequences")
+                                     Strings.cfStringSubsequences),
+                (("Base.Strings", "stringPermutations"),
+                 CustardNativeLambda ("Base.Strings", "cfStringPermutations")
+                                     Strings.cfStringPermutations),
                 -- Strings - Reducing strings (folds)
-                (("Base", "stringFoldl"),
-                 CustardNativeLambda Strings.cfStringFoldl),
-                (("Base", "stringFoldl1"),
-                 CustardNativeLambda Strings.cfStringFoldl1),
-                (("Base", "stringFoldr"),
-                 CustardNativeLambda Strings.cfStringFoldr),
-                (("Base", "stringFoldr1"),
-                 CustardNativeLambda Strings.cfStringFoldr1),
+                (("Base.Strings", "stringFoldl"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFoldl")
+                                     Strings.cfStringFoldl),
+                (("Base.Strings", "stringFoldl1"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFoldl1")
+                                     Strings.cfStringFoldl1),
+                (("Base.Strings", "stringFoldr"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFoldr")
+                                     Strings.cfStringFoldr),
+                (("Base.Strings", "stringFoldr1"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFoldr1")
+                                     Strings.cfStringFoldr1),
                 -- Strings - Reducing strings (folds) - Special folds
-                (("Base", "stringConcat"),
-                 CustardNativeLambda Strings.cfStringConcat),
-                (("Base", "stringConcatMap"),
-                 CustardNativeLambda Strings.cfStringConcatMap),
-                (("Base", "stringAny"),
-                 CustardNativeLambda Strings.cfStringAny),
-                (("Base", "stringAll"),
-                 CustardNativeLambda Strings.cfStringAll),
+                (("Base.Strings", "stringConcat"),
+                 CustardNativeLambda ("Base.Strings", "cfStringConcat")
+                                     Strings.cfStringConcat),
+                (("Base.Strings", "stringConcatMap"),
+                 CustardNativeLambda ("Base.Strings", "cfStringConcatMap")
+                                     Strings.cfStringConcatMap),
+                (("Base.Strings", "stringAny"),
+                 CustardNativeLambda ("Base.Strings", "cfStringAny")
+                                     Strings.cfStringAny),
+                (("Base.Strings", "stringAll"),
+                 CustardNativeLambda ("Base.Strings", "cfStringAll")
+                                     Strings.cfStringAll),
                 -- Strings - Building strings
                 -- Strings - Building strings - Scans
-                (("Base", "stringScanl"),
-                 CustardNativeLambda Strings.cfStringScanl),
-                (("Base", "stringScanl1"),
-                 CustardNativeLambda Strings.cfStringScanl1),
-                (("Base", "stringScanr"),
-                 CustardNativeLambda Strings.cfStringScanr),
-                (("Base", "stringScanr1"),
-                 CustardNativeLambda Strings.cfStringScanr1),
+                (("Base.Strings", "stringScanl"),
+                 CustardNativeLambda ("Base.Strings", "cfStringScanl")
+                                     Strings.cfStringScanl),
+                (("Base.Strings", "stringScanl1"),
+                 CustardNativeLambda ("Base.Strings", "cfStringScanl1")
+                                     Strings.cfStringScanl1),
+                (("Base.Strings", "stringScanr"),
+                 CustardNativeLambda ("Base.Strings", "cfStringScanr")
+                                     Strings.cfStringScanr),
+                (("Base.Strings", "stringScanr1"),
+                 CustardNativeLambda ("Base.Strings", "cfStringScanr1")
+                                     Strings.cfStringScanr1),
                 -- Strings - Building strings - Accumulating maps
-                (("Base", "stringMapAccumL"),
-                 CustardNativeLambda Strings.cfStringMapAccumL),
-                (("Base", "stringMapAccumR"),
-                 CustardNativeLambda Strings.cfStringMapAccumR),
+                (("Base.Strings", "stringMapAccumL"),
+                 CustardNativeLambda ("Base.Strings", "cfStringMapAccumL")
+                                     Strings.cfStringMapAccumL),
+                (("Base.Strings", "stringMapAccumR"),
+                 CustardNativeLambda ("Base.Strings", "cfStringMapAccumR")
+                                     Strings.cfStringMapAccumR),
                 -- Strings - Building strings - Replicate
-                (("Base", "stringReplicate"),
-                 CustardNativeLambda Strings.cfStringReplicate),
+                (("Base.Strings", "stringReplicate"),
+                 CustardNativeLambda ("Base.Strings", "cfStringReplicate")
+                                     Strings.cfStringReplicate),
                 -- Strings - Building strings - Unfolding
-                (("Base", "stringUnfoldr"),
-                 CustardNativeLambda Strings.cfStringUnfoldr),
+                (("Base.Strings", "stringUnfoldr"),
+                 CustardNativeLambda ("Base.Strings", "cfStringUnfoldr")
+                                     Strings.cfStringUnfoldr),
                 -- Strings - Substrings
                 -- Strings - Substrings - Extracting sublists
-                (("Base", "stringTake"),
-                 CustardNativeLambda Strings.cfStringTake),
-                (("Base", "stringDrop"),
-                 CustardNativeLambda Strings.cfStringDrop),
-                (("Base", "stringSplitAt"),
-                 CustardNativeLambda Strings.cfStringSplitAt),
-                (("Base", "stringTakeWhile"),
-                 CustardNativeLambda Strings.cfStringTakeWhile),
-                (("Base", "stringDropWhile"),
-                 CustardNativeLambda Strings.cfStringDropWhile),
-                (("Base", "stringSpan"),
-                 CustardNativeLambda Strings.cfStringSpan),
-                (("Base", "stringBreak"),
-                 CustardNativeLambda Strings.cfStringBreak),
-                (("Base", "stringStripPrefix"),
-                 CustardNativeLambda Strings.cfStringStripPrefix),
-                (("Base", "stringGroup"),
-                 CustardNativeLambda Strings.cfStringGroup),
-                (("Base", "stringInits"),
-                 CustardNativeLambda Strings.cfStringInits),
-                (("Base", "stringTails"),
-                 CustardNativeLambda Strings.cfStringTails),
+                (("Base.Strings", "stringTake"),
+                 CustardNativeLambda ("Base.Strings", "cfStringTake")
+                                     Strings.cfStringTake),
+                (("Base.Strings", "stringDrop"),
+                 CustardNativeLambda ("Base.Strings", "cfStringDrop")
+                                     Strings.cfStringDrop),
+                (("Base.Strings", "stringSplitAt"),
+                 CustardNativeLambda ("Base.Strings", "cfStringSplitAt")
+                                     Strings.cfStringSplitAt),
+                (("Base.Strings", "stringTakeWhile"),
+                 CustardNativeLambda ("Base.Strings", "cfStringTakeWhile")
+                                     Strings.cfStringTakeWhile),
+                (("Base.Strings", "stringDropWhile"),
+                 CustardNativeLambda ("Base.Strings", "cfStringDropWhile")
+                                     Strings.cfStringDropWhile),
+                (("Base.Strings", "stringSpan"),
+                 CustardNativeLambda ("Base.Strings", "cfStringSpan")
+                                     Strings.cfStringSpan),
+                (("Base.Strings", "stringBreak"),
+                 CustardNativeLambda ("Base.Strings", "cfStringBreak")
+                                     Strings.cfStringBreak),
+                (("Base.Strings", "stringStripPrefix"),
+                 CustardNativeLambda ("Base.Strings", "cfStringStripPrefix")
+                                     Strings.cfStringStripPrefix),
+                (("Base.Strings", "stringGroup"),
+                 CustardNativeLambda ("Base.Strings", "cfStringGroup")
+                                     Strings.cfStringGroup),
+                (("Base.Strings", "stringInits"),
+                 CustardNativeLambda ("Base.Strings", "cfStringInits")
+                                     Strings.cfStringInits),
+                (("Base.Strings", "stringTails"),
+                 CustardNativeLambda ("Base.Strings", "cfStringTails")
+                                     Strings.cfStringTails),
                 -- Strings - Substrings - Predicates
-                (("Base", "stringIsPrefixOf"),
-                 CustardNativeLambda Strings.cfStringIsPrefixOf),
-                (("Base", "stringIsSuffixOf"),
-                 CustardNativeLambda Strings.cfStringIsSuffixOf),
-                (("Base", "stringIsInfixOf"),
-                 CustardNativeLambda Strings.cfStringIsInfixOf),
+                (("Base.Strings", "stringIsPrefixOf"),
+                 CustardNativeLambda ("Base.Strings", "cfStringIsPrefixOf")
+                                     Strings.cfStringIsPrefixOf),
+                (("Base.Strings", "stringIsSuffixOf"),
+                 CustardNativeLambda ("Base.Strings", "cfStringIsSuffixOf")
+                                     Strings.cfStringIsSuffixOf),
+                (("Base.Strings", "stringIsInfixOf"),
+                 CustardNativeLambda ("Base.Strings", "cfStringIsInfixOf")
+                                     Strings.cfStringIsInfixOf),
                 -- Strings - Searching strings
                 -- Strings - Searching strings - Searching by equality
-                (("Base", "stringElem"),
-                 CustardNativeLambda Strings.cfStringElem),
-                (("Base", "stringNotElem"),
-                 CustardNativeLambda Strings.cfStringNotElem),
-                (("Base", "stringLookup"),
-                 CustardNativeLambda Strings.cfStringLookup),
+                (("Base.Strings", "stringElem"),
+                 CustardNativeLambda ("Base.Strings", "cfStringElem")
+                                     Strings.cfStringElem),
+                (("Base.Strings", "stringNotElem"),
+                 CustardNativeLambda ("Base.Strings", "cfStringNotElem")
+                                     Strings.cfStringNotElem),
+                (("Base.Strings", "stringLookup"),
+                 CustardNativeLambda ("Base.Strings", "cfStringLookup")
+                                     Strings.cfStringLookup),
                 -- Strings - Searching strings - Searching with a predicate
-                (("Base", "stringFind"),
-                 CustardNativeLambda Strings.cfStringFind),
-                (("Base", "stringFilter"),
-                 CustardNativeLambda Strings.cfStringFilter),
-                (("Base", "stringPartition"),
-                 CustardNativeLambda Strings.cfStringPartition),
+                (("Base.Strings", "stringFind"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFind")
+                                     Strings.cfStringFind),
+                (("Base.Strings", "stringFilter"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFilter")
+                                     Strings.cfStringFilter),
+                (("Base.Strings", "stringPartition"),
+                 CustardNativeLambda ("Base.Strings", "cfStringPartition")
+                                     Strings.cfStringPartition),
                 -- Strings - Indexing strings
-                (("Base", "stringNth"),
-                 CustardNativeLambda Strings.cfStringNth),
-                (("Base", "stringElemIndex"),
-                 CustardNativeLambda Strings.cfStringElemIndex),
-                (("Base", "stringElemIndices"),
-                 CustardNativeLambda Strings.cfStringElemIndices),
-                (("Base", "stringFindIndex"),
-                 CustardNativeLambda Strings.cfStringFindIndex),
-                (("Base", "stringFindIndices"),
-                 CustardNativeLambda Strings.cfStringFindIndices),
+                (("Base.Strings", "stringNth"),
+                 CustardNativeLambda ("Base.Strings", "cfStringNth")
+                                     Strings.cfStringNth),
+                (("Base.Strings", "stringElemIndex"),
+                 CustardNativeLambda ("Base.Strings", "cfStringElemIndex")
+                                     Strings.cfStringElemIndex),
+                (("Base.Strings", "stringElemIndices"),
+                 CustardNativeLambda ("Base.Strings", "cfStringElemIndices")
+                                     Strings.cfStringElemIndices),
+                (("Base.Strings", "stringFindIndex"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFindIndex")
+                                     Strings.cfStringFindIndex),
+                (("Base.Strings", "stringFindIndices"),
+                 CustardNativeLambda ("Base.Strings", "cfStringFindIndices")
+                                     Strings.cfStringFindIndices),
                 -- Strings - Text operations
-                (("Base", "stringLines"),
-                 CustardNativeLambda Strings.cfStringLines),
-                (("Base", "stringWords"),
-                 CustardNativeLambda Strings.cfStringWords),
-                (("Base", "stringUnlines"),
-                 CustardNativeLambda Strings.cfStringUnlines),
-                (("Base", "stringUnwords"),
-                 CustardNativeLambda Strings.cfStringUnwords),
+                (("Base.Strings", "stringLines"),
+                 CustardNativeLambda ("Base.Strings", "cfStringLines")
+                                     Strings.cfStringLines),
+                (("Base.Strings", "stringWords"),
+                 CustardNativeLambda ("Base.Strings", "cfStringWords")
+                                     Strings.cfStringWords),
+                (("Base.Strings", "stringUnlines"),
+                 CustardNativeLambda ("Base.Strings", "cfStringUnlines")
+                                     Strings.cfStringUnlines),
+                (("Base.Strings", "stringUnwords"),
+                 CustardNativeLambda ("Base.Strings", "cfStringUnwords")
+                                     Strings.cfStringUnwords),
                 
                 -- Maps
                 -- Maps - Query
-                (("Base", "mapNull"),
-                 CustardNativeLambda Maps.cfMapNull),
-                (("Base", "mapSize"),
-                 CustardNativeLambda Maps.cfMapSize),
-                (("Base", "mapMember"),
-                 CustardNativeLambda Maps.cfMapMember),
-                (("Base", "mapNotMember"),
-                 CustardNativeLambda Maps.cfMapNotMember),
-                (("Base", "mapLookup"),
-                 CustardNativeLambda Maps.cfMapLookup),
-                (("Base", "mapFindWithDefault"),
-                 CustardNativeLambda Maps.cfMapFindWithDefault),
+                (("Base.Maps", "mapNull"),
+                 CustardNativeLambda ("Base.Maps", "cfMapNull")
+                                     Maps.cfMapNull),
+                (("Base.Maps", "mapSize"),
+                 CustardNativeLambda ("Base.Maps", "cfMapSize")
+                                     Maps.cfMapSize),
+                (("Base.Maps", "mapMember"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMember")
+                                     Maps.cfMapMember),
+                (("Base.Maps", "mapNotMember"),
+                 CustardNativeLambda ("Base.Maps", "cfMapNotMember")
+                                     Maps.cfMapNotMember),
+                (("Base.Maps", "mapLookup"),
+                 CustardNativeLambda ("Base.Maps", "cfMapLookup")
+                                     Maps.cfMapLookup),
+                (("Base.Maps", "mapFindWithDefault"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFindWithDefault")
+                                     Maps.cfMapFindWithDefault),
                 -- Maps - Construction
-                (("Base", "makeEmptyMap"),
-                 CustardNativeLambda Maps.cfMakeEmptyMap),
-                (("Base", "makeSingletonMap"),
-                 CustardNativeLambda Maps.cfMakeSingletonMap),
+                (("Base.Maps", "makeEmptyMap"),
+                 CustardNativeLambda ("Base.Maps", "cfMakeEmptyMap")
+                                     Maps.cfMakeEmptyMap),
+                (("Base.Maps", "makeSingletonMap"),
+                 CustardNativeLambda ("Base.Maps", "cfMakeSingletonMap")
+                                     Maps.cfMakeSingletonMap),
                 -- Maps - Construction - Insertion
-                (("Base", "mapInsert"),
-                 CustardNativeLambda Maps.cfMapInsert),
-                (("Base", "mapInsertWith"),
-                 CustardNativeLambda Maps.cfMapInsertWith),
-                (("Base", "mapInsertWithKey"),
-                 CustardNativeLambda Maps.cfMapInsertWithKey),
-                (("Base", "mapInsertLookupWithKey"),
-                 CustardNativeLambda Maps.cfMapInsertLookupWithKey),
+                (("Base.Maps", "mapInsert"),
+                 CustardNativeLambda ("Base.Maps", "cfMapInsert")
+                                     Maps.cfMapInsert),
+                (("Base.Maps", "mapInsertWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapInsertWith")
+                                     Maps.cfMapInsertWith),
+                (("Base.Maps", "mapInsertWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapInsertWithKey")
+                                     Maps.cfMapInsertWithKey),
+                (("Base.Maps", "mapInsertLookupWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapInsertLookupWithKey")
+                                     Maps.cfMapInsertLookupWithKey),
                 -- Maps - Construction - Delete/Update
-                (("Base", "mapDelete"),
-                 CustardNativeLambda Maps.cfMapDelete),
-                (("Base", "mapAdjust"),
-                 CustardNativeLambda Maps.cfMapAdjust),
-                (("Base", "mapAdjustWithKey"),
-                 CustardNativeLambda Maps.cfMapAdjustWithKey),
-                (("Base", "mapUpdate"),
-                 CustardNativeLambda Maps.cfMapUpdate),
-                (("Base", "mapUpdateWithKey"),
-                 CustardNativeLambda Maps.cfMapUpdateWithKey),
-                (("Base", "mapUpdateLookupWithKey"),
-                 CustardNativeLambda Maps.cfMapUpdateLookupWithKey),
-                (("Base", "mapAlter"),
-                 CustardNativeLambda Maps.cfMapAlter),
+                (("Base.Maps", "mapDelete"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDelete")
+                                     Maps.cfMapDelete),
+                (("Base.Maps", "mapAdjust"),
+                 CustardNativeLambda ("Base.Maps", "cfMapAdjust")
+                                     Maps.cfMapAdjust),
+                (("Base.Maps", "mapAdjustWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapAdjustWithKey")
+                                     Maps.cfMapAdjustWithKey),
+                (("Base.Maps", "mapUpdate"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdate")
+                                     Maps.cfMapUpdate),
+                (("Base.Maps", "mapUpdateWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateWithKey")
+                                     Maps.cfMapUpdateWithKey),
+                (("Base.Maps", "mapUpdateLookupWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateLookupWithKey")
+                                     Maps.cfMapUpdateLookupWithKey),
+                (("Base.Maps", "mapAlter"),
+                 CustardNativeLambda ("Base.Maps", "cfMapAlter")
+                                     Maps.cfMapAlter),
                 -- Maps - Combine
                 -- Maps - Combine - Union
-                (("Base", "mapUnion"),
-                 CustardNativeLambda Maps.cfMapUnion),
-                (("Base", "mapUnionWith"),
-                 CustardNativeLambda Maps.cfMapUnionWith),
-                (("Base", "mapUnionWithKey"),
-                 CustardNativeLambda Maps.cfMapUnionWithKey),
-                (("Base", "mapUnions"),
-                 CustardNativeLambda Maps.cfMapUnions),
-                (("Base", "mapUnionsWith"),
-                 CustardNativeLambda Maps.cfMapUnionsWith),
+                (("Base.Maps", "mapUnion"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUnion")
+                                     Maps.cfMapUnion),
+                (("Base.Maps", "mapUnionWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUnionWith")
+                                     Maps.cfMapUnionWith),
+                (("Base.Maps", "mapUnionWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUnionWithKey")
+                                     Maps.cfMapUnionWithKey),
+                (("Base.Maps", "mapUnions"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUnions")
+                                     Maps.cfMapUnions),
+                (("Base.Maps", "mapUnionsWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUnionsWith")
+                                     Maps.cfMapUnionsWith),
                 -- Maps - Combine - Difference
-                (("Base", "mapDifference"),
-                 CustardNativeLambda Maps.cfMapDifference),
-                (("Base", "mapDifferenceWith"),
-                 CustardNativeLambda Maps.cfMapDifferenceWith),
-                (("Base", "mapDifferenceWithKey"),
-                 CustardNativeLambda Maps.cfMapDifferenceWithKey),
+                (("Base.Maps", "mapDifference"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDifference")
+                                     Maps.cfMapDifference),
+                (("Base.Maps", "mapDifferenceWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDifferenceWith")
+                                     Maps.cfMapDifferenceWith),
+                (("Base.Maps", "mapDifferenceWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDifferenceWithKey")
+                                     Maps.cfMapDifferenceWithKey),
                 -- Maps - Combine - Intersection
-                (("Base", "mapIntersection"),
-                 CustardNativeLambda Maps.cfMapIntersection),
-                (("Base", "mapIntersectionWith"),
-                 CustardNativeLambda Maps.cfMapIntersectionWith),
-                (("Base", "mapIntersectionWithKey"),
-                 CustardNativeLambda Maps.cfMapIntersectionWithKey),
+                (("Base.Maps", "mapIntersection"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIntersection")
+                                     Maps.cfMapIntersection),
+                (("Base.Maps", "mapIntersectionWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIntersectionWith")
+                                     Maps.cfMapIntersectionWith),
+                (("Base.Maps", "mapIntersectionWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIntersectionWithKey")
+                                     Maps.cfMapIntersectionWithKey),
                 -- Maps - Traversal
                 -- Maps - Traversal - Map
-                (("Base", "mapMap"),
-                 CustardNativeLambda Maps.cfMapMap),
-                (("Base", "mapMapWithKey"),
-                 CustardNativeLambda Maps.cfMapMapWithKey),
-                (("Base", "mapMapAccum"),
-                 CustardNativeLambda Maps.cfMapMapAccum),
-                (("Base", "mapMapAccumWithKey"),
-                 CustardNativeLambda Maps.cfMapMapAccumWithKey),
-                (("Base", "mapMapAccumRWithKey"),
-                 CustardNativeLambda Maps.cfMapMapAccumRWithKey),
-                (("Base", "mapMapKeys"),
-                 CustardNativeLambda Maps.cfMapMapKeys),
-                (("Base", "mapMapKeysWith"),
-                 CustardNativeLambda Maps.cfMapMapKeysWith),
-                (("Base", "mapMapKeysMonotonic"),
-                 CustardNativeLambda Maps.cfMapMapKeysMonotonic),
+                (("Base.Maps", "mapMap"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMap")
+                                     Maps.cfMapMap),
+                (("Base.Maps", "mapMapWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapWithKey")
+                                     Maps.cfMapMapWithKey),
+                (("Base.Maps", "mapMapAccum"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapAccum")
+                                     Maps.cfMapMapAccum),
+                (("Base.Maps", "mapMapAccumWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapAccumWithKey")
+                                     Maps.cfMapMapAccumWithKey),
+                (("Base.Maps", "mapMapAccumRWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapAccumRWithKey")
+                                     Maps.cfMapMapAccumRWithKey),
+                (("Base.Maps", "mapMapKeys"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapKeys")
+                                     Maps.cfMapMapKeys),
+                (("Base.Maps", "mapMapKeysWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapKeysWith")
+                                     Maps.cfMapMapKeysWith),
+                (("Base.Maps", "mapMapKeysMonotonic"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMapKeysMonotonic")
+                                     Maps.cfMapMapKeysMonotonic),
                 -- Maps - Traversal - Fold
-                (("Base", "mapFold"),
-                 CustardNativeLambda Maps.cfMapFold),
-                (("Base", "mapFoldWithKey"),
-                 CustardNativeLambda Maps.cfMapFoldWithKey),
-                (("Base", "mapFoldrWithKey"),
-                 CustardNativeLambda Maps.cfMapFoldrWithKey),
-                (("Base", "mapFoldlWithKey"),
-                 CustardNativeLambda Maps.cfMapFoldlWithKey),
+                (("Base.Maps", "mapFold"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFold")
+                                     Maps.cfMapFold),
+                (("Base.Maps", "mapFoldWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFoldWithKey")
+                                     Maps.cfMapFoldWithKey),
+                (("Base.Maps", "mapFoldrWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFoldrWithKey")
+                                     Maps.cfMapFoldrWithKey),
+                (("Base.Maps", "mapFoldlWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFoldlWithKey")
+                                     Maps.cfMapFoldlWithKey),
                 -- Maps - Conversion
-                (("Base", "mapElems"),
-                 CustardNativeLambda Maps.cfMapElems),
-                (("Base", "mapKeys"),
-                 CustardNativeLambda Maps.cfMapKeys),
-                (("Base", "mapKeysSet"),
-                 CustardNativeLambda Maps.cfMapKeysSet),
-                (("Base", "mapAssocs"),
-                 CustardNativeLambda Maps.cfMapAssocs),
+                (("Base.Maps", "mapElems"),
+                 CustardNativeLambda ("Base.Maps", "cfMapElems")
+                                     Maps.cfMapElems),
+                (("Base.Maps", "mapKeys"),
+                 CustardNativeLambda ("Base.Maps", "cfMapKeys")
+                                     Maps.cfMapKeys),
+                (("Base.Maps", "mapKeysSet"),
+                 CustardNativeLambda ("Base.Maps", "cfMapKeysSet")
+                                     Maps.cfMapKeysSet),
+                (("Base.Maps", "mapAssocs"),
+                 CustardNativeLambda ("Base.Maps", "cfMapAssocs")
+                                     Maps.cfMapAssocs),
                 -- Maps - Conversion - Lists
-                (("Base", "mapToList"),
-                 CustardNativeLambda Maps.cfMapToList),
-                (("Base", "mapFromList"),
-                 CustardNativeLambda Maps.cfMapFromList),
-                (("Base", "mapFromListWith"),
-                 CustardNativeLambda Maps.cfMapFromListWith),
-                (("Base", "mapFromListWithKey"),
-                 CustardNativeLambda Maps.cfMapFromListWithKey),
+                (("Base.Maps", "mapToList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapToList")
+                                     Maps.cfMapToList),
+                (("Base.Maps", "mapFromList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromList")
+                                     Maps.cfMapFromList),
+                (("Base.Maps", "mapFromListWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromListWith")
+                                     Maps.cfMapFromListWith),
+                (("Base.Maps", "mapFromListWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromListWithKey")
+                                     Maps.cfMapFromListWithKey),
                 -- Maps - Conversion - Ordered lists
-                (("Base", "mapToAscList"),
-                 CustardNativeLambda Maps.cfMapToAscList),
-                (("Base", "mapToDescList"),
-                 CustardNativeLambda Maps.cfMapToDescList),
-                (("Base", "mapFromAscList"),
-                 CustardNativeLambda Maps.cfMapFromAscList),
-                (("Base", "mapFromAscListWith"),
-                 CustardNativeLambda Maps.cfMapFromAscListWith),
-                (("Base", "mapFromAscListWithKey"),
-                 CustardNativeLambda Maps.cfMapFromAscListWithKey),
-                (("Base", "mapFromDistinctAscList"),
-                 CustardNativeLambda Maps.cfMapFromDistinctAscList),
+                (("Base.Maps", "mapToAscList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapToAscList")
+                                     Maps.cfMapToAscList),
+                (("Base.Maps", "mapToDescList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapToDescList")
+                                     Maps.cfMapToDescList),
+                (("Base.Maps", "mapFromAscList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromAscList")
+                                     Maps.cfMapFromAscList),
+                (("Base.Maps", "mapFromAscListWith"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromAscListWith")
+                                     Maps.cfMapFromAscListWith),
+                (("Base.Maps", "mapFromAscListWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromAscListWithKey")
+                                     Maps.cfMapFromAscListWithKey),
+                (("Base.Maps", "mapFromDistinctAscList"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFromDistinctAscList")
+                                     Maps.cfMapFromDistinctAscList),
                 -- Maps - Filter
-                (("Base", "mapFilter"),
-                 CustardNativeLambda Maps.cfMapFilter),
-                (("Base", "mapFilterWithKey"),
-                 CustardNativeLambda Maps.cfMapFilterWithKey),
-                (("Base", "mapPartition"),
-                 CustardNativeLambda Maps.cfMapPartition),
-                (("Base", "mapPartitionWithKey"),
-                 CustardNativeLambda Maps.cfMapPartitionWithKey),
-                (("Base", "mapMaybe"),
-                 CustardNativeLambda Maps.cfMapMaybe),
-                (("Base", "mapMaybeWithKey"),
-                 CustardNativeLambda Maps.cfMapMaybeWithKey),
-                (("Base", "mapEither"),
-                 CustardNativeLambda Maps.cfMapEither),
-                (("Base", "mapEitherWithKey"),
-                 CustardNativeLambda Maps.cfMapEitherWithKey),
-                (("Base", "mapSplit"),
-                 CustardNativeLambda Maps.cfMapSplit),
-                (("Base", "mapSplitLookup"),
-                 CustardNativeLambda Maps.cfMapSplitLookup),
+                (("Base.Maps", "mapFilter"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFilter")
+                                     Maps.cfMapFilter),
+                (("Base.Maps", "mapFilterWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFilterWithKey")
+                                     Maps.cfMapFilterWithKey),
+                (("Base.Maps", "mapPartition"),
+                 CustardNativeLambda ("Base.Maps", "cfMapPartition")
+                                     Maps.cfMapPartition),
+                (("Base.Maps", "mapPartitionWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapPartitionWithKey")
+                                     Maps.cfMapPartitionWithKey),
+                (("Base.Maps", "mapMaybe"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMaybe")
+                                     Maps.cfMapMaybe),
+                (("Base.Maps", "mapMaybeWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMaybeWithKey")
+                                     Maps.cfMapMaybeWithKey),
+                (("Base.Maps", "mapEither"),
+                 CustardNativeLambda ("Base.Maps", "cfMapEither")
+                                     Maps.cfMapEither),
+                (("Base.Maps", "mapEitherWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapEitherWithKey")
+                                     Maps.cfMapEitherWithKey),
+                (("Base.Maps", "mapSplit"),
+                 CustardNativeLambda ("Base.Maps", "cfMapSplit")
+                                     Maps.cfMapSplit),
+                (("Base.Maps", "mapSplitLookup"),
+                 CustardNativeLambda ("Base.Maps", "cfMapSplitLookup")
+                                     Maps.cfMapSplitLookup),
                 -- Maps - Submap
-                (("Base", "mapIsSubmapOf"),
-                 CustardNativeLambda Maps.cfMapIsSubmapOf),
-                (("Base", "mapIsSubmapOfBy"),
-                 CustardNativeLambda Maps.cfMapIsSubmapOfBy),
-                (("Base", "mapIsProperSubmapOf"),
-                 CustardNativeLambda Maps.cfMapIsProperSubmapOf),
-                (("Base", "mapIsProperSubmapOfBy"),
-                 CustardNativeLambda Maps.cfMapIsProperSubmapOfBy),
+                (("Base.Maps", "mapIsSubmapOf"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIsSubmapOf")
+                                     Maps.cfMapIsSubmapOf),
+                (("Base.Maps", "mapIsSubmapOfBy"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIsSubmapOfBy")
+                                     Maps.cfMapIsSubmapOfBy),
+                (("Base.Maps", "mapIsProperSubmapOf"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIsProperSubmapOf")
+                                     Maps.cfMapIsProperSubmapOf),
+                (("Base.Maps", "mapIsProperSubmapOfBy"),
+                 CustardNativeLambda ("Base.Maps", "cfMapIsProperSubmapOfBy")
+                                     Maps.cfMapIsProperSubmapOfBy),
                 -- Maps - Indexed
-                (("Base", "mapLookupIndex"),
-                 CustardNativeLambda Maps.cfMapLookupIndex),
-                (("Base", "mapFindIndex"),
-                 CustardNativeLambda Maps.cfMapFindIndex),
-                (("Base", "mapElemAt"),
-                 CustardNativeLambda Maps.cfMapElemAt),
-                (("Base", "mapUpdateAt"),
-                 CustardNativeLambda Maps.cfMapUpdateAt),
-                (("Base", "mapDeleteAt"),
-                 CustardNativeLambda Maps.cfMapDeleteAt),
+                (("Base.Maps", "mapLookupIndex"),
+                 CustardNativeLambda ("Base.Maps", "cfMapLookupIndex")
+                                     Maps.cfMapLookupIndex),
+                (("Base.Maps", "mapFindIndex"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFindIndex")
+                                     Maps.cfMapFindIndex),
+                (("Base.Maps", "mapElemAt"),
+                 CustardNativeLambda ("Base.Maps", "cfMapElemAt")
+                                     Maps.cfMapElemAt),
+                (("Base.Maps", "mapUpdateAt"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateAt")
+                                     Maps.cfMapUpdateAt),
+                (("Base.Maps", "mapDeleteAt"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDeleteAt")
+                                     Maps.cfMapDeleteAt),
                 -- Maps - Min/Max
-                (("Base", "mapFindMin"),
-                 CustardNativeLambda Maps.cfMapFindMin),
-                (("Base", "mapFindMax"),
-                 CustardNativeLambda Maps.cfMapFindMax),
-                (("Base", "mapDeleteMin"),
-                 CustardNativeLambda Maps.cfMapDeleteMin),
-                (("Base", "mapDeleteMax"),
-                 CustardNativeLambda Maps.cfMapDeleteMax),
-                (("Base", "mapDeleteFindMin"),
-                 CustardNativeLambda Maps.cfMapDeleteFindMin),
-                (("Base", "mapDeleteFindMax"),
-                 CustardNativeLambda Maps.cfMapDeleteFindMax),
-                (("Base", "mapUpdateMin"),
-                 CustardNativeLambda Maps.cfMapUpdateMin),
-                (("Base", "mapUpdateMax"),
-                 CustardNativeLambda Maps.cfMapUpdateMax),
-                (("Base", "mapUpdateMinWithKey"),
-                 CustardNativeLambda Maps.cfMapUpdateMinWithKey),
-                (("Base", "mapUpdateMaxWithKey"),
-                 CustardNativeLambda Maps.cfMapUpdateMaxWithKey),
-                (("Base", "mapMinView"),
-                 CustardNativeLambda Maps.cfMapMinView),
-                (("Base", "mapMaxView"),
-                 CustardNativeLambda Maps.cfMapMaxView),
-                (("Base", "mapMinViewWithKey"),
-                 CustardNativeLambda Maps.cfMapMinViewWithKey),
-                (("Base", "mapMaxViewWithKey"),
-                 CustardNativeLambda Maps.cfMapMaxViewWithKey)
+                (("Base.Maps", "mapFindMin"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFindMin")
+                                     Maps.cfMapFindMin),
+                (("Base.Maps", "mapFindMax"),
+                 CustardNativeLambda ("Base.Maps", "cfMapFindMax")
+                                     Maps.cfMapFindMax),
+                (("Base.Maps", "mapDeleteMin"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDeleteMin")
+                                     Maps.cfMapDeleteMin),
+                (("Base.Maps", "mapDeleteMax"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDeleteMax")
+                                     Maps.cfMapDeleteMax),
+                (("Base.Maps", "mapDeleteFindMin"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDeleteFindMin")
+                                     Maps.cfMapDeleteFindMin),
+                (("Base.Maps", "mapDeleteFindMax"),
+                 CustardNativeLambda ("Base.Maps", "cfMapDeleteFindMax")
+                                     Maps.cfMapDeleteFindMax),
+                (("Base.Maps", "mapUpdateMin"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateMin")
+                                     Maps.cfMapUpdateMin),
+                (("Base.Maps", "mapUpdateMax"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateMax")
+                                     Maps.cfMapUpdateMax),
+                (("Base.Maps", "mapUpdateMinWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateMinWithKey")
+                                     Maps.cfMapUpdateMinWithKey),
+                (("Base.Maps", "mapUpdateMaxWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapUpdateMaxWithKey")
+                                     Maps.cfMapUpdateMaxWithKey),
+                (("Base.Maps", "mapMinView"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMinView")
+                                     Maps.cfMapMinView),
+                (("Base.Maps", "mapMaxView"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMaxView")
+                                     Maps.cfMapMaxView),
+                (("Base.Maps", "mapMinViewWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMinViewWithKey")
+                                     Maps.cfMapMinViewWithKey),
+                (("Base.Maps", "mapMaxViewWithKey"),
+                 CustardNativeLambda ("Base.Maps", "cfMapMaxViewWithKey")
+                                     Maps.cfMapMaxViewWithKey)
                ]
