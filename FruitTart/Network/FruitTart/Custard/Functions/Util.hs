@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module Network.FruitTart.Custard.Functions.Util
   (
+   valueToSymbol,
    valueToBoolean,
    valueToInteger,
    valueToCharacter,
@@ -43,6 +44,12 @@ import qualified Network.FastCGI as FCGI
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Types
 import Network.FruitTart.Util
+
+
+valueToSymbol :: CustardValue -> FruitTart (String, String)
+valueToSymbol (CustardSymbol moduleName properName)
+  = return (moduleName, properName)
+valueToSymbol value = error $ "Value is not a Symbol."
 
 
 valueToBoolean :: CustardValue -> FruitTart Bool

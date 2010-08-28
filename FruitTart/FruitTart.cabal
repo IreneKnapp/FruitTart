@@ -30,12 +30,14 @@ Executable FruitTart
                  Network.FruitTart.Custard.Syntax,
                  Network.FruitTart.Custard.Functions.Util,
                  Network.FruitTart.Custard.Functions.General,
+                 Network.FruitTart.Custard.Functions.Symbols,
                  Network.FruitTart.Custard.Functions.HTTP,
                  Network.FruitTart.Custard.Functions.Forms,
                  Network.FruitTart.Custard.Functions.Sessions,
                  Network.FruitTart.Custard.Functions.Captchas,
                  Network.FruitTart.Custard.Functions.Lists,
-                 Network.FruitTart.Custard.Functions.Strings
+                 Network.FruitTart.Custard.Functions.Strings,
+                 Network.FruitTart.Custard.Functions.Maps
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,
