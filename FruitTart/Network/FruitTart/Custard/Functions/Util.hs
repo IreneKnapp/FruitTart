@@ -4,10 +4,13 @@ module Network.FruitTart.Custard.Functions.Util
    valueToSymbol,
    valueToBoolean,
    valueToInteger,
+   valueToWord8,
    valueToCharacter,
    valueToString,
+   valueToListOfWord8s,
    valueToListOfStrings,
    valueToListOfMaps,
+   valueToListOfByteStrings,
    valueToMaybeString,
    valueToMaybeInteger,
    valueToMap,
@@ -18,7 +21,9 @@ module Network.FruitTart.Custard.Functions.Util
    errorNotAList,
    errorNotAListOfBooleans,
    errorNotAListOfIntegers,
+   errorNotAListOfWord8s,
    errorNotAListOfStrings,
+   errorNotAListOfByteStrings,
    errorNotAListOfLists,
    errorNotAListOfIntegersOrCharacters,
    errorListEmpty,
@@ -37,6 +42,7 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Word
 import Prelude hiding (catch)
 
 import qualified Network.FastCGI as FCGI
@@ -62,6 +68,14 @@ valueToInteger (CustardInteger integer) = return integer
 valueToInteger value = error $ "Value is not an Integer."
 
 
+valueToWord8 :: CustardValue -> FruitTart Word8
+valueToWord8 (CustardInteger integer)
+  | (integer >= fromIntegral (minBound :: Word8))
+    && (integer <= fromIntegral (maxBound :: Word8))
+    = return $ fromIntegral integer
+valueToWord8 value = error $ "Value is not an unsigned 8-bit Integer."
+
+
 valueToCharacter :: CustardValue -> FruitTart Char
 valueToCharacter (CustardCharacter char) = return char
 valueToCharacter value = error $ "Value is not a Character."
@@ -70,6 +84,18 @@ valueToCharacter value = error $ "Value is not a Character."
 valueToString :: CustardValue -> FruitTart String
 valueToString (CustardString string) = return string
 valueToString value = error $ "Value is not a String."
+
+
+valueToListOfWord8s :: CustardValue -> FruitTart [Word8]
+valueToListOfWord8s (CustardList []) = return []
+valueToListOfWord8s (CustardList items@(CustardInteger _ : _)) = do
+  mapM (\(CustardInteger integer) -> do
+          if (integer < fromIntegral (minBound :: Word8))
+             || (integer > fromIntegral (maxBound :: Word8))
+            then errorNotAListOfWord8s
+            else return $ fromIntegral integer)
+       items
+valueToListOfWord8s value = errorNotAListOfWord8s
 
 
 valueToListOfStrings :: CustardValue
@@ -87,6 +113,14 @@ valueToListOfMaps (CustardList maps@(CustardMap _ : _))
   = return $ map (\(CustardMap map) -> map)
                  maps
 valueToListOfMaps value = error $ "Value is not a List of Maps."
+
+
+valueToListOfByteStrings :: CustardValue
+                         -> FruitTart [ByteString]
+valueToListOfByteStrings (CustardList []) = return []
+valueToListOfByteStrings (CustardList items@(CustardData _ : _)) =
+  mapM (\(CustardData bytestring) -> return bytestring) items
+valueToListOfByteStrings value = errorNotAListOfByteStrings
 
 
 valueToMaybeString :: CustardValue -> FruitTart (Maybe String)
@@ -207,8 +241,17 @@ errorNotAListOfIntegers :: FruitTart a
 errorNotAListOfIntegers = error $ "Value is not a List of Integers."
 
 
+errorNotAListOfWord8s :: FruitTart a
+errorNotAListOfWord8s
+  = error $ "Value is not a List of unsigned 8-bit Integers."
+
+
 errorNotAListOfStrings :: FruitTart a
 errorNotAListOfStrings = error $ "Value is not a List of Strings."
+
+
+errorNotAListOfByteStrings :: FruitTart a
+errorNotAListOfByteStrings = error $ "Value is not a List of Data."
 
 
 errorNotAListOfLists :: FruitTart a
