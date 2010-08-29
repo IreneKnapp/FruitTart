@@ -760,6 +760,7 @@ convertQueryValue (CustardMaybe (Just (CustardString string)))
   = return $ SQLText string
 convertQueryValue (CustardInteger integer) = return $ SQLInteger integer
 convertQueryValue (CustardString string) = return $ SQLText string
+convertQueryValue (CustardData bytestring) = return $ SQLBlob bytestring
 convertQueryValue _ = error "Invalid type for query parameter."
 
 
