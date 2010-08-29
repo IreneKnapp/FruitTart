@@ -30,6 +30,7 @@ import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
 import qualified Network.FruitTart.Custard.Functions.Strings as Strings
 import qualified Network.FruitTart.Custard.Functions.Maps as Maps
+import qualified Network.FruitTart.Custard.Functions.Data as Data
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 
@@ -1957,5 +1958,299 @@ builtinBindings = Map.fromList
                                      Maps.cfMapMinViewWithKey),
                 (("Base.Maps", "mapMaxViewWithKey"),
                  CustardNativeLambda ("Base.Maps", "mapMaxViewWithKey")
-                                     Maps.cfMapMaxViewWithKey)
+                                     Maps.cfMapMaxViewWithKey),
+                
+                -- Data
+                -- Data - Introducing and eliminating data
+                (("Base.Data", "makeEmptyData"),
+                 CustardNativeLambda ("Base.Data", "makeEmptyData")
+                                     Data.cfMakeEmptyData),
+                (("Base.Data", "makeSingletonData"),
+                 CustardNativeLambda ("Base.Data", "makeSingletonData")
+                                     Data.cfMakeSingletonData),
+                (("Base.Data", "dataPack"),
+                 CustardNativeLambda ("Base.Data", "dataPack")
+                                     Data.cfDataPack),
+                (("Base.Data", "dataUnpack"),
+                 CustardNativeLambda ("Base.Data", "dataUnpack")
+                                     Data.cfDataUnpack),
+                -- Data - Basic interface
+                (("Base.Data", "dataCons"),
+                 CustardNativeLambda ("Base.Data", "dataCons")
+                                     Data.cfDataCons),
+                (("Base.Data", "dataSnoc"),
+                 CustardNativeLambda ("Base.Data", "dataSnoc")
+                                     Data.cfDataSnoc),
+                (("Base.Data", "dataAppend"),
+                 CustardNativeLambda ("Base.Data", "dataAppend")
+                                     Data.cfDataAppend),
+                (("Base.Data", "dataHead"),
+                 CustardNativeLambda ("Base.Data", "dataHead")
+                                     Data.cfDataHead),
+                (("Base.Data", "dataUncons"),
+                 CustardNativeLambda ("Base.Data", "dataUncons")
+                                     Data.cfDataUncons),
+                (("Base.Data", "dataLast"),
+                 CustardNativeLambda ("Base.Data", "dataLast")
+                                     Data.cfDataLast),
+                (("Base.Data", "dataTail"),
+                 CustardNativeLambda ("Base.Data", "dataTail")
+                                     Data.cfDataTail),
+                (("Base.Data", "dataInit"),
+                 CustardNativeLambda ("Base.Data", "dataInit")
+                                     Data.cfDataInit),
+                (("Base.Data", "dataNull"),
+                 CustardNativeLambda ("Base.Data", "dataNull")
+                                     Data.cfDataNull),
+                (("Base.Data", "dataLength"),
+                 CustardNativeLambda ("Base.Data", "dataLength")
+                                     Data.cfDataLength),
+                -- Data - Transforming data
+                (("Base.Data", "dataMap"),
+                 CustardNativeLambda ("Base.Data", "dataMap")
+                                     Data.cfDataMap),
+                (("Base.Data", "dataReverse"),
+                 CustardNativeLambda ("Base.Data", "dataReverse")
+                                     Data.cfDataReverse),
+                (("Base.Data", "dataIntersperse"),
+                 CustardNativeLambda ("Base.Data", "dataIntersperse")
+                                     Data.cfDataIntersperse),
+                (("Base.Data", "dataIntercalate"),
+                 CustardNativeLambda ("Base.Data", "dataIntercalate")
+                                     Data.cfDataIntercalate),
+                (("Base.Data", "dataTranspose"),
+                 CustardNativeLambda ("Base.Data", "dataTranspose")
+                                     Data.cfDataTranspose),
+                -- Data - Reducing data (folds)
+                (("Base.Data", "dataFoldl"),
+                 CustardNativeLambda ("Base.Data", "dataFoldl")
+                                     Data.cfDataFoldl),
+                (("Base.Data", "dataFoldl1"),
+                 CustardNativeLambda ("Base.Data", "dataFoldl1")
+                                     Data.cfDataFoldl1),
+                (("Base.Data", "dataFoldr"),
+                 CustardNativeLambda ("Base.Data", "dataFoldr")
+                                     Data.cfDataFoldr),
+                (("Base.Data", "dataFoldr1"),
+                 CustardNativeLambda ("Base.Data", "dataFoldr1")
+                                     Data.cfDataFoldr1),
+                -- Data - Reducing data (folds) - Special folds
+                (("Base.Data", "dataConcat"),
+                 CustardNativeLambda ("Base.Data", "dataConcat")
+                                     Data.cfDataConcat),
+                (("Base.Data", "dataConcatMap"),
+                 CustardNativeLambda ("Base.Data", "dataConcatMap")
+                                     Data.cfDataConcatMap),
+                (("Base.Data", "dataAny"),
+                 CustardNativeLambda ("Base.Data", "dataAny")
+                                     Data.cfDataAny),
+                (("Base.Data", "dataAll"),
+                 CustardNativeLambda ("Base.Data", "dataAll")
+                                     Data.cfDataAll),
+                (("Base.Data", "dataMaximum"),
+                 CustardNativeLambda ("Base.Data", "dataMaximum")
+                                     Data.cfDataMaximum),
+                (("Base.Data", "dataMinimum"),
+                 CustardNativeLambda ("Base.Data", "dataMinimum")
+                                     Data.cfDataMinimum),
+                -- Data - Building data
+                -- Data - Building data - Scans
+                (("Base.Data", "dataScanl"),
+                 CustardNativeLambda ("Base.Data", "dataScanl")
+                                     Data.cfDataScanl),
+                (("Base.Data", "dataScanl1"),
+                 CustardNativeLambda ("Base.Data", "dataScanl1")
+                                     Data.cfDataScanl1),
+                (("Base.Data", "dataScanr"),
+                 CustardNativeLambda ("Base.Data", "dataScanr")
+                                     Data.cfDataScanr),
+                (("Base.Data", "dataScanr1"),
+                 CustardNativeLambda ("Base.Data", "dataScanr1")
+                                     Data.cfDataScanr1),
+                -- Data - Building data - Accumulating maps
+                (("Base.Data", "dataMapAccumL"),
+                 CustardNativeLambda ("Base.Data", "dataMapAccumL")
+                                     Data.cfDataMapAccumL),
+                (("Base.Data", "dataMapAccumR"),
+                 CustardNativeLambda ("Base.Data", "dataMapAccumR")
+                                     Data.cfDataMapAccumR),
+                -- Data - Building data - Generating and unfolding data
+                (("Base.Data", "dataReplicate"),
+                 CustardNativeLambda ("Base.Data", "dataReplicate")
+                                     Data.cfDataReplicate),
+                (("Base.Data", "dataUnfoldr"),
+                 CustardNativeLambda ("Base.Data", "dataUnfoldr")
+                                     Data.cfDataUnfoldr),
+                (("Base.Data", "dataUnfoldrN"),
+                 CustardNativeLambda ("Base.Data", "dataUnfoldrN")
+                                     Data.cfDataUnfoldrN),
+                -- Data - Substrings
+                -- Data - Substrings - Breaking strings
+                (("Base.Data", "dataTake"),
+                 CustardNativeLambda ("Base.Data", "dataTake")
+                                     Data.cfDataTake),
+                (("Base.Data", "dataDrop"),
+                 CustardNativeLambda ("Base.Data", "dataDrop")
+                                     Data.cfDataDrop),
+                (("Base.Data", "dataSplitAt"),
+                 CustardNativeLambda ("Base.Data", "dataSplitAt")
+                                     Data.cfDataSplitAt),
+                (("Base.Data", "dataTakeWhile"),
+                 CustardNativeLambda ("Base.Data", "dataTakeWhile")
+                                     Data.cfDataTakeWhile),
+                (("Base.Data", "dataDropWhile"),
+                 CustardNativeLambda ("Base.Data", "dataDropWhile")
+                                     Data.cfDataDropWhile),
+                (("Base.Data", "dataSpan"),
+                 CustardNativeLambda ("Base.Data", "dataSpan")
+                                     Data.cfDataSpan),
+                (("Base.Data", "dataSpanEnd"),
+                 CustardNativeLambda ("Base.Data", "dataSpanEnd")
+                                     Data.cfDataSpanEnd),
+                (("Base.Data", "dataBreak"),
+                 CustardNativeLambda ("Base.Data", "dataBreak")
+                                     Data.cfDataBreak),
+                (("Base.Data", "dataBreakEnd"),
+                 CustardNativeLambda ("Base.Data", "dataBreakEnd")
+                                     Data.cfDataBreakEnd),
+                (("Base.Data", "dataBreakByte"),
+                 CustardNativeLambda ("Base.Data", "dataBreakByte")
+                                     Data.cfDataBreakByte),
+                (("Base.Data", "dataGroup"),
+                 CustardNativeLambda ("Base.Data", "dataGroup")
+                                     Data.cfDataGroup),
+                (("Base.Data", "dataGroupBy"),
+                 CustardNativeLambda ("Base.Data", "dataGroupBy")
+                                     Data.cfDataGroupBy),
+                (("Base.Data", "dataInits"),
+                 CustardNativeLambda ("Base.Data", "dataInits")
+                                     Data.cfDataInits),
+                (("Base.Data", "dataTails"),
+                 CustardNativeLambda ("Base.Data", "dataTails")
+                                     Data.cfDataTails),
+                -- Data - Substrings - Breaking into many substrings
+                (("Base.Data", "dataSplit"),
+                 CustardNativeLambda ("Base.Data", "dataSplit")
+                                     Data.cfDataSplit),
+                (("Base.Data", "dataSplitWith"),
+                 CustardNativeLambda ("Base.Data", "dataSplitWith")
+                                     Data.cfDataSplitWith),
+                -- Data - Predicates
+                (("Base.Data", "dataIsPrefixOf"),
+                 CustardNativeLambda ("Base.Data", "dataIsPrefixOf")
+                                     Data.cfDataIsPrefixOf),
+                (("Base.Data", "dataIsSuffixOf"),
+                 CustardNativeLambda ("Base.Data", "dataIsSuffixOf")
+                                     Data.cfDataIsSuffixOf),
+                (("Base.Data", "dataIsInfixOf"),
+                 CustardNativeLambda ("Base.Data", "dataIsInfixOf")
+                                     Data.cfDataIsInfixOf),
+                -- Data - Predicates - Search for arbitrary substrings
+                (("Base.Data", "dataBreakSubstring"),
+                 CustardNativeLambda ("Base.Data", "dataBreakSubstring")
+                                     Data.cfDataBreakSubstring),
+                (("Base.Data", "dataFindSubstring"),
+                 CustardNativeLambda ("Base.Data", "dataFindSubstring")
+                                     Data.cfDataFindSubstring),
+                (("Base.Data", "dataFindSubstrings"),
+                 CustardNativeLambda ("Base.Data", "dataFindSubstrings")
+                                     Data.cfDataFindSubstrings),
+                -- Data - Searching data
+                -- Data - Searching data - Searching by equality
+                (("Base.Data", "dataElem"),
+                 CustardNativeLambda ("Base.Data", "dataElem")
+                                     Data.cfDataElem),
+                (("Base.Data", "dataNotElem"),
+                 CustardNativeLambda ("Base.Data", "dataNotElem")
+                                     Data.cfDataNotElem),
+                -- Data - Searching data - Searching with a predicate
+                (("Base.Data", "dataFind"),
+                 CustardNativeLambda ("Base.Data", "dataFind")
+                                     Data.cfDataFind),
+                (("Base.Data", "dataFilter"),
+                 CustardNativeLambda ("Base.Data", "dataFilter")
+                                     Data.cfDataFilter),
+                (("Base.Data", "dataPartition"),
+                 CustardNativeLambda ("Base.Data", "dataPartition")
+                                     Data.cfDataPartition),
+                -- Data - Indexing data
+                (("Base.Data", "dataIndex"),
+                 CustardNativeLambda ("Base.Data", "dataIndex")
+                                     Data.cfDataIndex),
+                (("Base.Data", "dataElemIndex"),
+                 CustardNativeLambda ("Base.Data", "dataElemIndex")
+                                     Data.cfDataElemIndex),
+                (("Base.Data", "dataElemIndices"),
+                 CustardNativeLambda ("Base.Data", "dataElemIndices")
+                                     Data.cfDataElemIndices),
+                (("Base.Data", "dataElemIndexEnd"),
+                 CustardNativeLambda ("Base.Data", "dataElemIndexEnd")
+                                     Data.cfDataElemIndexEnd),
+                (("Base.Data", "dataFindIndex"),
+                 CustardNativeLambda ("Base.Data", "dataFindIndex")
+                                     Data.cfDataFindIndex),
+                (("Base.Data", "dataFindIndices"),
+                 CustardNativeLambda ("Base.Data", "dataFindIndices")
+                                     Data.cfDataFindIndices),
+                (("Base.Data", "dataCount"),
+                 CustardNativeLambda ("Base.Data", "dataCount")
+                                     Data.cfDataCount),
+                -- Data - Zipping and unzipping data
+                (("Base.Data", "dataZip"),
+                 CustardNativeLambda ("Base.Data", "dataZip")
+                                     Data.cfDataZip),
+                (("Base.Data", "dataZipWith"),
+                 CustardNativeLambda ("Base.Data", "dataZipWith")
+                                     Data.cfDataZipWith),
+                (("Base.Data", "dataUnzip"),
+                 CustardNativeLambda ("Base.Data", "dataUnzip")
+                                     Data.cfDataUnzip),
+                -- Data - Ordered data
+                (("Base.Data", "dataSort"),
+                 CustardNativeLambda ("Base.Data", "dataSort")
+                                     Data.cfDataSort),
+                -- Data - Copying data
+                (("Base.Data", "dataCopy"),
+                 CustardNativeLambda ("Base.Data", "dataCopy")
+                                     Data.cfDataCopy),
+                -- Data - UTF8
+                (("Base.Data", "dataUTF8Decode"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Decode")
+                                     Data.cfDataUTF8Decode),
+                (("Base.Data", "dataUTF8Uncons"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Uncons")
+                                     Data.cfDataUTF8Uncons),
+                (("Base.Data", "dataUTF8SplitAt"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8SplitAt")
+                                     Data.cfDataUTF8SplitAt),
+                (("Base.Data", "dataUTF8Take"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Take")
+                                     Data.cfDataUTF8Take),
+                (("Base.Data", "dataUTF8Drop"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Drop")
+                                     Data.cfDataUTF8Drop),
+                (("Base.Data", "dataUTF8Span"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Span")
+                                     Data.cfDataUTF8Span),
+                (("Base.Data", "dataUTF8Break"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Break")
+                                     Data.cfDataUTF8Break),
+                (("Base.Data", "dataUTF8FromString"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8FromString")
+                                     Data.cfDataUTF8FromString),
+                (("Base.Data", "dataUTF8ToString"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8ToString")
+                                     Data.cfDataUTF8ToString),
+                (("Base.Data", "dataUTF8Foldl"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Foldl")
+                                     Data.cfDataUTF8Foldl),
+                (("Base.Data", "dataUTF8Foldr"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Foldr")
+                                     Data.cfDataUTF8Foldr),
+                (("Base.Data", "dataUTF8Length"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Length")
+                                     Data.cfDataUTF8Length),
+                (("Base.Data", "dataUTF8Lines"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Lines")
+                                     Data.cfDataUTF8Lines)
                ]

@@ -24,7 +24,6 @@ Executable FruitTart
                  Network.FruitTart.Util.State,
                  Network.FruitTart.Util.HTML,
                  Network.FruitTart.Util.Lists,
-                 Network.FruitTart.Util.Passwords,
                  Network.FruitTart.Util.Text,
                  Network.FruitTart.Custard.Semantics,
                  Network.FruitTart.Custard.Syntax,
@@ -38,7 +37,8 @@ Executable FruitTart
                  Network.FruitTart.Custard.Functions.Passwords,
                  Network.FruitTart.Custard.Functions.Lists,
                  Network.FruitTart.Custard.Functions.Strings,
-                 Network.FruitTart.Custard.Functions.Maps
+                 Network.FruitTart.Custard.Functions.Maps,
+                 Network.FruitTart.Custard.Functions.Data
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,

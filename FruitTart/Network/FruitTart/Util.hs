@@ -33,10 +33,6 @@ module Network.FruitTart.Util (
                                groupByM,
                                split,
                                
-                               -- Passwords
-                               hashPassword,
-                               validatePassword,
-                               
                                -- Text
                                fromCRLF,
                                wordWrap,
@@ -52,5 +48,4 @@ import Network.FruitTart.Util.Database
 import Network.FruitTart.Util.State
 import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists
-import Network.FruitTart.Util.Passwords
 import Network.FruitTart.Util.Text
