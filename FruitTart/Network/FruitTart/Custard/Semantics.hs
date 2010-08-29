@@ -935,6 +935,12 @@ builtinBindings = Map.fromList
                 (("Base", "newlinesToParagraphs"),
                  CustardNativeLambda ("Base", "newlinesToParagraphs")
                                      General.cfNewlinesToParagraphs),
+                (("Base", "getCurrentPage"),
+                 CustardNativeLambda ("Base", "getCurrentPage")
+                                     General.cfGetCurrentPage),
+                (("Base", "getController"),
+                 CustardNativeLambda ("Base", "getController")
+                                     General.cfGetController),
                 
                 -- Symbols
                 (("Base.Symbols", "symbolName"),

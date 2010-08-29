@@ -11,7 +11,9 @@ module Network.FruitTart.Custard.Functions.General (
                                                     cfTimestampToString,
                                                     cfEscapeAttribute,
                                                     cfEscapeHTML,
-                                                    cfNewlinesToParagraphs
+                                                    cfNewlinesToParagraphs,
+                                                    cfGetCurrentPage,
+                                                    cfGetController
                                                    )
   where
 
@@ -159,3 +161,27 @@ cfNewlinesToParagraphs context parameters = do
   requireNParameters parameters 1 "newlinesToParagraphs"
   string <- valueToString $ head parameters
   return $ CustardString $ newlinesToParagraphs string
+
+
+cfGetCurrentPage :: CustardContext
+                 -> [CustardValue]
+                 -> FruitTart CustardValue
+cfGetCurrentPage context parameters = do
+  requireControllerContext context "getCurrentPage"
+  requireNParameters parameters 0 "getCurrentPage"
+  FruitTartState { maybeCurrentPage = maybeURL } <- get
+  case maybeURL of
+    Nothing -> error "Not on a page."
+    Just url -> return $ CustardString url
+
+
+cfGetController :: CustardContext
+                -> [CustardValue]
+                -> FruitTart CustardValue
+cfGetController context parameters = do
+  requireControllerContext context "getController"
+  requireNParameters parameters 0 "getController"
+  FruitTartState { maybeControllerName = maybeControllerName } <- get
+  case maybeControllerName of
+    Nothing -> error "Not in a controller."
+    Just controllerName -> return $ CustardString controllerName

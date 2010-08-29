@@ -37,7 +37,9 @@ import Network.FastCGI
 data FruitTartState  = FruitTartState {
       database :: Database,
       captchaCacheMVar :: MVar (Map Int64 (String, ByteString)),
-      sessionID :: Maybe Int64
+      sessionID :: Maybe Int64,
+      maybeCurrentPage :: Maybe String,
+      maybeControllerName :: Maybe String
     }
 
 type FruitTart = StateT FruitTartState FastCGI

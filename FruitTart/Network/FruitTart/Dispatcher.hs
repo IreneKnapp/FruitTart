@@ -63,6 +63,7 @@ processRequest' = do
       (controllerName, actionName, unnamedParameters, namedParameters) = parseURL url
       canonical = canonicalURL controllerName actionName
                                unnamedParameters namedParameters
+  setCurrentPage url
   maybeMethod <- getRequestMethod
   let method = fromJust maybeMethod
   if url /= canonical
@@ -80,6 +81,7 @@ processRequest' = do
           return ()
         Just controllerModuleName
           -> do
+           setControllerName controllerModuleName
            maybeActionIDAndFunctionName
              <- lookupAction controllerModuleName actionName method
            case maybeActionIDAndFunctionName of
@@ -377,6 +379,18 @@ setMimeType = do
   if xhtmlQValue >= htmlQValue
     then setResponseHeader HttpContentType "application/xhtml+xml; charset=UTF-8"
     else setResponseHeader HttpContentType "text/html; charset=UTF-8"
+
+
+setCurrentPage :: String -> FruitTart ()
+setCurrentPage url = do
+  state <- get
+  put $ state { maybeCurrentPage = Just url }
+
+
+setControllerName :: String -> FruitTart ()
+setControllerName controllerName = do
+  state <- get
+  put $ state { maybeControllerName = Just controllerName }
 
 
 parseURL :: String -> (String, String, [String], Map String String)

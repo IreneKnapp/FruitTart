@@ -27,7 +27,9 @@ main = do
   state <- return $ FruitTartState {
              database = database,
              captchaCacheMVar = captchaCacheMVar,
-             sessionID = Nothing
+             sessionID = Nothing,
+             maybeCurrentPage = Nothing,
+             maybeControllerName = Nothing
            }
   acceptLoop forkIO $ evalStateT processRequest state
   return ()
