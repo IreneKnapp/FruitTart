@@ -403,8 +403,10 @@ cfStringIsPrefixOf :: CustardContext
                    -> [CustardValue]
                    -> FruitTart CustardValue
 cfStringIsPrefixOf context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringIsPrefixOf"
+  prefix <- valueToString $ parameters !! 0
+  string <- valueToString $ parameters !! 1
+  return $ CustardBool $ isPrefixOf prefix string
 
 
 cfStringIsSuffixOf :: CustardContext
