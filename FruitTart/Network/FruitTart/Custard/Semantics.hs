@@ -280,6 +280,29 @@ evalExpression context expression = do
                          }
         result <- getTemplateWithContext moduleName templateName subcontext
         return (context, CustardString result)
+      CustardCallBySymbolExpression subexpressions -> do
+        if length subexpressions < 1
+           then error $ "Invalid number of parameters to callBySYmbol()."
+           else return ()
+        (context, symbol) <- evalExpression context $ head subexpressions
+        (moduleName, templateName)
+          <- case symbol of
+               CustardSymbol moduleName templateName
+                 -> return (moduleName, templateName)
+               _ -> error $ "First parameter to callBySymbol() does not "
+                            ++ "evaluate to a symbol."
+        (context, subparameters)
+          <- foldM (\(context, values) subexpression -> do
+                      (context, value) <- evalExpression context subexpression
+                      return (context, values ++ [value]))
+                   (context, [])
+                   $ drop 1 subexpressions
+        let subcontext = context {
+                           custardContextParameters = subparameters,
+                           custardContextType = TemplateContext
+                         }
+        result <- getTemplateWithContext moduleName templateName subcontext
+        return (context, CustardString result)
       CustardIterateExpression subexpressions -> do
         if length subexpressions < 2
            then error $ "Invalid number of parameters to iterate()."

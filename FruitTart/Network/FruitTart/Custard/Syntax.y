@@ -35,6 +35,7 @@ import Network.FruitTart.Util
         if                  { TokenIf }
         case                { TokenCase }
         call                { TokenCall }
+        callBySymbol        { TokenCallBySymbol }
         iterate             { TokenIterate }
         query               { TokenQuery }
         bound               { TokenBound }
@@ -96,6 +97,8 @@ FunctionCallExpression
                       { CustardCaseExpression $3 }
                       | call '(' ExpressionList ')'
                       { CustardCallExpression $3 }
+                      | callBySymbol '(' ExpressionList ')'
+                      { CustardCallBySymbolExpression $3 }
                       | iterate '(' ExpressionList ')'
                       { CustardIterateExpression $3 }
                       | query '(' ExpressionList ')'
@@ -294,6 +297,7 @@ lexer database defaultPackage all@(c:_)
                      | symbol == "if" -> return TokenIf
                      | symbol == "case" -> return TokenCase
                      | symbol == "call" -> return TokenCall
+                     | symbol == "callBySymbol" -> return TokenCallBySymbol
                      | symbol == "iterate" -> return TokenIterate
                      | symbol == "query" -> return TokenQuery
                      | symbol == "bound" -> return TokenBound

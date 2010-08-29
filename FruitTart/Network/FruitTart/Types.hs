@@ -172,6 +172,7 @@ data CustardExpression = CustardLiteral CustardValue
                         | CustardIfExpression [CustardExpression]
                         | CustardCaseExpression [CustardExpression]
                         | CustardCallExpression [CustardExpression]
+                        | CustardCallBySymbolExpression [CustardExpression]
                         | CustardIterateExpression [CustardExpression]
                         | CustardQueryExpression [CustardExpression]
                         | CustardBoundExpression [CustardExpression]
@@ -206,6 +207,7 @@ data CustardToken = TokenValue CustardValue
                    | TokenIf
                    | TokenCase
                    | TokenCall
+                   | TokenCallBySymbol
                    | TokenIterate
                    | TokenQuery
                    | TokenBound
