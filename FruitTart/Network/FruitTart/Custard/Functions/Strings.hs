@@ -44,7 +44,6 @@ module Network.FruitTart.Custard.Functions.Strings (
                                                     cfStringIsInfixOf,
                                                     cfStringElem,
                                                     cfStringNotElem,
-                                                    cfStringLookup,
                                                     cfStringFind,
                                                     cfStringFilter,
                                                     cfStringPartition,
@@ -65,6 +64,7 @@ import Control.Exception
 import Control.Monad.State
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
+import Data.Char
 import Data.Int
 import Data.List
 import Data.Map (Map)
@@ -430,16 +430,20 @@ cfStringInits :: CustardContext
               -> [CustardValue]
               -> FruitTart CustardValue
 cfStringInits context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringInits"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  return $ CustardList $ map (CustardString . UTF8.fromString)
+                       $ inits $ UTF8.toString bytestring
 
 
 cfStringTails :: CustardContext
               -> [CustardValue]
               -> FruitTart CustardValue
 cfStringTails context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringInits"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  return $ CustardList $ map (CustardString . UTF8.fromString)
+                       $ tails $ UTF8.toString bytestring
 
 
 cfStringIsPrefixOf :: CustardContext
@@ -447,53 +451,52 @@ cfStringIsPrefixOf :: CustardContext
                    -> FruitTart CustardValue
 cfStringIsPrefixOf context parameters = do
   requireNParameters parameters 2 "stringIsPrefixOf"
-  error "Not implemented."
-  -- TODO REALLY
-{-
-  prefix <- valueToString $ parameters !! 0
-  string <- valueToString $ parameters !! 1
-  return $ CustardBool $ isPrefixOf prefix string
--}
+  bytestringA <- valueToUTF8String $ parameters !! 0
+  bytestringB <- valueToUTF8String $ parameters !! 1
+  return $ CustardBool $ isPrefixOf (UTF8.toString bytestringA)
+                                    (UTF8.toString bytestringB)
 
 
 cfStringIsSuffixOf :: CustardContext
                    -> [CustardValue]
                    -> FruitTart CustardValue
 cfStringIsSuffixOf context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringIsSuffixOf"
+  bytestringA <- valueToUTF8String $ parameters !! 0
+  bytestringB <- valueToUTF8String $ parameters !! 1
+  return $ CustardBool $ isSuffixOf (UTF8.toString bytestringA)
+                                    (UTF8.toString bytestringB)
 
 
 cfStringIsInfixOf :: CustardContext
                   -> [CustardValue]
                   -> FruitTart CustardValue
 cfStringIsInfixOf context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringIsInfixOf"
+  bytestringA <- valueToUTF8String $ parameters !! 0
+  bytestringB <- valueToUTF8String $ parameters !! 1
+  return $ CustardBool $ isInfixOf (UTF8.toString bytestringA)
+                                   (UTF8.toString bytestringB)
 
 
 cfStringElem :: CustardContext
              -> [CustardValue]
              -> FruitTart CustardValue
 cfStringElem context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringElem"
+  character <- valueToCharacter $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  return $ CustardBool $ elem character $ UTF8.toString bytestring
 
 
 cfStringNotElem :: CustardContext
                 -> [CustardValue]
                 -> FruitTart CustardValue
 cfStringNotElem context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfStringLookup :: CustardContext
-               -> [CustardValue]
-               -> FruitTart CustardValue
-cfStringLookup context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringNotElem"
+  character <- valueToCharacter $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  return $ CustardBool $ notElem character $ UTF8.toString bytestring
 
 
 cfStringFind :: CustardContext
@@ -524,24 +527,36 @@ cfStringNth :: CustardContext
             -> [CustardValue]
             -> FruitTart CustardValue
 cfStringNth context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringNth"
+  n <- valueToInteger $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  case UTF8.decode $ UTF8.drop (fromIntegral n) bytestring of
+    Nothing -> error "String is too short."
+    Just (result, _) -> return $ CustardCharacter result
 
 
 cfStringElemIndex :: CustardContext
                   -> [CustardValue]
                   -> FruitTart CustardValue
 cfStringElemIndex context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringElemIndex"
+  character <- valueToCharacter $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  case elemIndex character $ UTF8.toString bytestring of
+    Nothing -> return $ CustardMaybe Nothing
+    Just result -> return $ CustardMaybe $ Just $ CustardInteger
+                                                $ fromIntegral result
 
 
 cfStringElemIndices :: CustardContext
                     -> [CustardValue]
                     -> FruitTart CustardValue
 cfStringElemIndices context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringElemIndices"
+  character <- valueToCharacter $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  return $ CustardList $ map (CustardInteger . fromIntegral)
+                             $ elemIndices character $ UTF8.toString bytestring
 
 
 cfStringFindIndex :: CustardContext
@@ -564,29 +579,50 @@ cfStringLines :: CustardContext
               -> [CustardValue]
               -> FruitTart CustardValue
 cfStringLines context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringLines"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  (lastLine, linesSoFar)
+    <- foldM (\(bytestring, linesSoFar) index -> do
+                let before = UTF8.take index bytestring
+                    after = UTF8.drop (index + 1) bytestring
+                return (after, linesSoFar ++ [before]))
+             (bytestring, [])
+             $ elemIndices '\n' $ UTF8.toString bytestring
+  let lines = linesSoFar ++ [lastLine]
+  return $ CustardList $ map CustardString lines
 
 
 cfStringWords :: CustardContext
               -> [CustardValue]
               -> FruitTart CustardValue
 cfStringWords context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringWords"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  (lastWord, wordsSoFar)
+    <- foldM (\(bytestring, wordsSoFar) index -> do
+                let before = UTF8.take index bytestring
+                    after = UTF8.drop (index + 1) bytestring
+                return (after, wordsSoFar ++ [before]))
+             (bytestring, [])
+             $ findIndices isSpace $ UTF8.toString bytestring
+  let words = wordsSoFar ++ [lastWord]
+      words' = filter (\line -> not $ BS.null line) words
+  return $ CustardList $ map CustardString words'
 
 
 cfStringUnlines :: CustardContext
                 -> [CustardValue]
                 -> FruitTart CustardValue
 cfStringUnlines context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringUnlines"
+  lines <- valueToListOfUTF8Strings $ parameters !! 0
+  return $ CustardString $ BS.intercalate (UTF8.fromString "\n") lines
 
 
 cfStringUnwords :: CustardContext
                 -> [CustardValue]
                 -> FruitTart CustardValue
 cfStringUnwords context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 1 "stringUnwords"
+  words <- valueToListOfUTF8Strings $ parameters !! 0
+  return $ CustardString $ BS.intercalate (UTF8.fromString " ") words

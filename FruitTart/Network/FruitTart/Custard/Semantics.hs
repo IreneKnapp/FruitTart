@@ -1652,9 +1652,6 @@ builtinBindings = Map.fromList
                 (("Base.Strings", "stringNotElem"),
                  CustardNativeLambda ("Base.Strings", "stringNotElem")
                                      Strings.cfStringNotElem),
-                (("Base.Strings", "stringLookup"),
-                 CustardNativeLambda ("Base.Strings", "stringLookup")
-                                     Strings.cfStringLookup),
                 -- Strings - Searching strings - Searching with a predicate
                 (("Base.Strings", "stringFind"),
                  CustardNativeLambda ("Base.Strings", "stringFind")
