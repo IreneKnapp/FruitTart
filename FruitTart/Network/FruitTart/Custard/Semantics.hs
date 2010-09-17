@@ -10,6 +10,8 @@ module Network.FruitTart.Custard.Semantics (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -81,7 +83,11 @@ getTemplateWithContext moduleName templateName context = do
                                                                body
                          (context, result)
                            <- evalExpression context expression
-                         resultString <- valueToStringAllowingNull result
+                         let resultString
+                               = case result of
+                                   CustardNull -> ""
+                                   CustardString bytestring
+                                     -> UTF8.toString bytestring
                          return (context, accumulator ++ resultString))
                        (\e -> error $ "While processing template "
                                     ++ moduleName ++ "."
@@ -111,14 +117,6 @@ eval moduleName body = do
   return result
 
 
-valueToStringAllowingNull :: CustardValue -> FruitTart String
-valueToStringAllowingNull (CustardString string)
-  = return string
-valueToStringAllowingNull CustardNull = return ""
-valueToStringAllowingNull value
-  = error $ "Value is not a String or Null."
-
-
 evalExpression :: CustardContext
                -> CustardExpression
                -> FruitTart (CustardContext, CustardValue)
@@ -139,7 +137,7 @@ evalExpression context expression = do
         case (aValue, bValue) of
           (CustardString aString, CustardString bString)
               -> return (context,
-                         CustardString $ aString ++ bString)
+                         CustardString $ BS.concat [aString, bString])
           _ -> error "Cannot concatenate non-Strings."
       CustardOperationEquals aExpression bExpression -> do
         (context, aValue) <- evalExpression context aExpression
@@ -279,7 +277,7 @@ evalExpression context expression = do
                            custardContextType = TemplateContext
                          }
         result <- getTemplateWithContext moduleName templateName subcontext
-        return (context, CustardString result)
+        return (context, CustardString $ UTF8.fromString result)
       CustardCallBySymbolExpression subexpressions -> do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to callBySYmbol()."
@@ -302,7 +300,7 @@ evalExpression context expression = do
                            custardContextType = TemplateContext
                          }
         result <- getTemplateWithContext moduleName templateName subcontext
-        return (context, CustardString result)
+        return (context, CustardString $ UTF8.fromString result)
       CustardIterateExpression subexpressions -> do
         if length subexpressions < 2
            then error $ "Invalid number of parameters to iterate()."
@@ -333,7 +331,7 @@ evalExpression context expression = do
                                                   templateName
                                                   subcontext)
                         rows
-        return (context, CustardString $ concat results)
+        return (context, CustardString $ UTF8.fromString $ concat results)
       CustardQueryExpression subexpressions -> do
         if length subexpressions < 1
            then error $ "Invalid number of parameters to query()."
@@ -780,9 +778,10 @@ convertQueryValue (CustardMaybe Nothing) = return $ SQLNull
 convertQueryValue (CustardMaybe (Just (CustardInteger integer)))
   = return $ SQLInteger integer
 convertQueryValue (CustardMaybe (Just (CustardString string)))
-  = return $ SQLText string
+  = return $ SQLText $ UTF8.toString string
 convertQueryValue (CustardInteger integer) = return $ SQLInteger integer
-convertQueryValue (CustardString string) = return $ SQLText string
+convertQueryValue (CustardString string)
+  = return $ SQLText $ UTF8.toString string
 convertQueryValue (CustardData bytestring) = return $ SQLBlob bytestring
 convertQueryValue _ = error "Invalid type for query parameter."
 
@@ -825,7 +824,8 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                                          $ integer
                                    _ -> error "Value from query not an integer."
                          CString -> case value of
-                                      SQLText string -> CustardString string
+                                      SQLText string
+                                        -> CustardString $ UTF8.fromString string
                                       _ -> error "Value from query not a string."
                          CMaybeInt -> case value of
                                         SQLNull -> CustardMaybe Nothing
@@ -840,7 +840,8 @@ convertRowToBindings moduleName valueNamesAndTypes row
                                         SQLText string -> CustardMaybe
                                                           $ Just
                                                           $ CustardString
-                                                          $ string
+                                                          $ UTF8.fromString
+                                                             string
                                         _ -> error
                                              "Value from query not a string or null."))
                  $ zip valueNamesAndTypes row
@@ -949,15 +950,6 @@ builtinBindings = Map.fromList
                 (("Base", "timestampToString"),
                  CustardNativeLambda ("Base", "timestampToString")
                                      General.cfTimestampToString),
-                (("Base", "escapeAttribute"),
-                 CustardNativeLambda ("Base", "escapeAttribute")
-                                     General.cfEscapeAttribute),
-                (("Base", "escapeHTML"),
-                 CustardNativeLambda ("Base", "escapeHTML")
-                                     General.cfEscapeHTML),
-                (("Base", "newlinesToParagraphs"),
-                 CustardNativeLambda ("Base", "newlinesToParagraphs")
-                                     General.cfNewlinesToParagraphs),
                 (("Base", "getCurrentPage"),
                  CustardNativeLambda ("Base", "getCurrentPage")
                                      General.cfGetCurrentPage),

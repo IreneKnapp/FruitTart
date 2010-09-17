@@ -9,9 +9,6 @@ module Network.FruitTart.Custard.Functions.General (
                                                     cfShowBool,
                                                     cfByteSizeToString,
                                                     cfTimestampToString,
-                                                    cfEscapeAttribute,
-                                                    cfEscapeHTML,
-                                                    cfNewlinesToParagraphs,
                                                     cfGetCurrentPage,
                                                     cfGetController
                                                    )
@@ -20,6 +17,7 @@ module Network.FruitTart.Custard.Functions.General (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Int
 import Data.List
 import Data.Map (Map)
@@ -106,7 +104,7 @@ cfShowInteger :: CustardContext
 cfShowInteger context parameters = do
   requireNParameters parameters 1 "showInteger"
   integer <- valueToInteger $ head parameters
-  return $ CustardString $ show integer
+  return $ CustardString $ UTF8.fromString $ show integer
 
 
 cfShowBool :: CustardContext
@@ -115,7 +113,7 @@ cfShowBool :: CustardContext
 cfShowBool context parameters = do
   requireNParameters parameters 1 "showBool"
   bool <- valueToBoolean $ head parameters
-  return $ CustardString $ show bool
+  return $ CustardString $ UTF8.fromString $ show bool
 
 
 cfByteSizeToString :: CustardContext
@@ -124,7 +122,7 @@ cfByteSizeToString :: CustardContext
 cfByteSizeToString context parameters = do
   requireNParameters parameters 1 "byteSizeToString"
   integer <- valueToInteger $ head parameters
-  return $ CustardString $ byteSizeToString integer
+  return $ CustardString $ UTF8.fromString $ byteSizeToString integer
 
 
 cfTimestampToString :: CustardContext
@@ -133,34 +131,7 @@ cfTimestampToString :: CustardContext
 cfTimestampToString context parameters = do
   requireNParameters parameters 1 "timestampToString"
   integer <- valueToInteger $ head parameters
-  return $ CustardString $ timestampToString integer
-
-
-cfEscapeAttribute :: CustardContext
-                  -> [CustardValue]
-                  -> FruitTart CustardValue
-cfEscapeAttribute context parameters = do
-  requireNParameters parameters 1 "escapeAttribute"
-  string <- valueToString $ head parameters
-  return $ CustardString $ escapeAttribute string
-
-
-cfEscapeHTML :: CustardContext
-             -> [CustardValue]
-             -> FruitTart CustardValue
-cfEscapeHTML context parameters = do
-  requireNParameters parameters 1 "escapeHTML"
-  string <- valueToString $ head parameters
-  return $ CustardString $ escapeHTML string
-
-
-cfNewlinesToParagraphs :: CustardContext
-                       -> [CustardValue]
-                       -> FruitTart CustardValue
-cfNewlinesToParagraphs context parameters = do
-  requireNParameters parameters 1 "newlinesToParagraphs"
-  string <- valueToString $ head parameters
-  return $ CustardString $ newlinesToParagraphs string
+  return $ CustardString $ UTF8.fromString $ timestampToString integer
 
 
 cfGetCurrentPage :: CustardContext
@@ -172,7 +143,7 @@ cfGetCurrentPage context parameters = do
   FruitTartState { maybeCurrentPage = maybeURL } <- get
   case maybeURL of
     Nothing -> error "Not on a page."
-    Just url -> return $ CustardString url
+    Just url -> return $ CustardString $ UTF8.fromString url
 
 
 cfGetController :: CustardContext
@@ -184,4 +155,5 @@ cfGetController context parameters = do
   FruitTartState { maybeControllerName = maybeControllerName } <- get
   case maybeControllerName of
     Nothing -> error "Not in a controller."
-    Just controllerName -> return $ CustardString controllerName
+    Just controllerName -> return $ CustardString
+                                  $ UTF8.fromString controllerName

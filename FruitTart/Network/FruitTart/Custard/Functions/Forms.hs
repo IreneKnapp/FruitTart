@@ -6,6 +6,7 @@ module Network.FruitTart.Custard.Functions.Forms (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Int
 import Data.List
 import Data.Map (Map)
@@ -25,9 +26,9 @@ cfFormInput :: CustardContext
 cfFormInput context parameters = do
   requireControllerContext context "formInput"
   requireNParameters parameters 1 "formInput"
-  name <- valueToString $ head parameters
+  name <- valueToUTF8String $ head parameters
   let CustardContext { custardContextFormInputMap = formInputMap } = context
   return $ CustardMaybe
-         $ case Map.lookup name formInputMap of
+         $ case Map.lookup (UTF8.toString name) formInputMap of
              Nothing -> Nothing
-             Just value -> Just $ CustardString value
+             Just value -> Just $ CustardString $ UTF8.fromString value

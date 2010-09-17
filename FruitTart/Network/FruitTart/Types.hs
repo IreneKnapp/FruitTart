@@ -99,7 +99,7 @@ data CustardValue = CustardNull
                   | CustardBool Bool
                   | CustardInteger Int64
                   | CustardCharacter Char
-                  | CustardString String
+                  | CustardString ByteString
                   | CustardList [CustardValue]
                   | CustardTuple [CustardValue]
                   | CustardMaybe (Maybe CustardValue)

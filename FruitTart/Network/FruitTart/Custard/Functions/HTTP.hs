@@ -60,6 +60,7 @@ module Network.FruitTart.Custard.Functions.HTTP (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Int
 import Data.List
 import Data.Map (Map)
@@ -81,8 +82,8 @@ cfLog :: CustardContext
 cfLog context parameters = do
   requireControllerContext context "log"
   requireNParameters parameters 1 "log"
-  string <- valueToString $ head parameters
-  fLog string
+  bytestring <- valueToUTF8String $ head parameters
+  fLog $ UTF8.toString bytestring
   return CustardNull
 
 
@@ -92,11 +93,11 @@ cfGetRequestVariable :: CustardContext
 cfGetRequestVariable context parameters = do
   requireControllerContext context "getRequestVariable"
   requireNParameters parameters 1 "getRequestVariable"
-  name <- valueToString $ parameters !! 0
-  maybeValue <- getRequestVariable name
+  name <- valueToUTF8String $ parameters !! 0
+  maybeValue <- getRequestVariable $ UTF8.toString name
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetAllRequestVariables :: CustardContext
@@ -108,7 +109,8 @@ cfGetAllRequestVariables context parameters = do
   variables <- getAllRequestVariables
   return $ CustardList
          $ map (\(name, value) ->
-                  CustardTuple [CustardString name, CustardString value])
+                  CustardTuple [CustardString $ UTF8.fromString name,
+                                CustardString $ UTF8.fromString value])
                variables
 
 
@@ -122,7 +124,7 @@ cfGetRequestHeader context parameters = do
   maybeValue <- getRequestHeader header
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfCookieName :: CustardContext
@@ -132,7 +134,7 @@ cfCookieName context parameters = do
   requireControllerContext context "cookieName"
   requireNParameters parameters 1 "cookieName"
   cookie <- valueToHTTPCookie $ parameters !! 0
-  return $ CustardString $ cookieName cookie
+  return $ CustardString $ UTF8.fromString $ cookieName cookie
 
 
 cfCookieValue :: CustardContext
@@ -142,7 +144,7 @@ cfCookieValue context parameters = do
   requireControllerContext context "cookieValue"
   requireNParameters parameters 1 "cookieValue"
   cookie <- valueToHTTPCookie $ parameters !! 0
-  return $ CustardString $ cookieValue cookie
+  return $ CustardString $ UTF8.fromString $ cookieValue cookie
 
 
 cfCookieVersion :: CustardContext
@@ -164,7 +166,8 @@ cfCookiePath context parameters = do
   cookie <- valueToHTTPCookie $ parameters !! 0
   case cookiePath cookie of
     Nothing -> return $ CustardMaybe Nothing
-    Just path -> return $ CustardMaybe $ Just $ CustardString path
+    Just path -> return $ CustardMaybe $ Just $ CustardString
+                                              $ UTF8.fromString path
 
 
 cfCookieDomain :: CustardContext
@@ -176,7 +179,8 @@ cfCookieDomain context parameters = do
   cookie <- valueToHTTPCookie $ parameters !! 0
   case cookieDomain cookie of
     Nothing -> return $ CustardMaybe Nothing
-    Just domain -> return $ CustardMaybe $ Just $ CustardString domain
+    Just domain -> return $ CustardMaybe $ Just $ CustardString
+                                                $ UTF8.fromString domain
 
 
 cfCookieMaxAge :: CustardContext
@@ -210,7 +214,7 @@ cfCookieComment context parameters = do
   cookie <- valueToHTTPCookie $ parameters !! 0
   return $ CustardMaybe $ case cookieComment cookie of
     Nothing -> Nothing
-    Just comment -> Just $ CustardString comment
+    Just comment -> Just $ CustardString $ UTF8.fromString comment
 
 
 cfGetCookie :: CustardContext
@@ -219,8 +223,8 @@ cfGetCookie :: CustardContext
 cfGetCookie context parameters = do
   requireControllerContext context "getCookie"
   requireNParameters parameters 1 "getCookie"
-  name <- valueToString $ parameters !! 0
-  maybeCookie <- getCookie name
+  name <- valueToUTF8String $ parameters !! 0
+  maybeCookie <- getCookie $ UTF8.toString name
   return $ CustardMaybe $ case maybeCookie of
     Nothing -> Nothing
     Just cookie -> Just $ CustardHTTPCookie cookie
@@ -242,11 +246,11 @@ cfGetCookieValue :: CustardContext
 cfGetCookieValue context parameters = do
   requireControllerContext context "getCookieValue"
   requireNParameters parameters 1 "getCookieValue"
-  name <- valueToString $ parameters !! 0
-  maybeValue <- getCookieValue name
+  name <- valueToUTF8String $ parameters !! 0
+  maybeValue <- getCookieValue $ UTF8.toString name
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetDocumentRoot :: CustardContext
@@ -258,7 +262,7 @@ cfGetDocumentRoot context parameters = do
   maybeValue <- getDocumentRoot
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetGatewayInterface :: CustardContext
@@ -270,7 +274,7 @@ cfGetGatewayInterface context parameters = do
   maybeValue <- getGatewayInterface
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetPathInfo :: CustardContext
@@ -282,7 +286,7 @@ cfGetPathInfo context parameters = do
   maybeValue <- getPathInfo
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetPathTranslated :: CustardContext
@@ -294,7 +298,7 @@ cfGetPathTranslated context parameters = do
   maybeValue <- getPathTranslated
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetQueryString :: CustardContext
@@ -306,7 +310,7 @@ cfGetQueryString context parameters = do
   maybeValue <- getQueryString
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRedirectStatus :: CustardContext
@@ -330,7 +334,7 @@ cfGetRedirectURI context parameters = do
   maybeValue <- getRedirectURI
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRemoteAddress :: CustardContext
@@ -366,7 +370,7 @@ cfGetRemoteHost context parameters = do
   maybeValue <- getRemoteHost
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRemoteIdent :: CustardContext
@@ -378,7 +382,7 @@ cfGetRemoteIdent context parameters = do
   maybeValue <- getRemoteIdent
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRemoteUser :: CustardContext
@@ -390,7 +394,7 @@ cfGetRemoteUser context parameters = do
   maybeValue <- getRemoteUser
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRequestMethod :: CustardContext
@@ -402,7 +406,7 @@ cfGetRequestMethod context parameters = do
   maybeValue <- getRequestMethod
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetRequestURI :: CustardContext
@@ -414,7 +418,7 @@ cfGetRequestURI context parameters = do
   maybeValue <- getRequestURI
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetScriptFilename :: CustardContext
@@ -426,7 +430,7 @@ cfGetScriptFilename context parameters = do
   maybeValue <- getScriptFilename
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetScriptName :: CustardContext
@@ -438,7 +442,7 @@ cfGetScriptName context parameters = do
   maybeValue <- getScriptName
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetServerAddress :: CustardContext
@@ -462,7 +466,7 @@ cfGetServerName context parameters = do
   maybeValue <- getServerName
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetServerPort :: CustardContext
@@ -486,7 +490,7 @@ cfGetServerProtocol context parameters = do
   maybeValue <- getServerProtocol
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetServerSoftware :: CustardContext
@@ -498,7 +502,7 @@ cfGetServerSoftware context parameters = do
   maybeValue <- getServerSoftware
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetAuthenticationType :: CustardContext
@@ -510,7 +514,7 @@ cfGetAuthenticationType context parameters = do
   maybeValue <- getAuthenticationType
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfGetContentLength :: CustardContext
@@ -534,7 +538,7 @@ cfGetContentType context parameters = do
   maybeValue <- getContentType
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfSetResponseStatus :: CustardContext
@@ -565,8 +569,8 @@ cfSetResponseHeader context parameters = do
   requireControllerContext context "setResponseHeader"
   requireNParameters parameters 2 "setResponseHeader"
   header <- valueToHTTPHeader $ parameters !! 0
-  value <- valueToString $ parameters !! 1
-  setResponseHeader header value
+  value <- valueToUTF8String $ parameters !! 1
+  setResponseHeader header $ UTF8.toString value
   return CustardNull
 
 
@@ -591,7 +595,7 @@ cfGetResponseHeader context parameters = do
   maybeValue <- getResponseHeader header
   return $ CustardMaybe $ case maybeValue of
     Nothing -> Nothing
-    Just value -> Just $ CustardString value
+    Just value -> Just $ CustardString $ UTF8.fromString value
 
 
 cfSetCookie :: CustardContext
@@ -611,8 +615,8 @@ cfUnsetCookie :: CustardContext
 cfUnsetCookie context parameters = do
   requireControllerContext context "unsetCookie"
   requireNParameters parameters 1 "unsetCookie"
-  name <- valueToString $ parameters !! 0
-  unsetCookie name
+  name <- valueToUTF8String $ parameters !! 0
+  unsetCookie $ UTF8.toString name
   return CustardNull
 
 
@@ -622,9 +626,9 @@ cfMakeSimpleCookie :: CustardContext
 cfMakeSimpleCookie context parameters = do
   requireControllerContext context "makeSimpleCookie"
   requireNParameters parameters 2 "makeSimpleCookie"
-  name <- valueToString $ parameters !! 0
-  value <- valueToString $ parameters !! 1
-  let cookie = mkSimpleCookie name value
+  name <- valueToUTF8String $ parameters !! 0
+  value <- valueToUTF8String $ parameters !! 1
+  let cookie = mkSimpleCookie (UTF8.toString name) (UTF8.toString value)
   return $ CustardHTTPCookie cookie
 
 
@@ -634,16 +638,20 @@ cfMakeCookie :: CustardContext
 cfMakeCookie context parameters = do
   requireControllerContext context "makeCookie"
   requireNParameters parameters 6 "makeCookie"
-  name <- valueToString $ parameters !! 0
-  value <- valueToString $ parameters !! 1
-  maybePath <- valueToMaybeString $ parameters !! 2
-  maybeDomain <- valueToMaybeString $ parameters !! 3
+  name <- valueToUTF8String $ parameters !! 0
+  value <- valueToUTF8String $ parameters !! 1
+  maybePath <- valueToMaybeUTF8String $ parameters !! 2
+  maybeDomain <- valueToMaybeUTF8String $ parameters !! 3
   maybeMaxAge <- valueToMaybeInteger $ parameters !! 4
   let maybeMaxAge' = case maybeMaxAge of
                        Nothing -> Nothing
                        Just maxAge -> Just $ fromIntegral maxAge
   secure <- valueToBoolean $ parameters !! 5
-  let cookie = mkCookie name value maybePath maybeDomain maybeMaxAge' secure
+  let cookie = mkCookie (UTF8.toString name)
+                        (UTF8.toString value)
+                        (fmap UTF8.toString maybePath)
+                        (fmap UTF8.toString maybeDomain)
+                        maybeMaxAge' secure
   return $ CustardHTTPCookie cookie
 
 
@@ -653,8 +661,8 @@ cfPermanentRedirect :: CustardContext
 cfPermanentRedirect context parameters = do
   requireControllerContext context "permanentRedirect"
   requireNParameters parameters 1 "permanentRedirect"
-  url <- valueToString $ parameters !! 0
-  permanentRedirect url
+  url <- valueToUTF8String $ parameters !! 0
+  permanentRedirect $ UTF8.toString url
   return CustardNull
 
 
@@ -664,8 +672,8 @@ cfSeeOtherRedirect :: CustardContext
 cfSeeOtherRedirect context parameters = do
   requireControllerContext context "seeOtherRedirect"
   requireNParameters parameters 1 "seeOtherRedirect"
-  url <- valueToString $ parameters !! 0
-  seeOtherRedirect url
+  url <- valueToUTF8String $ parameters !! 0
+  seeOtherRedirect $ UTF8.toString url
   return CustardNull
 
 
@@ -706,8 +714,8 @@ cfPutString :: CustardContext
 cfPutString context parameters = do
   requireControllerContext context "putString"
   requireNParameters parameters 1 "putString"
-  string <- valueToString $ parameters !! 0
-  fPutStr string
+  string <- valueToUTF8String $ parameters !! 0
+  fPut string
   return CustardNull
 
 

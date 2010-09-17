@@ -76,7 +76,8 @@ processRequest' = do
                                  Map.empty
                                  "Base"
                                  "errorControllerUndefined"
-                                 [CustardString controllerName]
+                                 [CustardString
+                                   $ UTF8.fromString controllerName]
           fCloseOutput
           return ()
         Just controllerModuleName
@@ -90,9 +91,12 @@ processRequest' = do
                                       Map.empty
                                       "Base"
                                       "errorActionUndefined"
-                                      [CustardString controllerName,
-                                       CustardString actionName,
-                                       CustardString method]
+                                      [CustardString
+                                        $ UTF8.fromString controllerName,
+                                       CustardString
+                                        $ UTF8.fromString actionName,
+                                       CustardString
+                                        $ UTF8.fromString method]
                fCloseOutput
                return ()
              Just (actionID, functionName) -> do
@@ -111,8 +115,10 @@ processRequest' = do
                                            Map.empty
                                            "Base"
                                            "errorActionParameters"
-                                           [CustardString controllerName,
-                                            CustardString actionName]
+                                           [CustardString
+                                             $ UTF8.fromString controllerName,
+                                            CustardString
+                                             $ UTF8.fromString actionName]
                     fCloseOutput
                     return ()
                  Just parameters -> do
@@ -254,7 +260,7 @@ validateParameter (_, StringParameter) = True
 
 readParameter :: (String, ParameterType) -> CustardValue
 readParameter (id, IntegerParameter) = CustardInteger $ read id
-readParameter (string, StringParameter) = CustardString string
+readParameter (string, StringParameter) = CustardString $ UTF8.fromString string
 
 
 initializeSession :: FruitTart ()

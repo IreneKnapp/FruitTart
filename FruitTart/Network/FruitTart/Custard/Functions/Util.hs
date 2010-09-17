@@ -6,12 +6,12 @@ module Network.FruitTart.Custard.Functions.Util
    valueToInteger,
    valueToWord8,
    valueToCharacter,
-   valueToString,
+   valueToUTF8String,
    valueToListOfWord8s,
-   valueToListOfStrings,
+   valueToListOfUTF8Strings,
    valueToListOfMaps,
    valueToListOfByteStrings,
-   valueToMaybeString,
+   valueToMaybeUTF8String,
    valueToMaybeInteger,
    valueToMap,
    valueToByteString,
@@ -36,7 +36,9 @@ module Network.FruitTart.Custard.Functions.Util
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad.State
-import Data.ByteString hiding (concat, index, length, map)
+import qualified Data.ByteString.UTF8 as UTF8
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.Int
 import Data.List
 import Data.Map (Map)
@@ -81,9 +83,9 @@ valueToCharacter (CustardCharacter char) = return char
 valueToCharacter value = error $ "Value is not a Character."
 
 
-valueToString :: CustardValue -> FruitTart String
-valueToString (CustardString string) = return string
-valueToString value = error $ "Value is not a String."
+valueToUTF8String :: CustardValue -> FruitTart ByteString
+valueToUTF8String (CustardString bytestring) = return $ bytestring
+valueToUTF8String value = error $ "Value is not a String."
 
 
 valueToListOfWord8s :: CustardValue -> FruitTart [Word8]
@@ -98,11 +100,11 @@ valueToListOfWord8s (CustardList items@(CustardInteger _ : _)) = do
 valueToListOfWord8s value = errorNotAListOfWord8s
 
 
-valueToListOfStrings :: CustardValue
-                     -> FruitTart [String]
-valueToListOfStrings (CustardList []) = return []
-valueToListOfStrings (CustardList items@(CustardString _ : _)) =
-  mapM (\(CustardString string) -> return string) items
+valueToListOfUTF8Strings :: CustardValue
+                     -> FruitTart [ByteString]
+valueToListOfUTF8Strings (CustardList []) = return []
+valueToListOfUTF8Strings (CustardList items@(CustardString _ : _)) =
+  mapM (\(CustardString bytestring) -> return bytestring) items
 valueToListOfStrings value = errorNotAListOfStrings
 
 
@@ -123,11 +125,11 @@ valueToListOfByteStrings (CustardList items@(CustardData _ : _)) =
 valueToListOfByteStrings value = errorNotAListOfByteStrings
 
 
-valueToMaybeString :: CustardValue -> FruitTart (Maybe String)
-valueToMaybeString (CustardMaybe Nothing) = return Nothing
-valueToMaybeString (CustardMaybe (Just (CustardString string)))
-  = return $ Just string
-valueToMaybeString value = error "Value is not a Maybe containing a String."
+valueToMaybeUTF8String :: CustardValue -> FruitTart (Maybe ByteString)
+valueToMaybeUTF8String (CustardMaybe Nothing) = return Nothing
+valueToMaybeUTF8String (CustardMaybe (Just (CustardString bytestring)))
+  = return $ Just bytestring
+valueToMaybeUTF8String value = error "Value is not a Maybe containing a String."
 
 
 valueToMaybeInteger :: CustardValue -> FruitTart (Maybe Int64)

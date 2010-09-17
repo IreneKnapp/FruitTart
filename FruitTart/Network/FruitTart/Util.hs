@@ -18,24 +18,12 @@ module Network.FruitTart.Util (
                                timestampToString,
                                byteSizeToString,
                                
-                               -- State
-                               getCaptchaCacheMVar,
-                               
-                               -- HTML
-                               escapeAttribute,
-                               escapeHTML,
-                               newlinesToParagraphs,
-                               
                                -- Lists
                                merge,
                                mergeBy,
                                mergeByM,
                                groupByM,
-                               split,
-                               
-                               -- Text
-                               fromCRLF,
-                               wordWrap,
+                               split
                               )
     where
 
@@ -45,7 +33,4 @@ import Network.FastCGI
 
 import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
-import Network.FruitTart.Util.State
-import Network.FruitTart.Util.HTML
 import Network.FruitTart.Util.Lists
-import Network.FruitTart.Util.Text

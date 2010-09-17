@@ -8,6 +8,8 @@ module Network.FruitTart.Custard.Syntax (
     where
 
 import Control.Monad
+import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString as BS
 import Data.Char
 import Data.Foldable hiding (elem)
 import Data.Map (Map)
@@ -283,7 +285,7 @@ lexer database defaultPackage ('/':rest) = do
 lexer database defaultPackage all@('"':_) = do
   let (string, rest) = readString all
   restTokens <- lexer database defaultPackage rest
-  return $ (TokenValue $ CustardString string) : restTokens
+  return $ (TokenValue $ CustardString $ UTF8.fromString string) : restTokens
 lexer database defaultPackage all@(c:_)
   | isDigit c = do
     let [(result, rest)] = readDec all

@@ -30,13 +30,13 @@ cfHashPassword :: CustardContext
                -> FruitTart CustardValue
 cfHashPassword context parameters = do
   requireNParameters parameters 1 "hashPassword"
-  cleartext <- valueToString $ parameters !! 0
+  cleartext <- valueToUTF8String $ parameters !! 0
   return $ CustardData $ hashPassword cleartext
 
 
-hashPassword :: String -> BS.ByteString
+hashPassword :: BS.ByteString -> BS.ByteString
 hashPassword cleartext
-    = word160ToByteString $ SHA1.hash $ BS.unpack $ UTF8.fromString cleartext
+    = word160ToByteString $ SHA1.hash $ BS.unpack cleartext
 
 word160ToByteString :: SHA1.Word160 -> BS.ByteString
 word160ToByteString (SHA1.Word160 a b c d e) = 
