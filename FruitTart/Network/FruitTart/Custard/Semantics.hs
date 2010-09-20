@@ -1495,6 +1495,22 @@ builtinBindings = Map.fromList
                                      Lists.cfMinimumBy),
                 
                 -- Strings
+                -- Strings - Construction
+                (("Base.Strings", "makeEmptyString"),
+                 CustardNativeLambda ("Base.Strings", "makeEmptyString")
+                                     Strings.cfMakeEmptyString),
+                (("Base.Strings", "makeSingletonString"),
+                 CustardNativeLambda ("Base.Strings", "makeSingletonString")
+                                     Strings.cfMakeSingletonString),
+                (("Base.Strings", "makeStringFromUTF8Data"),
+                 CustardNativeLambda ("Base.Strings", "makeStringFromUTF8Data")
+                                     Strings.cfMakeStringFromUTF8Data),
+                (("Base.Strings", "stringPack"),
+                 CustardNativeLambda ("Base.Strings", "stringPack")
+                                     Strings.cfStringPack),
+                (("Base.Strings", "stringUnpack"),
+                 CustardNativeLambda ("Base.Strings", "stringUnpack")
+                                     Strings.cfStringUnpack),
                 -- Strings - Basic functions
                 (("Base.Strings", "stringHead"),
                  CustardNativeLambda ("Base.Strings", "stringHead")
@@ -1970,6 +1986,9 @@ builtinBindings = Map.fromList
                 (("Base.Data", "makeSingletonData"),
                  CustardNativeLambda ("Base.Data", "makeSingletonData")
                                      Data.cfMakeSingletonData),
+                (("Base.Data", "makeUTF8DataFromString"),
+                 CustardNativeLambda ("Base.Data", "makeUTF8DataFromString")
+                                     Data.cfMakeUTF8DataFromString),
                 (("Base.Data", "dataPack"),
                  CustardNativeLambda ("Base.Data", "dataPack")
                                      Data.cfDataPack),

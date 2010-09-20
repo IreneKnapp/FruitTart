@@ -1,6 +1,7 @@
 module Network.FruitTart.Custard.Functions.Data (
                                                  cfMakeEmptyData,
                                                  cfMakeSingletonData,
+                                                 cfMakeUTF8DataFromString,
                                                  cfDataPack,
                                                  cfDataUnpack,
                                                  cfDataCons,
@@ -120,6 +121,15 @@ cfMakeSingletonData context parameters = do
   requireNParameters parameters 1 "makeSingletonData"
   word8 <- valueToWord8 $ parameters !! 0
   return (context, CustardData $ BS.singleton word8)
+
+
+cfMakeUTF8DataFromString :: CustardContext
+                         -> [CustardValue]
+                         -> FruitTart (CustardContext, CustardValue)
+cfMakeUTF8DataFromString context parameters = do
+  requireNParameters parameters 1 "makeUTF8DataFromString"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  return (context, CustardData bytestring)
 
 
 cfDataPack :: CustardContext

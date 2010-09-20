@@ -1,4 +1,9 @@
 module Network.FruitTart.Custard.Functions.Strings (
+                                                    cfMakeEmptyString,
+                                                    cfMakeSingletonString,
+                                                    cfMakeStringFromUTF8Data,
+                                                    cfStringPack,
+                                                    cfStringUnpack,
                                                     cfStringHead,
                                                     cfStringLast,
                                                     cfStringTail,
@@ -74,6 +79,51 @@ import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
 import Network.FruitTart.Types
 import Network.FruitTart.Util
+
+
+cfMakeEmptyString :: CustardContext
+                  -> [CustardValue]
+                  -> FruitTart (CustardContext, CustardValue)
+cfMakeEmptyString context parameters = do
+  requireNParameters parameters 0 "makeEmptyString"
+  return (context, CustardString $ BS.empty)
+
+
+cfMakeSingletonString :: CustardContext
+                      -> [CustardValue]
+                      -> FruitTart (CustardContext, CustardValue)
+cfMakeSingletonString context parameters = do
+  requireNParameters parameters 1 "makeSingletonString"
+  character <- valueToCharacter $ parameters !! 0
+  return (context, CustardString $ UTF8.fromString [character])
+
+
+cfMakeStringFromUTF8Data :: CustardContext
+                         -> [CustardValue]
+                         -> FruitTart (CustardContext, CustardValue)
+cfMakeStringFromUTF8Data context parameters = do
+  requireNParameters parameters 1 "makeStringFromUTF8Data"
+  bytestring <- valueToByteString $ parameters !! 0
+  return (context, CustardString bytestring)
+
+
+cfStringPack :: CustardContext
+             -> [CustardValue]
+             -> FruitTart (CustardContext, CustardValue)
+cfStringPack context parameters = do
+  requireNParameters parameters 1 "stringPack"
+  characters <- valueToListOfCharacters $ parameters !! 0
+  return (context, CustardString $ UTF8.fromString characters)
+
+
+cfStringUnpack :: CustardContext
+               -> [CustardValue]
+               -> FruitTart (CustardContext, CustardValue)
+cfStringUnpack context parameters = do
+  requireNParameters parameters 1 "stringUnpack"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  return (context,
+          CustardList $ map CustardCharacter $ UTF8.toString bytestring)
 
 
 cfStringHead :: CustardContext

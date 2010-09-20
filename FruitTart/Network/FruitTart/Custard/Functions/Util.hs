@@ -8,6 +8,7 @@ module Network.FruitTart.Custard.Functions.Util
    valueToCharacter,
    valueToUTF8String,
    valueToListOfWord8s,
+   valueToListOfCharacters,
    valueToListOfUTF8Strings,
    valueToListOfMaps,
    valueToListOfByteStrings,
@@ -100,6 +101,13 @@ valueToListOfWord8s (CustardList items@(CustardInteger _ : _)) = do
             else return $ fromIntegral integer)
        items
 valueToListOfWord8s value = errorNotAListOfWord8s
+
+
+valueToListOfCharacters :: CustardValue -> FruitTart [Char]
+valueToListOfCharacters (CustardList []) = return []
+valueToListOfCharacters (CustardList items@(CustardCharacter _ : _)) = do
+  mapM (\(CustardCharacter character) -> return character) items
+valueToListOfCharacters value = errorNotAListOfCharacters
 
 
 valueToListOfUTF8Strings :: CustardValue
@@ -261,6 +269,11 @@ errorNotAListOfIntegers = error $ "Value is not a List of Integers."
 errorNotAListOfWord8s :: FruitTart a
 errorNotAListOfWord8s
   = error $ "Value is not a List of unsigned 8-bit Integers."
+
+
+errorNotAListOfCharacters :: FruitTart a
+errorNotAListOfCharacters
+  = error $ "Value is not a List of Characters."
 
 
 errorNotAListOfStrings :: FruitTart a
