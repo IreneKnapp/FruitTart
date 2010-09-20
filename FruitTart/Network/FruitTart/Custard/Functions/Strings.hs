@@ -146,8 +146,18 @@ cfStringMap :: CustardContext
             -> [CustardValue]
             -> FruitTart (CustardContext, CustardValue)
 cfStringMap context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "stringMap"
+  action <- valueToMonadicAction $ parameters !! 0
+  bytestring <- valueToUTF8String $ parameters !! 1
+  (context, result)
+    <- foldM (\(context, resultSoFar) character -> do
+                (context, character)
+                  <- action context [CustardCharacter character]
+                character <- valueToCharacter character
+                return (context, resultSoFar ++ [character]))
+             (context, [])
+             $ UTF8.toString bytestring
+  return (context, CustardString $ UTF8.fromString result)
 
 
 cfStringReverse :: CustardContext
