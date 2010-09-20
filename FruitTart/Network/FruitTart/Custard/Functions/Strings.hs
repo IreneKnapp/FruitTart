@@ -225,7 +225,7 @@ cfStringFold :: CustardContext
              -> [CustardValue]
              -> FruitTart (CustardContext, CustardValue)
 cfStringFold context parameters = do
-  requireNParameters parameters 3 "stringMap"
+  requireNParameters parameters 3 "stringFold"
   action <- valueToMonadicAction $ parameters !! 0
   let initialValue = parameters !! 1
   bytestring <- valueToUTF8String $ parameters !! 2
