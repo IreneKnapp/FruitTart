@@ -225,8 +225,18 @@ cfStringFold :: CustardContext
              -> [CustardValue]
              -> FruitTart (CustardContext, CustardValue)
 cfStringFold context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 3 "stringMap"
+  action <- valueToMonadicAction $ parameters !! 0
+  let initialValue = parameters !! 1
+  bytestring <- valueToUTF8String $ parameters !! 2
+  (context, result)
+    <- foldM (\(context, resultSoFar) character -> do
+                (context, resultSoFar)
+                  <- action context [resultSoFar, CustardCharacter character]
+                return (context, resultSoFar))
+             (context, initialValue)
+             $ UTF8.toString bytestring
+  return (context, result)
 
 
 cfStringFold1 :: CustardContext
