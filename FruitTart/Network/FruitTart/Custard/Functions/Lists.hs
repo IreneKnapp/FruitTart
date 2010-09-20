@@ -13,10 +13,8 @@ module Network.FruitTart.Custard.Functions.Lists (
                                                   cfTranspose,
                                                   cfSubsequences,
                                                   cfPermutations,
-                                                  cfFoldl,
-                                                  cfFoldl1,
-                                                  cfFoldr,
-                                                  cfFoldr1,
+                                                  cfFold,
+                                                  cfFold1,
                                                   cfConcat,
                                                   cfConcatMap,
                                                   cfAnd,
@@ -232,34 +230,18 @@ cfPermutations context parameters = do
   -- TODO
 
 
-cfFoldl :: CustardContext
+cfFold :: CustardContext
         -> [CustardValue]
         -> FruitTart (CustardContext, CustardValue)
-cfFoldl context parameters = do
+cfFold context parameters = do
   error "Not implemented."
   -- TODO
 
 
-cfFoldl1 :: CustardContext
+cfFold1 :: CustardContext
          -> [CustardValue]
          -> FruitTart (CustardContext, CustardValue)
-cfFoldl1 context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfFoldr :: CustardContext
-        -> [CustardValue]
-        -> FruitTart (CustardContext, CustardValue)
-cfFoldr context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfFoldr1 :: CustardContext
-         -> [CustardValue]
-         -> FruitTart (CustardContext, CustardValue)
-cfFoldr1 context parameters = do
+cfFold1 context parameters = do
   error "Not implemented."
   -- TODO
 

@@ -18,10 +18,8 @@ module Network.FruitTart.Custard.Functions.Data (
                                                  cfDataIntersperse,
                                                  cfDataIntercalate,
                                                  cfDataTranspose,
-                                                 cfDataFoldl,
-                                                 cfDataFoldl1,
-                                                 cfDataFoldr,
-                                                 cfDataFoldr1,
+                                                 cfDataFold,
+                                                 cfDataFold1,
                                                  cfDataConcat,
                                                  cfDataConcatMap,
                                                  cfDataAny,
@@ -85,8 +83,7 @@ module Network.FruitTart.Custard.Functions.Data (
                                                  cfDataUTF8Break,
                                                  cfDataUTF8FromString,
                                                  cfDataUTF8ToString,
-                                                 cfDataUTF8Foldl,
-                                                 cfDataUTF8Foldr,
+                                                 cfDataUTF8Fold,
                                                  cfDataUTF8Length,
                                                  cfDataUTF8Lines
                                                 )
@@ -293,38 +290,20 @@ cfDataTranspose context parameters = do
   return (context, CustardList $ map CustardData $ BS.transpose bytestrings)
 
 
-cfDataFoldl :: CustardContext
+cfDataFold :: CustardContext
+           -> [CustardValue]
+           -> FruitTart (CustardContext, CustardValue)
+cfDataFold context parameters = do
+  requireNParameters parameters 0 "dataFold"
+  error "Not yet implemented."
+  -- TODO
+
+
+cfDataFold1 :: CustardContext
             -> [CustardValue]
             -> FruitTart (CustardContext, CustardValue)
-cfDataFoldl context parameters = do
-  requireNParameters parameters 0 "dataFoldl"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfDataFoldl1 :: CustardContext
-             -> [CustardValue]
-             -> FruitTart (CustardContext, CustardValue)
-cfDataFoldl1 context parameters = do
-  requireNParameters parameters 0 "dataFoldl1"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfDataFoldr :: CustardContext
-            -> [CustardValue]
-            -> FruitTart (CustardContext, CustardValue)
-cfDataFoldr context parameters = do
-  requireNParameters parameters 0 "dataFoldr"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfDataFoldr1 :: CustardContext
-             -> [CustardValue]
-             -> FruitTart (CustardContext, CustardValue)
-cfDataFoldr1 context parameters = do
-  requireNParameters parameters 0 "dataFoldr1"
+cfDataFold1 context parameters = do
+  requireNParameters parameters 0 "dataFold1"
   error "Not yet implemented."
   -- TODO
 
@@ -896,20 +875,11 @@ cfDataUTF8ToString context parameters = do
   -- TODO
 
 
-cfDataUTF8Foldl :: CustardContext
-                -> [CustardValue]
-                -> FruitTart (CustardContext, CustardValue)
-cfDataUTF8Foldl context parameters = do
-  requireNParameters parameters 0 "dataUTF8Foldl"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfDataUTF8Foldr :: CustardContext
-                -> [CustardValue]
-                -> FruitTart (CustardContext, CustardValue)
-cfDataUTF8Foldr context parameters = do
-  requireNParameters parameters 0 "dataUTF8Foldr"
+cfDataUTF8Fold :: CustardContext
+               -> [CustardValue]
+               -> FruitTart (CustardContext, CustardValue)
+cfDataUTF8Fold context parameters = do
+  requireNParameters parameters 0 "dataUTF8Fold"
   error "Not yet implemented."
   -- TODO
 

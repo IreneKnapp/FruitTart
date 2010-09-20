@@ -1290,18 +1290,12 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Lists", "permutations")
                                      Lists.cfPermutations),
                 -- Lists - Reducing lists (folds)
-                (("Base.Lists", "foldl"),
-                 CustardNativeLambda ("Base.Lists", "foldl")
-                                     Lists.cfFoldl),
-                (("Base.Lists", "foldl1"),
-                 CustardNativeLambda ("Base.Lists", "foldl1")
-                                     Lists.cfFoldl1),
-                (("Base.Lists", "foldr"),
-                 CustardNativeLambda ("Base.Lists", "foldr")
-                                     Lists.cfFoldr),
-                (("Base.Lists", "foldr1"),
-                 CustardNativeLambda ("Base.Lists", "foldr1")
-                                     Lists.cfFoldr1),
+                (("Base.Lists", "fold"),
+                 CustardNativeLambda ("Base.Lists", "fold")
+                                     Lists.cfFold),
+                (("Base.Lists", "fold1"),
+                 CustardNativeLambda ("Base.Lists", "fold1")
+                                     Lists.cfFold1),
                 -- Lists - Reducing lists (folds) - Special folds
                 (("Base.Lists", "concat"),
                  CustardNativeLambda ("Base.Lists", "concat")
@@ -1543,18 +1537,12 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Strings", "stringPermutations")
                                      Strings.cfStringPermutations),
                 -- Strings - Reducing strings (folds)
-                (("Base.Strings", "stringFoldl"),
-                 CustardNativeLambda ("Base.Strings", "stringFoldl")
-                                     Strings.cfStringFoldl),
-                (("Base.Strings", "stringFoldl1"),
-                 CustardNativeLambda ("Base.Strings", "stringFoldl1")
-                                     Strings.cfStringFoldl1),
-                (("Base.Strings", "stringFoldr"),
-                 CustardNativeLambda ("Base.Strings", "stringFoldr")
-                                     Strings.cfStringFoldr),
-                (("Base.Strings", "stringFoldr1"),
-                 CustardNativeLambda ("Base.Strings", "stringFoldr1")
-                                     Strings.cfStringFoldr1),
+                (("Base.Strings", "stringFold"),
+                 CustardNativeLambda ("Base.Strings", "stringFold")
+                                     Strings.cfStringFold),
+                (("Base.Strings", "stringFold1"),
+                 CustardNativeLambda ("Base.Strings", "stringFold1")
+                                     Strings.cfStringFold1),
                 -- Strings - Reducing strings (folds) - Special folds
                 (("Base.Strings", "stringConcat"),
                  CustardNativeLambda ("Base.Strings", "stringConcat")
@@ -1819,9 +1807,6 @@ builtinBindings = Map.fromList
                 (("Base.Maps", "mapFold"),
                  CustardNativeLambda ("Base.Maps", "mapFold")
                                      Maps.cfMapFold),
-                (("Base.Maps", "mapFoldWithKey"),
-                 CustardNativeLambda ("Base.Maps", "mapFoldWithKey")
-                                     Maps.cfMapFoldWithKey),
                 (("Base.Maps", "mapFoldrWithKey"),
                  CustardNativeLambda ("Base.Maps", "mapFoldrWithKey")
                                      Maps.cfMapFoldrWithKey),
@@ -2039,18 +2024,12 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Data", "dataTranspose")
                                      Data.cfDataTranspose),
                 -- Data - Reducing data (folds)
-                (("Base.Data", "dataFoldl"),
-                 CustardNativeLambda ("Base.Data", "dataFoldl")
-                                     Data.cfDataFoldl),
-                (("Base.Data", "dataFoldl1"),
-                 CustardNativeLambda ("Base.Data", "dataFoldl1")
-                                     Data.cfDataFoldl1),
-                (("Base.Data", "dataFoldr"),
-                 CustardNativeLambda ("Base.Data", "dataFoldr")
-                                     Data.cfDataFoldr),
-                (("Base.Data", "dataFoldr1"),
-                 CustardNativeLambda ("Base.Data", "dataFoldr1")
-                                     Data.cfDataFoldr1),
+                (("Base.Data", "dataFold"),
+                 CustardNativeLambda ("Base.Data", "dataFold")
+                                     Data.cfDataFold),
+                (("Base.Data", "dataFold1"),
+                 CustardNativeLambda ("Base.Data", "dataFold1")
+                                     Data.cfDataFold1),
                 -- Data - Reducing data (folds) - Special folds
                 (("Base.Data", "dataConcat"),
                  CustardNativeLambda ("Base.Data", "dataConcat")
@@ -2258,12 +2237,9 @@ builtinBindings = Map.fromList
                 (("Base.Data", "dataUTF8ToString"),
                  CustardNativeLambda ("Base.Data", "dataUTF8ToString")
                                      Data.cfDataUTF8ToString),
-                (("Base.Data", "dataUTF8Foldl"),
-                 CustardNativeLambda ("Base.Data", "dataUTF8Foldl")
-                                     Data.cfDataUTF8Foldl),
-                (("Base.Data", "dataUTF8Foldr"),
-                 CustardNativeLambda ("Base.Data", "dataUTF8Foldr")
-                                     Data.cfDataUTF8Foldr),
+                (("Base.Data", "dataUTF8Fold"),
+                 CustardNativeLambda ("Base.Data", "dataUTF8Fold")
+                                     Data.cfDataUTF8Fold),
                 (("Base.Data", "dataUTF8Length"),
                  CustardNativeLambda ("Base.Data", "dataUTF8Length")
                                      Data.cfDataUTF8Length),

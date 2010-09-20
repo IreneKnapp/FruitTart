@@ -38,7 +38,6 @@ module Network.FruitTart.Custard.Functions.Maps (
                                                  cfMapMapKeysWith,
                                                  cfMapMapKeysMonotonic,
                                                  cfMapFold,
-                                                 cfMapFoldWithKey,
                                                  cfMapFoldrWithKey,
                                                  cfMapFoldlWithKey,
                                                  cfMapElems,
@@ -468,15 +467,6 @@ cfMapFold :: CustardContext
           -> FruitTart (CustardContext, CustardValue)
 cfMapFold context parameters = do
   requireNParameters parameters 0 "mapFold"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfMapFoldWithKey :: CustardContext
-                 -> [CustardValue]
-                 -> FruitTart (CustardContext, CustardValue)
-cfMapFoldWithKey context parameters = do
-  requireNParameters parameters 0 "mapFoldWithKey"
   error "Not yet implemented."
   -- TODO
 

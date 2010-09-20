@@ -12,10 +12,8 @@ module Network.FruitTart.Custard.Functions.Strings (
                                                     cfStringTranspose,
                                                     cfStringSubsequences,
                                                     cfStringPermutations,
-                                                    cfStringFoldl,
-                                                    cfStringFoldl1,
-                                                    cfStringFoldr,
-                                                    cfStringFoldr1,
+                                                    cfStringFold,
+                                                    cfStringFold1,
                                                     cfStringConcat,
                                                     cfStringConcatMap,
                                                     cfStringAny,
@@ -223,34 +221,18 @@ cfStringPermutations context parameters = do
                             $ permutations $ UTF8.toString bytestring)
 
 
-cfStringFoldl :: CustardContext
+cfStringFold :: CustardContext
+             -> [CustardValue]
+             -> FruitTart (CustardContext, CustardValue)
+cfStringFold context parameters = do
+  error "Not implemented."
+  -- TODO
+
+
+cfStringFold1 :: CustardContext
               -> [CustardValue]
               -> FruitTart (CustardContext, CustardValue)
-cfStringFoldl context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfStringFoldl1 :: CustardContext
-               -> [CustardValue]
-               -> FruitTart (CustardContext, CustardValue)
-cfStringFoldl1 context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfStringFoldr :: CustardContext
-              -> [CustardValue]
-              -> FruitTart (CustardContext, CustardValue)
-cfStringFoldr context parameters = do
-  error "Not implemented."
-  -- TODO
-
-
-cfStringFoldr1 :: CustardContext
-               -> [CustardValue]
-               -> FruitTart (CustardContext, CustardValue)
-cfStringFoldr1 context parameters = do
+cfStringFold1 context parameters = do
   error "Not implemented."
   -- TODO
 
