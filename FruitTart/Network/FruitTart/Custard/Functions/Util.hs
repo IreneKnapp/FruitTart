@@ -15,6 +15,7 @@ module Network.FruitTart.Custard.Functions.Util
    valueToMaybeInteger,
    valueToMap,
    valueToByteString,
+   valueToMonadicAction,
    valueToHTTPHeader,
    valueToHTTPCookie,
    typecheckList,
@@ -49,6 +50,7 @@ import Prelude hiding (catch)
 
 import qualified Network.FastCGI as FCGI
 
+import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Types
 import Network.FruitTart.Util
@@ -149,6 +151,19 @@ valueToByteString :: CustardValue
                   -> FruitTart ByteString
 valueToByteString (CustardData byteString) = return byteString
 valueToByteString value = error $ "Value is not Data."
+
+
+valueToMonadicAction :: CustardValue
+                     -> FruitTart (CustardContext
+                                   -> [CustardValue]
+                                   -> FruitTart (CustardContext, CustardValue))
+valueToMonadicAction function@(CustardLambda _ _ _ _) = do
+  return (\context parameters -> do
+            applyFunctionGivenContextAndValue context function parameters)
+valueToMonadicAction (CustardNativeLambda _ action) = do
+  return (\context parameters -> do
+            action context parameters)
+valueToMonadicAction value = error $ "Value is not a Function."
 
 
 valueToHTTPHeader :: CustardValue

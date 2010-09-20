@@ -22,13 +22,14 @@ import Network.FruitTart.Util
 
 cfFormInput :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfFormInput context parameters = do
   requireControllerContext context "formInput"
   requireNParameters parameters 1 "formInput"
   name <- valueToUTF8String $ head parameters
   let CustardContext { custardContextFormInputMap = formInputMap } = context
-  return $ CustardMaybe
-         $ case Map.lookup (UTF8.toString name) formInputMap of
-             Nothing -> Nothing
-             Just value -> Just $ CustardString $ UTF8.fromString value
+  return (context,
+          CustardMaybe
+           $ case Map.lookup (UTF8.toString name) formInputMap of
+               Nothing -> Nothing
+               Just value -> Just $ CustardString $ UTF8.fromString value)

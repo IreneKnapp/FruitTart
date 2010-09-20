@@ -27,11 +27,11 @@ import Network.FruitTart.Util
 
 cfHashPassword :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfHashPassword context parameters = do
   requireNParameters parameters 1 "hashPassword"
   cleartext <- valueToUTF8String $ parameters !! 0
-  return $ CustardData $ hashPassword cleartext
+  return (context, CustardData $ hashPassword cleartext)
 
 
 hashPassword :: BS.ByteString -> BS.ByteString

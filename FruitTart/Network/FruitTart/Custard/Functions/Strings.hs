@@ -80,69 +80,71 @@ import Network.FruitTart.Util
 
 cfStringHead :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringHead context parameters = do
   requireNParameters parameters 1 "stringHead"
   bytestring <- valueToUTF8String $ parameters !! 0
   case UTF8.decode bytestring of
     Nothing -> error "String is empty."
-    Just (result, _) -> return $ CustardCharacter result
+    Just (result, _) -> return (context, CustardCharacter result)
 
 
 cfStringLast :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringLast context parameters = do
   requireNParameters parameters 1 "stringLast"
   bytestring <- valueToUTF8String $ parameters !! 0
   case UTF8.length bytestring of
     0 -> error "String is empty."
     nCharacters -> case UTF8.decode $ UTF8.drop (nCharacters - 1) bytestring of
-                     Just (result, _) -> return $ CustardCharacter result
+                     Just (result, _) -> return (context,
+                                                 CustardCharacter result)
 
 
 cfStringTail :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringTail context parameters = do
   requireNParameters parameters 1 "stringTail"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardString $ UTF8.drop 1 bytestring
+  return (context, CustardString $ UTF8.drop 1 bytestring)
 
 
 cfStringInit :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringInit context parameters = do
   requireNParameters parameters 1 "stringInit"
   bytestring <- valueToUTF8String $ parameters !! 0
   case UTF8.length bytestring of
-    0 -> return $ CustardString $ BS.empty
-    nCharacters -> return $ CustardString
-                          $ UTF8.take (nCharacters - 1) bytestring
+    0 -> return (context, CustardString $ BS.empty)
+    nCharacters -> return (context,
+                           CustardString
+                            $ UTF8.take (nCharacters - 1) bytestring)
 
 
 cfStringNull :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringNull context parameters = do
   requireNParameters parameters 1 "stringNull"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardBool $ BS.null bytestring
+  return (context, CustardBool $ BS.null bytestring)
 
 
 cfStringLength :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringLength context parameters = do
   requireNParameters parameters 1 "stringLength"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ UTF8.length bytestring
+  return (context, CustardInteger $ fromIntegral $ UTF8.length bytestring)
 
 
 cfStringMap :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfStringMap context parameters = do
   error "Not implemented."
   -- TODO
@@ -150,66 +152,70 @@ cfStringMap context parameters = do
 
 cfStringReverse :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringReverse context parameters = do
   requireNParameters parameters 1 "stringReverse"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardString $ UTF8.fromString $ reverse $ UTF8.toString bytestring
+  return (context,
+          CustardString $ UTF8.fromString $ reverse $ UTF8.toString bytestring)
 
 
 cfStringIntersperse :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfStringIntersperse context parameters = do
   requireNParameters parameters 2 "stringIntersperse"
   character <- valueToCharacter $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardString $ UTF8.fromString
-                         $ intersperse character $ UTF8.toString bytestring
+  return (context,
+          CustardString $ UTF8.fromString
+                        $ intersperse character $ UTF8.toString bytestring)
 
 
 cfStringIntercalate :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfStringIntercalate context parameters = do
   requireNParameters parameters 2 "stringIntercalate"
   bytestring <- valueToUTF8String $ parameters !! 0
   list <- valueToListOfUTF8Strings $ parameters !! 1
-  return $ CustardString $ BS.intercalate bytestring list
+  return (context, CustardString $ BS.intercalate bytestring list)
 
 
 cfStringTranspose :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringTranspose context parameters = do
   requireNParameters parameters 1 "stringTranspose"
   list <- valueToListOfUTF8Strings $ parameters !! 0
-  return $ CustardList $ map CustardString $ BS.transpose list
+  return (context, CustardList $ map CustardString $ BS.transpose list)
 
 
 cfStringSubsequences :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfStringSubsequences context parameters = do
   requireNParameters parameters 1 "stringSubsequences"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardList $ map (CustardString . UTF8.fromString)
-                       $ subsequences $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardString . UTF8.fromString)
+                            $ subsequences $ UTF8.toString bytestring)
 
 
 cfStringPermutations :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfStringPermutations context parameters = do
   requireNParameters parameters 1 "stringPermutations"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardList $ map (CustardString . UTF8.fromString)
-                       $ permutations $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardString . UTF8.fromString)
+                            $ permutations $ UTF8.toString bytestring)
 
 
 cfStringFoldl :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringFoldl context parameters = do
   error "Not implemented."
   -- TODO
@@ -217,7 +223,7 @@ cfStringFoldl context parameters = do
 
 cfStringFoldl1 :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringFoldl1 context parameters = do
   error "Not implemented."
   -- TODO
@@ -225,7 +231,7 @@ cfStringFoldl1 context parameters = do
 
 cfStringFoldr :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringFoldr context parameters = do
   error "Not implemented."
   -- TODO
@@ -233,7 +239,7 @@ cfStringFoldr context parameters = do
 
 cfStringFoldr1 :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringFoldr1 context parameters = do
   error "Not implemented."
   -- TODO
@@ -241,7 +247,7 @@ cfStringFoldr1 context parameters = do
 
 cfStringConcat :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringConcat context parameters = do
   error "Not implemented."
   -- TODO
@@ -249,7 +255,7 @@ cfStringConcat context parameters = do
 
 cfStringConcatMap :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringConcatMap context parameters = do
   error "Not implemented."
   -- TODO
@@ -257,7 +263,7 @@ cfStringConcatMap context parameters = do
 
 cfStringAny :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfStringAny context parameters = do
   error "Not implemented."
   -- TODO
@@ -265,7 +271,7 @@ cfStringAny context parameters = do
 
 cfStringAll :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfStringAll context parameters = do
   error "Not implemented."
   -- TODO
@@ -273,7 +279,7 @@ cfStringAll context parameters = do
 
 cfStringScanl :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringScanl context parameters = do
   error "Not implemented."
   -- TODO
@@ -281,7 +287,7 @@ cfStringScanl context parameters = do
 
 cfStringScanl1 :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringScanl1 context parameters = do
   error "Not implemented."
   -- TODO
@@ -289,7 +295,7 @@ cfStringScanl1 context parameters = do
 
 cfStringScanr :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringScanr context parameters = do
   error "Not implemented."
   -- TODO
@@ -297,7 +303,7 @@ cfStringScanr context parameters = do
 
 cfStringScanr1 :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringScanr1 context parameters = do
   error "Not implemented."
   -- TODO
@@ -305,7 +311,7 @@ cfStringScanr1 context parameters = do
 
 cfStringMapAccumL :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringMapAccumL context parameters = do
   error "Not implemented."
   -- TODO
@@ -313,7 +319,7 @@ cfStringMapAccumL context parameters = do
 
 cfStringMapAccumR :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringMapAccumR context parameters = do
   error "Not implemented."
   -- TODO
@@ -321,17 +327,18 @@ cfStringMapAccumR context parameters = do
 
 cfStringReplicate :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringReplicate context parameters = do
   requireNParameters parameters 2 "stringReplicate"
   count <- valueToInteger $ parameters !! 0
   character <- valueToCharacter $ parameters !! 1
-  return $ CustardString $ UTF8.fromString $ genericReplicate count character
+  return (context,
+          CustardString $ UTF8.fromString $ genericReplicate count character)
 
 
 cfStringUnfoldr :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringUnfoldr context parameters = do
   error "Not implemented."
   -- TODO
@@ -339,41 +346,44 @@ cfStringUnfoldr context parameters = do
 
 cfStringTake :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringTake context parameters = do
   requireNParameters parameters 2 "stringTake"
   count <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardString $ UTF8.fromString
-                         $ genericTake count $ UTF8.toString bytestring
+  return (context,
+          CustardString $ UTF8.fromString
+                           $ genericTake count $ UTF8.toString bytestring)
 
 
 cfStringDrop :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringDrop context parameters = do
   requireNParameters parameters 2 "stringTake"
   count <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardString $ UTF8.fromString
-                         $ genericDrop count $ UTF8.toString bytestring
+  return (context,
+          CustardString $ UTF8.fromString
+                           $ genericDrop count $ UTF8.toString bytestring)
 
 
 cfStringSplitAt :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringSplitAt context parameters = do
   requireNParameters parameters 2 "stringTake"
   count <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   let (before, after) = genericSplitAt count $ UTF8.toString bytestring
-  return $ CustardTuple [CustardString $ UTF8.fromString before,
-                         CustardString $ UTF8.fromString after]
+  return (context,
+          CustardTuple [CustardString $ UTF8.fromString before,
+                        CustardString $ UTF8.fromString after])
 
 
 cfStringTakeWhile :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringTakeWhile context parameters = do
   error "Not implemented."
   -- TODO
@@ -381,7 +391,7 @@ cfStringTakeWhile context parameters = do
 
 cfStringDropWhile :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringDropWhile context parameters = do
   error "Not implemented."
   -- TODO
@@ -389,7 +399,7 @@ cfStringDropWhile context parameters = do
 
 cfStringSpan :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringSpan context parameters = do
   error "Not implemented."
   -- TODO
@@ -397,7 +407,7 @@ cfStringSpan context parameters = do
 
 cfStringBreak :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringBreak context parameters = do
   error "Not implemented."
   -- TODO
@@ -405,103 +415,112 @@ cfStringBreak context parameters = do
 
 cfStringStripPrefix :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfStringStripPrefix context parameters = do
   requireNParameters parameters 2 "stringStripPrefix"
   prefix <- valueToUTF8String $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   case stripPrefix (UTF8.toString prefix) (UTF8.toString bytestring) of
-    Nothing -> return $ CustardMaybe Nothing
-    Just result -> return $ CustardMaybe $ Just
-                          $ CustardString $ UTF8.fromString result
+    Nothing -> return (context, CustardMaybe Nothing)
+    Just result -> return (context,
+                           CustardMaybe $ Just
+                            $ CustardString $ UTF8.fromString result)
 
 
 cfStringGroup :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringGroup context parameters = do
   requireNParameters parameters 1 "stringGroup"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardList $ map (CustardString . UTF8.fromString)
-                       $ group $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardString . UTF8.fromString)
+                            $ group $ UTF8.toString bytestring)
 
 
 cfStringInits :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringInits context parameters = do
   requireNParameters parameters 1 "stringInits"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardList $ map (CustardString . UTF8.fromString)
-                       $ inits $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardString . UTF8.fromString)
+                            $ inits $ UTF8.toString bytestring)
 
 
 cfStringTails :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringTails context parameters = do
   requireNParameters parameters 1 "stringInits"
   bytestring <- valueToUTF8String $ parameters !! 0
-  return $ CustardList $ map (CustardString . UTF8.fromString)
-                       $ tails $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardString . UTF8.fromString)
+                            $ tails $ UTF8.toString bytestring)
 
 
 cfStringIsPrefixOf :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfStringIsPrefixOf context parameters = do
   requireNParameters parameters 2 "stringIsPrefixOf"
   bytestringA <- valueToUTF8String $ parameters !! 0
   bytestringB <- valueToUTF8String $ parameters !! 1
-  return $ CustardBool $ isPrefixOf (UTF8.toString bytestringA)
-                                    (UTF8.toString bytestringB)
+  return (context,
+          CustardBool $ isPrefixOf (UTF8.toString bytestringA)
+                                   (UTF8.toString bytestringB))
 
 
 cfStringIsSuffixOf :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfStringIsSuffixOf context parameters = do
   requireNParameters parameters 2 "stringIsSuffixOf"
   bytestringA <- valueToUTF8String $ parameters !! 0
   bytestringB <- valueToUTF8String $ parameters !! 1
-  return $ CustardBool $ isSuffixOf (UTF8.toString bytestringA)
-                                    (UTF8.toString bytestringB)
+  return (context,
+          CustardBool $ isSuffixOf (UTF8.toString bytestringA)
+                                   (UTF8.toString bytestringB))
 
 
 cfStringIsInfixOf :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringIsInfixOf context parameters = do
   requireNParameters parameters 2 "stringIsInfixOf"
   bytestringA <- valueToUTF8String $ parameters !! 0
   bytestringB <- valueToUTF8String $ parameters !! 1
-  return $ CustardBool $ isInfixOf (UTF8.toString bytestringA)
-                                   (UTF8.toString bytestringB)
+  return (context,
+          CustardBool $ isInfixOf (UTF8.toString bytestringA)
+                                  (UTF8.toString bytestringB))
 
 
 cfStringElem :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringElem context parameters = do
   requireNParameters parameters 2 "stringElem"
   character <- valueToCharacter $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardBool $ elem character $ UTF8.toString bytestring
+  return (context,
+          CustardBool $ elem character $ UTF8.toString bytestring)
 
 
 cfStringNotElem :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringNotElem context parameters = do
   requireNParameters parameters 2 "stringNotElem"
   character <- valueToCharacter $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardBool $ notElem character $ UTF8.toString bytestring
+  return (context,
+          CustardBool $ notElem character $ UTF8.toString bytestring)
 
 
 cfStringFind :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfStringFind context parameters = do
   error "Not implemented."
   -- TODO
@@ -509,7 +528,7 @@ cfStringFind context parameters = do
 
 cfStringFilter :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfStringFilter context parameters = do
   error "Not implemented."
   -- TODO
@@ -517,7 +536,7 @@ cfStringFilter context parameters = do
 
 cfStringPartition :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringPartition context parameters = do
   error "Not implemented."
   -- TODO
@@ -525,43 +544,45 @@ cfStringPartition context parameters = do
 
 cfStringNth :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfStringNth context parameters = do
   requireNParameters parameters 2 "stringNth"
   n <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   case UTF8.decode $ UTF8.drop (fromIntegral n) bytestring of
     Nothing -> error "String is too short."
-    Just (result, _) -> return $ CustardCharacter result
+    Just (result, _) -> return (context, CustardCharacter result)
 
 
 cfStringElemIndex :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringElemIndex context parameters = do
   requireNParameters parameters 2 "stringElemIndex"
   character <- valueToCharacter $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   case elemIndex character $ UTF8.toString bytestring of
-    Nothing -> return $ CustardMaybe Nothing
-    Just result -> return $ CustardMaybe $ Just $ CustardInteger
-                                                $ fromIntegral result
+    Nothing -> return (context, CustardMaybe Nothing)
+    Just result -> return (context,
+                           CustardMaybe $ Just $ CustardInteger
+                                                  $ fromIntegral result)
 
 
 cfStringElemIndices :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfStringElemIndices context parameters = do
   requireNParameters parameters 2 "stringElemIndices"
   character <- valueToCharacter $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
-  return $ CustardList $ map (CustardInteger . fromIntegral)
-                             $ elemIndices character $ UTF8.toString bytestring
+  return (context,
+          CustardList $ map (CustardInteger . fromIntegral)
+                            $ elemIndices character $ UTF8.toString bytestring)
 
 
 cfStringFindIndex :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfStringFindIndex context parameters = do
   error "Not implemented."
   -- TODO
@@ -569,7 +590,7 @@ cfStringFindIndex context parameters = do
 
 cfStringFindIndices :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfStringFindIndices context parameters = do
   error "Not implemented."
   -- TODO
@@ -577,7 +598,7 @@ cfStringFindIndices context parameters = do
 
 cfStringLines :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringLines context parameters = do
   requireNParameters parameters 1 "stringLines"
   bytestring <- valueToUTF8String $ parameters !! 0
@@ -589,12 +610,12 @@ cfStringLines context parameters = do
              (bytestring, [])
              $ elemIndices '\n' $ UTF8.toString bytestring
   let lines = linesSoFar ++ [lastLine]
-  return $ CustardList $ map CustardString lines
+  return (context, CustardList $ map CustardString lines)
 
 
 cfStringWords :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfStringWords context parameters = do
   requireNParameters parameters 1 "stringWords"
   bytestring <- valueToUTF8String $ parameters !! 0
@@ -607,22 +628,22 @@ cfStringWords context parameters = do
              $ findIndices isSpace $ UTF8.toString bytestring
   let words = wordsSoFar ++ [lastWord]
       words' = filter (\line -> not $ BS.null line) words
-  return $ CustardList $ map CustardString words'
+  return (context, CustardList $ map CustardString words')
 
 
 cfStringUnlines :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringUnlines context parameters = do
   requireNParameters parameters 1 "stringUnlines"
   lines <- valueToListOfUTF8Strings $ parameters !! 0
-  return $ CustardString $ BS.intercalate (UTF8.fromString "\n") lines
+  return (context, CustardString $ BS.intercalate (UTF8.fromString "\n") lines)
 
 
 cfStringUnwords :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfStringUnwords context parameters = do
   requireNParameters parameters 1 "stringUnwords"
   words <- valueToListOfUTF8Strings $ parameters !! 0
-  return $ CustardString $ BS.intercalate (UTF8.fromString " ") words
+  return (context, CustardString $ BS.intercalate (UTF8.fromString " ") words)

@@ -21,9 +21,9 @@ import Network.FruitTart.Util
 
 cfGetSessionID :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfGetSessionID context parameters = do
   requireControllerContext context "getSessionID"
   requireNParameters parameters 0 "getSessionID"
   FruitTartState { sessionID = sessionID } <- get
-  return $ CustardInteger $ fromJust sessionID
+  return (context, CustardInteger $ fromJust sessionID)

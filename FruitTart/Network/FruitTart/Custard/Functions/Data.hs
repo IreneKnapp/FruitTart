@@ -110,143 +110,145 @@ import Network.FruitTart.Util
 
 cfMakeEmptyData :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMakeEmptyData context parameters = do
   requireNParameters parameters 0 "makeEmptyData"
-  return $ CustardData $ BS.empty
+  return (context, CustardData $ BS.empty)
 
 
 cfMakeSingletonData :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfMakeSingletonData context parameters = do
   requireNParameters parameters 1 "makeSingletonData"
   word8 <- valueToWord8 $ parameters !! 0
-  return $ CustardData $ BS.singleton word8
+  return (context, CustardData $ BS.singleton word8)
 
 
 cfDataPack :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataPack context parameters = do
   requireNParameters parameters 1 "dataPack"
   word8s <- valueToListOfWord8s $ parameters !! 0
-  return $ CustardData $ BS.pack word8s
+  return (context, CustardData $ BS.pack word8s)
 
 
 cfDataUnpack :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataUnpack context parameters = do
   requireNParameters parameters 1 "dataUnpack"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardList
-         $ map (CustardInteger . fromIntegral)
-         $ BS.unpack bytestring
+  return (context,
+          CustardList
+           $ map (CustardInteger . fromIntegral)
+                 $ BS.unpack bytestring)
 
 
 cfDataCons :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataCons context parameters = do
   requireNParameters parameters 2 "dataCons"
   word8 <- valueToWord8 $ parameters !! 0
   bytestring <- valueToByteString $ parameters !! 1
-  return $ CustardData $ BS.cons word8 bytestring
+  return (context, CustardData $ BS.cons word8 bytestring)
 
 
 cfDataSnoc :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataSnoc context parameters = do
   requireNParameters parameters 2 "dataSnoc"
   bytestring <- valueToByteString $ parameters !! 0
   word8 <- valueToWord8 $ parameters !! 1
-  return $ CustardData $ BS.snoc bytestring word8
+  return (context, CustardData $ BS.snoc bytestring word8)
 
 
 cfDataAppend :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataAppend context parameters = do
   requireNParameters parameters 2 "dataAppend"
   a <- valueToByteString $ parameters !! 0
   b <- valueToByteString $ parameters !! 1
-  return $ CustardData $ BS.append a b
+  return (context, CustardData $ BS.append a b)
 
 
 cfDataHead :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataHead context parameters = do
   requireNParameters parameters 1 "dataHead"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ BS.head bytestring
+  return (context, CustardInteger $ fromIntegral $ BS.head bytestring)
 
 
 cfDataUncons :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataUncons context parameters = do
   requireNParameters parameters 1 "dataUncons"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ case BS.uncons bytestring of
-             Nothing -> CustardMaybe $ Nothing
-             Just (word8, rest) -> CustardMaybe
+  return (context,
+          case BS.uncons bytestring of
+            Nothing -> CustardMaybe $ Nothing
+            Just (word8, rest) -> CustardMaybe
                                    $ Just
                                    $ CustardTuple [CustardInteger
-                                                   $ fromIntegral word8,
-                                                   CustardData rest]
+                                                    $ fromIntegral word8,
+                                                   CustardData rest])
 
 
 cfDataLast :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataLast context parameters = do
   requireNParameters parameters 1 "dataLast"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ BS.last bytestring
+  return (context, CustardInteger $ fromIntegral $ BS.last bytestring)
 
 
 cfDataTail :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataTail context parameters = do
   requireNParameters parameters 1 "dataTail"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardData $ BS.tail bytestring
+  return (context, CustardData $ BS.tail bytestring)
 
 
 cfDataInit :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataInit context parameters = do
   requireNParameters parameters 1 "dataInit"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardData $ BS.init bytestring
+  return (context, CustardData $ BS.init bytestring)
 
 
 cfDataNull :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataNull context parameters = do
   requireNParameters parameters 1 "dataNull"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardBool $ BS.null bytestring
+  return (context, CustardBool $ BS.null bytestring)
 
 
 cfDataLength :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataLength context parameters = do
   requireNParameters parameters 1 "dataLength"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ BS.length bytestring
+  return (context, CustardInteger $ fromIntegral $ BS.length bytestring)
 
 
 cfDataMap :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfDataMap context parameters = do
   requireNParameters parameters 0 "dataMap"
   error "Not yet implemented."
@@ -255,45 +257,45 @@ cfDataMap context parameters = do
 
 cfDataReverse :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataReverse context parameters = do
   requireNParameters parameters 1 "dataReverse"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardData $ BS.reverse bytestring
+  return (context, CustardData $ BS.reverse bytestring)
 
 
 cfDataIntersperse :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfDataIntersperse context parameters = do
   requireNParameters parameters 2 "dataIntersperse"
   word8 <- valueToWord8 $ parameters !! 0
   bytestring <- valueToByteString $ parameters !! 1
-  return $ CustardData $ BS.intersperse word8 bytestring
+  return (context, CustardData $ BS.intersperse word8 bytestring)
 
 
 cfDataIntercalate :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfDataIntercalate context parameters = do
   requireNParameters parameters 2 "dataIntercalate"
   a <- valueToByteString $ parameters !! 0
   bs <- valueToListOfByteStrings $ parameters !! 1
-  return $ CustardData $ BS.intercalate a bs
+  return (context, CustardData $ BS.intercalate a bs)
 
 
 cfDataTranspose :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataTranspose context parameters = do
   requireNParameters parameters 1 "dataTranspose"
   bytestrings <- valueToListOfByteStrings $ parameters !! 0
-  return $ CustardList $ map CustardData $ BS.transpose bytestrings
+  return (context, CustardList $ map CustardData $ BS.transpose bytestrings)
 
 
 cfDataFoldl :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataFoldl context parameters = do
   requireNParameters parameters 0 "dataFoldl"
   error "Not yet implemented."
@@ -302,7 +304,7 @@ cfDataFoldl context parameters = do
 
 cfDataFoldl1 :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataFoldl1 context parameters = do
   requireNParameters parameters 0 "dataFoldl1"
   error "Not yet implemented."
@@ -311,7 +313,7 @@ cfDataFoldl1 context parameters = do
 
 cfDataFoldr :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataFoldr context parameters = do
   requireNParameters parameters 0 "dataFoldr"
   error "Not yet implemented."
@@ -320,7 +322,7 @@ cfDataFoldr context parameters = do
 
 cfDataFoldr1 :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataFoldr1 context parameters = do
   requireNParameters parameters 0 "dataFoldr1"
   error "Not yet implemented."
@@ -329,16 +331,16 @@ cfDataFoldr1 context parameters = do
 
 cfDataConcat :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataConcat context parameters = do
   requireNParameters parameters 1 "dataConcat"
   bytestrings <- valueToListOfByteStrings $ parameters !! 0
-  return $ CustardData $ BS.concat bytestrings
+  return (context, CustardData $ BS.concat bytestrings)
 
 
 cfDataConcatMap :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataConcatMap context parameters = do
   requireNParameters parameters 0 "dataConcatMap"
   error "Not yet implemented."
@@ -347,7 +349,7 @@ cfDataConcatMap context parameters = do
 
 cfDataAny :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfDataAny context parameters = do
   requireNParameters parameters 0 "dataAny"
   error "Not yet implemented."
@@ -356,7 +358,7 @@ cfDataAny context parameters = do
 
 cfDataAll :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfDataAll context parameters = do
   requireNParameters parameters 0 "dataAll"
   error "Not yet implemented."
@@ -365,25 +367,25 @@ cfDataAll context parameters = do
 
 cfDataMaximum :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataMaximum context parameters = do
   requireNParameters parameters 1 "dataMaximum"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ BS.maximum bytestring
+  return (context, CustardInteger $ fromIntegral $ BS.maximum bytestring)
 
 
 cfDataMinimum :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataMinimum context parameters = do
   requireNParameters parameters 1 "dataMinimum"
   bytestring <- valueToByteString $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ BS.minimum bytestring
+  return (context, CustardInteger $ fromIntegral $ BS.minimum bytestring)
 
 
 cfDataScanl :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataScanl context parameters = do
   requireNParameters parameters 0 "dataScanl"
   error "Not yet implemented."
@@ -392,7 +394,7 @@ cfDataScanl context parameters = do
 
 cfDataScanl1 :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataScanl1 context parameters = do
   requireNParameters parameters 0 "dataScanl1"
   error "Not yet implemented."
@@ -401,7 +403,7 @@ cfDataScanl1 context parameters = do
 
 cfDataScanr :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataScanr context parameters = do
   requireNParameters parameters 0 "dataScanr"
   error "Not yet implemented."
@@ -410,7 +412,7 @@ cfDataScanr context parameters = do
 
 cfDataScanr1 :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataScanr1 context parameters = do
   requireNParameters parameters 0 "dataScanr1"
   error "Not yet implemented."
@@ -419,7 +421,7 @@ cfDataScanr1 context parameters = do
 
 cfDataMapAccumL :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataMapAccumL context parameters = do
   requireNParameters parameters 0 "dataMapAccumL"
   error "Not yet implemented."
@@ -428,7 +430,7 @@ cfDataMapAccumL context parameters = do
 
 cfDataMapAccumR :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataMapAccumR context parameters = do
   requireNParameters parameters 0 "dataMapAccumR"
   error "Not yet implemented."
@@ -437,7 +439,7 @@ cfDataMapAccumR context parameters = do
 
 cfDataReplicate :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataReplicate context parameters = do
   requireNParameters parameters 0 "dataReplicate"
   error "Not yet implemented."
@@ -446,7 +448,7 @@ cfDataReplicate context parameters = do
 
 cfDataUnfoldr :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataUnfoldr context parameters = do
   requireNParameters parameters 0 "dataUnfoldr"
   error "Not yet implemented."
@@ -455,7 +457,7 @@ cfDataUnfoldr context parameters = do
 
 cfDataUnfoldrN :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfDataUnfoldrN context parameters = do
   requireNParameters parameters 0 "dataUnfoldrN"
   error "Not yet implemented."
@@ -464,7 +466,7 @@ cfDataUnfoldrN context parameters = do
 
 cfDataTake :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataTake context parameters = do
   requireNParameters parameters 0 "dataTake"
   error "Not yet implemented."
@@ -473,7 +475,7 @@ cfDataTake context parameters = do
 
 cfDataDrop :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataDrop context parameters = do
   requireNParameters parameters 0 "dataDrop"
   error "Not yet implemented."
@@ -482,7 +484,7 @@ cfDataDrop context parameters = do
 
 cfDataSplitAt :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataSplitAt context parameters = do
   requireNParameters parameters 0 "dataSplitAt"
   error "Not yet implemented."
@@ -491,7 +493,7 @@ cfDataSplitAt context parameters = do
 
 cfDataTakeWhile :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataTakeWhile context parameters = do
   requireNParameters parameters 0 "dataTakeWhile"
   error "Not yet implemented."
@@ -500,7 +502,7 @@ cfDataTakeWhile context parameters = do
 
 cfDataDropWhile :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataDropWhile context parameters = do
   requireNParameters parameters 0 "dataDropWhile"
   error "Not yet implemented."
@@ -509,7 +511,7 @@ cfDataDropWhile context parameters = do
 
 cfDataSpan :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataSpan context parameters = do
   requireNParameters parameters 0 "dataSpan"
   error "Not yet implemented."
@@ -518,7 +520,7 @@ cfDataSpan context parameters = do
 
 cfDataSpanEnd :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataSpanEnd context parameters = do
   requireNParameters parameters 0 "dataSpanEnd"
   error "Not yet implemented."
@@ -527,7 +529,7 @@ cfDataSpanEnd context parameters = do
 
 cfDataBreak :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataBreak context parameters = do
   requireNParameters parameters 0 "dataBreak"
   error "Not yet implemented."
@@ -536,7 +538,7 @@ cfDataBreak context parameters = do
 
 cfDataBreakEnd :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfDataBreakEnd context parameters = do
   requireNParameters parameters 0 "dataBreakEnd"
   error "Not yet implemented."
@@ -545,7 +547,7 @@ cfDataBreakEnd context parameters = do
 
 cfDataBreakByte :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataBreakByte context parameters = do
   requireNParameters parameters 0 "dataBreakByte"
   error "Not yet implemented."
@@ -554,7 +556,7 @@ cfDataBreakByte context parameters = do
 
 cfDataGroup :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataGroup context parameters = do
   requireNParameters parameters 0 "dataGroup"
   error "Not yet implemented."
@@ -563,7 +565,7 @@ cfDataGroup context parameters = do
 
 cfDataGroupBy :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataGroupBy context parameters = do
   requireNParameters parameters 0 "dataGroupBy"
   error "Not yet implemented."
@@ -572,7 +574,7 @@ cfDataGroupBy context parameters = do
 
 cfDataInits :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataInits context parameters = do
   requireNParameters parameters 0 "dataInits"
   error "Not yet implemented."
@@ -581,7 +583,7 @@ cfDataInits context parameters = do
 
 cfDataTails :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataTails context parameters = do
   requireNParameters parameters 0 "dataTails"
   error "Not yet implemented."
@@ -590,7 +592,7 @@ cfDataTails context parameters = do
 
 cfDataSplit :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataSplit context parameters = do
   requireNParameters parameters 0 "dataSplit"
   error "Not yet implemented."
@@ -599,7 +601,7 @@ cfDataSplit context parameters = do
 
 cfDataSplitWith :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataSplitWith context parameters = do
   requireNParameters parameters 0 "dataSplitWith"
   error "Not yet implemented."
@@ -608,7 +610,7 @@ cfDataSplitWith context parameters = do
 
 cfDataIsPrefixOf :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfDataIsPrefixOf context parameters = do
   requireNParameters parameters 0 "dataIsPrefixOf"
   error "Not yet implemented."
@@ -617,7 +619,7 @@ cfDataIsPrefixOf context parameters = do
 
 cfDataIsSuffixOf :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfDataIsSuffixOf context parameters = do
   requireNParameters parameters 0 "dataIsSuffixOf"
   error "Not yet implemented."
@@ -626,7 +628,7 @@ cfDataIsSuffixOf context parameters = do
 
 cfDataIsInfixOf :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataIsInfixOf context parameters = do
   requireNParameters parameters 0 "dataIsInfixOf"
   error "Not yet implemented."
@@ -635,7 +637,7 @@ cfDataIsInfixOf context parameters = do
 
 cfDataBreakSubstring :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfDataBreakSubstring context parameters = do
   requireNParameters parameters 0 "dataBreakSubstring"
   error "Not yet implemented."
@@ -644,7 +646,7 @@ cfDataBreakSubstring context parameters = do
 
 cfDataFindSubstring :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfDataFindSubstring context parameters = do
   requireNParameters parameters 0 "dataFindSubstring"
   error "Not yet implemented."
@@ -653,7 +655,7 @@ cfDataFindSubstring context parameters = do
 
 cfDataFindSubstrings :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfDataFindSubstrings context parameters = do
   requireNParameters parameters 0 "dataFindSubstrings"
   error "Not yet implemented."
@@ -662,7 +664,7 @@ cfDataFindSubstrings context parameters = do
 
 cfDataElem :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataElem context parameters = do
   requireNParameters parameters 0 "dataElem"
   error "Not yet implemented."
@@ -671,7 +673,7 @@ cfDataElem context parameters = do
 
 cfDataNotElem :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataNotElem context parameters = do
   requireNParameters parameters 0 "dataNotElem"
   error "Not yet implemented."
@@ -680,7 +682,7 @@ cfDataNotElem context parameters = do
 
 cfDataFind :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataFind context parameters = do
   requireNParameters parameters 0 "dataFind"
   error "Not yet implemented."
@@ -689,7 +691,7 @@ cfDataFind context parameters = do
 
 cfDataFilter :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfDataFilter context parameters = do
   requireNParameters parameters 0 "dataFilter"
   error "Not yet implemented."
@@ -698,7 +700,7 @@ cfDataFilter context parameters = do
 
 cfDataPartition :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataPartition context parameters = do
   requireNParameters parameters 0 "dataPartition"
   error "Not yet implemented."
@@ -707,7 +709,7 @@ cfDataPartition context parameters = do
 
 cfDataIndex :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataIndex context parameters = do
   requireNParameters parameters 0 "dataIndex"
   error "Not yet implemented."
@@ -716,7 +718,7 @@ cfDataIndex context parameters = do
 
 cfDataElemIndex :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataElemIndex context parameters = do
   requireNParameters parameters 0 "dataElemIndex"
   error "Not yet implemented."
@@ -725,7 +727,7 @@ cfDataElemIndex context parameters = do
 
 cfDataElemIndices :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfDataElemIndices context parameters = do
   requireNParameters parameters 0 "dataElemIndices"
   error "Not yet implemented."
@@ -734,7 +736,7 @@ cfDataElemIndices context parameters = do
 
 cfDataElemIndexEnd :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfDataElemIndexEnd context parameters = do
   requireNParameters parameters 0 "dataElemIndexEnd"
   error "Not yet implemented."
@@ -743,7 +745,7 @@ cfDataElemIndexEnd context parameters = do
 
 cfDataFindIndex :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataFindIndex context parameters = do
   requireNParameters parameters 0 "dataFindIndex"
   error "Not yet implemented."
@@ -752,7 +754,7 @@ cfDataFindIndex context parameters = do
 
 cfDataFindIndices :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfDataFindIndices context parameters = do
   requireNParameters parameters 0 "dataFindIndices"
   error "Not yet implemented."
@@ -761,7 +763,7 @@ cfDataFindIndices context parameters = do
 
 cfDataCount :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataCount context parameters = do
   requireNParameters parameters 0 "dataCount"
   error "Not yet implemented."
@@ -770,7 +772,7 @@ cfDataCount context parameters = do
 
 cfDataZip :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfDataZip context parameters = do
   requireNParameters parameters 0 "dataZip"
   error "Not yet implemented."
@@ -779,7 +781,7 @@ cfDataZip context parameters = do
 
 cfDataZipWith :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfDataZipWith context parameters = do
   requireNParameters parameters 0 "dataZipWith"
   error "Not yet implemented."
@@ -788,7 +790,7 @@ cfDataZipWith context parameters = do
 
 cfDataUnzip :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfDataUnzip context parameters = do
   requireNParameters parameters 0 "dataUnzip"
   error "Not yet implemented."
@@ -797,7 +799,7 @@ cfDataUnzip context parameters = do
 
 cfDataSort :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataSort context parameters = do
   requireNParameters parameters 0 "dataSort"
   error "Not yet implemented."
@@ -806,7 +808,7 @@ cfDataSort context parameters = do
 
 cfDataCopy :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfDataCopy context parameters = do
   requireNParameters parameters 0 "dataCopy"
   error "Not yet implemented."
@@ -815,7 +817,7 @@ cfDataCopy context parameters = do
 
 cfDataUTF8Decode :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Decode context parameters = do
   requireNParameters parameters 0 "dataUTF8Decode"
   error "Not yet implemented."
@@ -824,7 +826,7 @@ cfDataUTF8Decode context parameters = do
 
 cfDataUTF8Uncons :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Uncons context parameters = do
   requireNParameters parameters 0 "dataUTF8Uncons"
   error "Not yet implemented."
@@ -833,7 +835,7 @@ cfDataUTF8Uncons context parameters = do
 
 cfDataUTF8SplitAt :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8SplitAt context parameters = do
   requireNParameters parameters 0 "dataUTF8SplitAt"
   error "Not yet implemented."
@@ -842,7 +844,7 @@ cfDataUTF8SplitAt context parameters = do
 
 cfDataUTF8Take :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Take context parameters = do
   requireNParameters parameters 0 "dataUTF8Take"
   error "Not yet implemented."
@@ -851,7 +853,7 @@ cfDataUTF8Take context parameters = do
 
 cfDataUTF8Drop :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Drop context parameters = do
   requireNParameters parameters 0 "dataUTF8Drop"
   error "Not yet implemented."
@@ -860,7 +862,7 @@ cfDataUTF8Drop context parameters = do
 
 cfDataUTF8Span :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Span context parameters = do
   requireNParameters parameters 0 "dataUTF8Span"
   error "Not yet implemented."
@@ -869,7 +871,7 @@ cfDataUTF8Span context parameters = do
 
 cfDataUTF8Break :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Break context parameters = do
   requireNParameters parameters 0 "dataUTF8Break"
   error "Not yet implemented."
@@ -878,7 +880,7 @@ cfDataUTF8Break context parameters = do
 
 cfDataUTF8FromString :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8FromString context parameters = do
   requireNParameters parameters 0 "dataUTF8FromString"
   error "Not yet implemented."
@@ -887,7 +889,7 @@ cfDataUTF8FromString context parameters = do
 
 cfDataUTF8ToString :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8ToString context parameters = do
   requireNParameters parameters 0 "dataUTF8ToString"
   error "Not yet implemented."
@@ -896,7 +898,7 @@ cfDataUTF8ToString context parameters = do
 
 cfDataUTF8Foldl :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Foldl context parameters = do
   requireNParameters parameters 0 "dataUTF8Foldl"
   error "Not yet implemented."
@@ -905,7 +907,7 @@ cfDataUTF8Foldl context parameters = do
 
 cfDataUTF8Foldr :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Foldr context parameters = do
   requireNParameters parameters 0 "dataUTF8Foldr"
   error "Not yet implemented."
@@ -914,7 +916,7 @@ cfDataUTF8Foldr context parameters = do
 
 cfDataUTF8Length :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Length context parameters = do
   requireNParameters parameters 0 "dataUTF8Length"
   error "Not yet implemented."
@@ -923,7 +925,7 @@ cfDataUTF8Length context parameters = do
 
 cfDataUTF8Lines :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfDataUTF8Lines context parameters = do
   requireNParameters parameters 0 "dataUTF8Lines"
   error "Not yet implemented."

@@ -30,7 +30,7 @@ import Network.FruitTart.Util
 
 cfGenerateCaptcha :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfGenerateCaptcha context parameters = do
   requireControllerContext context "generateCaptcha"
   requireNParameters parameters 0 "generateCaptcha"
@@ -41,12 +41,12 @@ cfGenerateCaptcha context parameters = do
   (string, byteString) <- liftIO $ makeCaptcha
   captchaCache' <- return $ Map.insert timestamp (string, byteString) captchaCache
   liftIO $ putMVar captchaCacheMVar captchaCache'
-  return $ CustardInteger timestamp
+  return (context, CustardInteger timestamp)
 
 
 cfLookupCaptcha :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfLookupCaptcha context parameters = do
   requireControllerContext context "lookupCaptcha"
   requireNParameters parameters 1 "checkCaptcha"
@@ -55,14 +55,16 @@ cfLookupCaptcha context parameters = do
   FruitTartState { captchaCacheMVar = captchaCacheMVar } <- get
   captchaCache <- liftIO $ readMVar captchaCacheMVar
   captcha <- return $ Map.lookup timestamp captchaCache
-  return $ CustardMaybe $ case captcha of
-    Nothing -> Nothing
-    Just (_, bytestring) -> Just $ CustardData bytestring
+  return (context,
+          CustardMaybe $ case captcha of
+                           Nothing -> Nothing
+                           Just (_, bytestring) ->
+                             Just $ CustardData bytestring)
 
 
 cfCheckCaptcha :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfCheckCaptcha context parameters = do
   requireControllerContext context "checkCaptcha"
   requireNParameters parameters 2 "checkCaptcha"
@@ -74,20 +76,22 @@ cfCheckCaptcha context parameters = do
   captcha <- return $ Map.lookup timestamp captchaCache
   captchaCache' <- return $ Map.delete timestamp captchaCache
   liftIO $ putMVar captchaCacheMVar captchaCache'
-  return $ CustardBool $ case captcha of
-    Nothing -> False
-    Just (challengeString, _)
-      -> (map toUpper $ UTF8.toString responseString) == challengeString
+  return (context,
+          CustardBool $ case captcha of
+                          Nothing -> False
+                          Just (challengeString, _)
+                            -> (map toUpper $ UTF8.toString responseString)
+                               == challengeString)
 
 
 cfExpireOldCaptchas :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfExpireOldCaptchas context parameters = do
   requireControllerContext context "expireOldCaptchas"
   requireNParameters parameters 0 "expireOldCaptchas"
   expireOldCaptchas
-  return $ CustardNull
+  return (context, CustardNull)
 
 
 expireOldCaptchas :: FruitTart ()

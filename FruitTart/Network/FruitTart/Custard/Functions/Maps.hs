@@ -109,98 +109,98 @@ import Network.FruitTart.Util
 
 cfMapNull :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfMapNull context parameters = do
   requireNParameters parameters 1 "mapNull"
   theMap <- valueToMap $ parameters !! 0
-  return $ CustardBool $ Map.null theMap
+  return (context, CustardBool $ Map.null theMap)
 
 
 cfMapSize :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfMapSize context parameters = do
   requireNParameters parameters 1 "mapSize"
   theMap <- valueToMap $ parameters !! 0
-  return $ CustardInteger $ fromIntegral $ Map.size theMap
+  return (context, CustardInteger $ fromIntegral $ Map.size theMap)
 
 
 cfMapMember :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapMember context parameters = do
   requireNParameters parameters 2 "mapMember"
   symbol <- valueToSymbol $ parameters !! 0
   theMap <- valueToMap $ parameters !! 1
-  return $ CustardBool $ Map.member symbol theMap
+  return (context, CustardBool $ Map.member symbol theMap)
 
 
 cfMapNotMember :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapNotMember context parameters = do
   requireNParameters parameters 2 "mapNotMember"
   symbol <- valueToSymbol $ parameters !! 0
   theMap <- valueToMap $ parameters !! 1
-  return $ CustardBool $ Map.notMember symbol theMap
+  return (context, CustardBool $ Map.notMember symbol theMap)
 
 
 cfMapLookup :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapLookup context parameters = do
   requireNParameters parameters 2 "mapLookup"
   symbol <- valueToSymbol $ parameters !! 0
   theMap <- valueToMap $ parameters !! 1
   let maybeResult = Map.lookup symbol theMap
   case maybeResult of
-    Nothing -> return $ CustardMaybe Nothing
-    Just result -> return $ CustardMaybe $ Just result
+    Nothing -> return (context, CustardMaybe Nothing)
+    Just result -> return (context, CustardMaybe $ Just result)
 
 
 cfMapFindWithDefault :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfMapFindWithDefault context parameters = do
   requireNParameters parameters 3 "mapFindWithDefault"
   defaultValue <- return $ parameters !! 0
   key <- valueToSymbol $ parameters !! 1
   theMap <- valueToMap $ parameters !! 2
-  return $ Map.findWithDefault defaultValue key theMap
+  return (context, Map.findWithDefault defaultValue key theMap)
 
 
 cfMakeEmptyMap :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMakeEmptyMap context parameters = do
   requireNParameters parameters 0 "makeEmptyMap"
-  return $ CustardMap $ Map.empty
+  return (context, CustardMap $ Map.empty)
 
 
 cfMakeSingletonMap :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMakeSingletonMap context parameters = do
   requireNParameters parameters 2 "makeSingletonMap"
   key <- valueToSymbol $ parameters !! 0
   value <- return $ parameters !! 1
-  return $ CustardMap $ Map.singleton key value
+  return (context, CustardMap $ Map.singleton key value)
 
 
 cfMapInsert :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapInsert context parameters = do
   requireNParameters parameters 3 "mapInsert"
   key <- valueToSymbol $ parameters !! 0
   value <- return $ parameters !! 1
   theMap <- valueToMap $ parameters !! 2
-  return $ CustardMap $ Map.insert key value theMap
+  return (context, CustardMap $ Map.insert key value theMap)
 
 
 cfMapInsertWith :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapInsertWith context parameters = do
   requireNParameters parameters 0 "mapInsertWith"
   error "Not yet implemented."
@@ -209,7 +209,7 @@ cfMapInsertWith context parameters = do
 
 cfMapInsertWithKey :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapInsertWithKey context parameters = do
   requireNParameters parameters 0 "mapInsertWithKey"
   error "Not yet implemented."
@@ -218,7 +218,7 @@ cfMapInsertWithKey context parameters = do
 
 cfMapInsertLookupWithKey :: CustardContext
                          -> [CustardValue]
-                         -> FruitTart CustardValue
+                         -> FruitTart (CustardContext, CustardValue)
 cfMapInsertLookupWithKey context parameters = do
   requireNParameters parameters 0 "mapInsertLookupWithKey"
   error "Not yet implemented."
@@ -227,17 +227,17 @@ cfMapInsertLookupWithKey context parameters = do
 
 cfMapDelete :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapDelete context parameters = do
   requireNParameters parameters 2 "mapDelete"
   symbol <- valueToSymbol $ parameters !! 0
   theMap <- valueToMap $ parameters !! 1
-  return $ CustardMap $ Map.delete symbol theMap
+  return (context, CustardMap $ Map.delete symbol theMap)
 
 
 cfMapAdjust :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapAdjust context parameters = do
   requireNParameters parameters 0 "mapAdjust"
   error "Not yet implemented."
@@ -246,7 +246,7 @@ cfMapAdjust context parameters = do
 
 cfMapAdjustWithKey :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapAdjustWithKey context parameters = do
   requireNParameters parameters 0 "mapAdjustWithKey"
   error "Not yet implemented."
@@ -255,7 +255,7 @@ cfMapAdjustWithKey context parameters = do
 
 cfMapUpdate :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapUpdate context parameters = do
   requireNParameters parameters 0 "mapUpdate"
   error "Not yet implemented."
@@ -264,7 +264,7 @@ cfMapUpdate context parameters = do
 
 cfMapUpdateWithKey :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateWithKey context parameters = do
   requireNParameters parameters 0 "mapUpdateWithKey"
   error "Not yet implemented."
@@ -273,7 +273,7 @@ cfMapUpdateWithKey context parameters = do
 
 cfMapUpdateLookupWithKey :: CustardContext
                          -> [CustardValue]
-                         -> FruitTart CustardValue
+                         -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateLookupWithKey context parameters = do
   requireNParameters parameters 0 "mapUpdateLookupWithKey"
   error "Not yet implemented."
@@ -282,7 +282,7 @@ cfMapUpdateLookupWithKey context parameters = do
 
 cfMapAlter :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfMapAlter context parameters = do
   requireNParameters parameters 0 "mapAlter"
   error "Not yet implemented."
@@ -291,17 +291,17 @@ cfMapAlter context parameters = do
 
 cfMapUnion :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfMapUnion context parameters = do
   requireNParameters parameters 2 "mapUnion"
   mapA <- valueToMap $ parameters !! 0
   mapB <- valueToMap $ parameters !! 1
-  return $ CustardMap $ Map.union mapA mapB
+  return (context, CustardMap $ Map.union mapA mapB)
 
 
 cfMapUnionWith :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapUnionWith context parameters = do
   requireNParameters parameters 0 "mapUnionWith"
   error "Not yet implemented."
@@ -310,7 +310,7 @@ cfMapUnionWith context parameters = do
 
 cfMapUnionWithKey :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapUnionWithKey context parameters = do
   requireNParameters parameters 0 "mapUnionWithKey"
   error "Not yet implemented."
@@ -319,16 +319,16 @@ cfMapUnionWithKey context parameters = do
 
 cfMapUnions :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapUnions context parameters = do
   requireNParameters parameters 1 "mapUnions"
   maps <- valueToListOfMaps $ parameters !! 0
-  return $ CustardMap $ Map.unions maps
+  return (context, CustardMap $ Map.unions maps)
 
 
 cfMapUnionsWith :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapUnionsWith context parameters = do
   requireNParameters parameters 0 "mapUnionsWith"
   error "Not yet implemented."
@@ -337,17 +337,17 @@ cfMapUnionsWith context parameters = do
 
 cfMapDifference :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapDifference context parameters = do
   requireNParameters parameters 2 "mapDifference"
   mapA <- valueToMap $ parameters !! 0
   mapB <- valueToMap $ parameters !! 1
-  return $ CustardMap $ Map.difference mapA mapB
+  return (context, CustardMap $ Map.difference mapA mapB)
 
 
 cfMapDifferenceWith :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfMapDifferenceWith context parameters = do
   requireNParameters parameters 0 "mapDifferenceWith"
   error "Not yet implemented."
@@ -356,7 +356,7 @@ cfMapDifferenceWith context parameters = do
 
 cfMapDifferenceWithKey :: CustardContext
                        -> [CustardValue]
-                       -> FruitTart CustardValue
+                       -> FruitTart (CustardContext, CustardValue)
 cfMapDifferenceWithKey context parameters = do
   requireNParameters parameters 0 "mapDifferenceWithKey"
   error "Not yet implemented."
@@ -365,17 +365,17 @@ cfMapDifferenceWithKey context parameters = do
 
 cfMapIntersection :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapIntersection context parameters = do
   requireNParameters parameters 2 "mapIntersection"
   mapA <- valueToMap $ parameters !! 0
   mapB <- valueToMap $ parameters !! 1
-  return $ CustardMap $ Map.intersection mapA mapB
+  return (context, CustardMap $ Map.intersection mapA mapB)
 
 
 cfMapIntersectionWith :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapIntersectionWith context parameters = do
   requireNParameters parameters 0 "mapIntersectionWith"
   error "Not yet implemented."
@@ -384,7 +384,7 @@ cfMapIntersectionWith context parameters = do
 
 cfMapIntersectionWithKey :: CustardContext
                          -> [CustardValue]
-                         -> FruitTart CustardValue
+                         -> FruitTart (CustardContext, CustardValue)
 cfMapIntersectionWithKey context parameters = do
   requireNParameters parameters 0 "mapIntersectionWithKey"
   error "Not yet implemented."
@@ -393,7 +393,7 @@ cfMapIntersectionWithKey context parameters = do
 
 cfMapMap :: CustardContext
          -> [CustardValue]
-         -> FruitTart CustardValue
+         -> FruitTart (CustardContext, CustardValue)
 cfMapMap context parameters = do
   requireNParameters parameters 0 "mapMap"
   error "Not yet implemented."
@@ -402,7 +402,7 @@ cfMapMap context parameters = do
 
 cfMapMapWithKey :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapMapWithKey context parameters = do
   requireNParameters parameters 0 "mapMapWithKey"
   error "Not yet implemented."
@@ -411,7 +411,7 @@ cfMapMapWithKey context parameters = do
 
 cfMapMapAccum :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfMapMapAccum context parameters = do
   requireNParameters parameters 0 "mapMapAccum"
   error "Not yet implemented."
@@ -420,7 +420,7 @@ cfMapMapAccum context parameters = do
 
 cfMapMapAccumWithKey :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfMapMapAccumWithKey context parameters = do
   requireNParameters parameters 0 "mapMapAccumWithKey"
   error "Not yet implemented."
@@ -429,7 +429,7 @@ cfMapMapAccumWithKey context parameters = do
 
 cfMapMapAccumRWithKey :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapMapAccumRWithKey context parameters = do
   requireNParameters parameters 0 "mapMapAccumRWithKey"
   error "Not yet implemented."
@@ -438,7 +438,7 @@ cfMapMapAccumRWithKey context parameters = do
 
 cfMapMapKeys :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapMapKeys context parameters = do
   requireNParameters parameters 0 "mapMapKeys"
   error "Not yet implemented."
@@ -447,7 +447,7 @@ cfMapMapKeys context parameters = do
 
 cfMapMapKeysWith :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfMapMapKeysWith context parameters = do
   requireNParameters parameters 0 "mapMapKeysWith"
   error "Not yet implemented."
@@ -456,7 +456,7 @@ cfMapMapKeysWith context parameters = do
 
 cfMapMapKeysMonotonic :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapMapKeysMonotonic context parameters = do
   requireNParameters parameters 0 "mapMapKeysMonotonic"
   error "Not yet implemented."
@@ -465,7 +465,7 @@ cfMapMapKeysMonotonic context parameters = do
 
 cfMapFold :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfMapFold context parameters = do
   requireNParameters parameters 0 "mapFold"
   error "Not yet implemented."
@@ -474,7 +474,7 @@ cfMapFold context parameters = do
 
 cfMapFoldWithKey :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfMapFoldWithKey context parameters = do
   requireNParameters parameters 0 "mapFoldWithKey"
   error "Not yet implemented."
@@ -483,7 +483,7 @@ cfMapFoldWithKey context parameters = do
 
 cfMapFoldrWithKey :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapFoldrWithKey context parameters = do
   requireNParameters parameters 0 "mapFoldrWithKey"
   error "Not yet implemented."
@@ -492,7 +492,7 @@ cfMapFoldrWithKey context parameters = do
 
 cfMapFoldlWithKey :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapFoldlWithKey context parameters = do
   requireNParameters parameters 0 "mapFoldlWithKey"
   error "Not yet implemented."
@@ -501,31 +501,32 @@ cfMapFoldlWithKey context parameters = do
 
 cfMapElems :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfMapElems context parameters = do
   requireNParameters parameters 1 "mapElems"
   theMap <- valueToMap $ parameters !! 0
   let items = Map.elems theMap
   typecheckList items
-  return $ CustardList items
+  return (context, CustardList items)
 
 
 cfMapKeys :: CustardContext
           -> [CustardValue]
-          -> FruitTart CustardValue
+          -> FruitTart (CustardContext, CustardValue)
 cfMapKeys context parameters = do
   requireNParameters parameters 1 "mapKeys"
   theMap <- valueToMap $ parameters !! 0
   let items = Map.keys theMap
-  return $ CustardList
-         $ map (\(moduleName, properName)
-                  -> CustardSymbol moduleName properName)
-               items
+  return (context,
+          CustardList
+           $ map (\(moduleName, properName)
+                    -> CustardSymbol moduleName properName)
+                 items)
 
 
 cfMapKeysSet :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapKeysSet context parameters = do
   requireNParameters parameters 0 "mapKeysSet"
   error "Not yet implemented."
@@ -534,7 +535,7 @@ cfMapKeysSet context parameters = do
 
 cfMapAssocs :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapAssocs context parameters = do
   requireNParameters parameters 1 "mapAssocs"
   theMap <- valueToMap $ parameters !! 0
@@ -543,12 +544,12 @@ cfMapAssocs context parameters = do
                                     value])
                    $ Map.assocs theMap
   typecheckList result
-  return $ CustardList result
+  return (context, CustardList result)
 
 
 cfMapToList :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapToList context parameters = do
   requireNParameters parameters 1 "mapToList"
   theMap <- valueToMap $ parameters !! 0
@@ -557,12 +558,12 @@ cfMapToList context parameters = do
                                     value])
                    $ Map.assocs theMap
   typecheckList result
-  return $ CustardList result
+  return (context, CustardList result)
 
 
 cfMapFromList :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfMapFromList context parameters = do
   requireNParameters parameters 0 "mapFromList"
   error "Not yet implemented."
@@ -571,7 +572,7 @@ cfMapFromList context parameters = do
 
 cfMapFromListWith :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapFromListWith context parameters = do
   requireNParameters parameters 0 "mapFromListWith"
   error "Not yet implemented."
@@ -580,7 +581,7 @@ cfMapFromListWith context parameters = do
 
 cfMapFromListWithKey :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfMapFromListWithKey context parameters = do
   requireNParameters parameters 0 "mapFromListWithKey"
   error "Not yet implemented."
@@ -589,7 +590,7 @@ cfMapFromListWithKey context parameters = do
 
 cfMapToAscList :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapToAscList context parameters = do
   requireNParameters parameters 0 "mapToAscList"
   error "Not yet implemented."
@@ -598,7 +599,7 @@ cfMapToAscList context parameters = do
 
 cfMapToDescList :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapToDescList context parameters = do
   requireNParameters parameters 0 "mapToDescList"
   error "Not yet implemented."
@@ -607,7 +608,7 @@ cfMapToDescList context parameters = do
 
 cfMapFromAscList :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfMapFromAscList context parameters = do
   requireNParameters parameters 0 "mapFromAscList"
   error "Not yet implemented."
@@ -616,7 +617,7 @@ cfMapFromAscList context parameters = do
 
 cfMapFromAscListWith :: CustardContext
                      -> [CustardValue]
-                     -> FruitTart CustardValue
+                     -> FruitTart (CustardContext, CustardValue)
 cfMapFromAscListWith context parameters = do
   requireNParameters parameters 0 "mapFromAscListWith"
   error "Not yet implemented."
@@ -625,7 +626,7 @@ cfMapFromAscListWith context parameters = do
 
 cfMapFromAscListWithKey :: CustardContext
                         -> [CustardValue]
-                        -> FruitTart CustardValue
+                        -> FruitTart (CustardContext, CustardValue)
 cfMapFromAscListWithKey context parameters = do
   requireNParameters parameters 0 "mapFromAscListWithKey"
   error "Not yet implemented."
@@ -634,7 +635,7 @@ cfMapFromAscListWithKey context parameters = do
 
 cfMapFromDistinctAscList :: CustardContext
                          -> [CustardValue]
-                         -> FruitTart CustardValue
+                         -> FruitTart (CustardContext, CustardValue)
 cfMapFromDistinctAscList context parameters = do
   requireNParameters parameters 0 "mapFromDistinctAscList"
   error "Not yet implemented."
@@ -643,7 +644,7 @@ cfMapFromDistinctAscList context parameters = do
 
 cfMapFilter :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapFilter context parameters = do
   requireNParameters parameters 0 "mapFilter"
   error "Not yet implemented."
@@ -652,7 +653,7 @@ cfMapFilter context parameters = do
 
 cfMapFilterWithKey :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapFilterWithKey context parameters = do
   requireNParameters parameters 0 "mapFilterWithKey"
   error "Not yet implemented."
@@ -661,7 +662,7 @@ cfMapFilterWithKey context parameters = do
 
 cfMapPartition :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapPartition context parameters = do
   requireNParameters parameters 0 "mapPartition"
   error "Not yet implemented."
@@ -670,7 +671,7 @@ cfMapPartition context parameters = do
 
 cfMapPartitionWithKey :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapPartitionWithKey context parameters = do
   requireNParameters parameters 0 "mapPartitionWithKey"
   error "Not yet implemented."
@@ -679,7 +680,7 @@ cfMapPartitionWithKey context parameters = do
 
 cfMapMaybe :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfMapMaybe context parameters = do
   requireNParameters parameters 0 "mapMaybe"
   error "Not yet implemented."
@@ -688,7 +689,7 @@ cfMapMaybe context parameters = do
 
 cfMapMaybeWithKey :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapMaybeWithKey context parameters = do
   requireNParameters parameters 0 "mapMaybeWithKey"
   error "Not yet implemented."
@@ -697,7 +698,7 @@ cfMapMaybeWithKey context parameters = do
 
 cfMapEither :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapEither context parameters = do
   requireNParameters parameters 0 "mapEither"
   error "Not yet implemented."
@@ -706,7 +707,7 @@ cfMapEither context parameters = do
 
 cfMapEitherWithKey :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapEitherWithKey context parameters = do
   requireNParameters parameters 0 "mapEitherWithKey"
   error "Not yet implemented."
@@ -715,7 +716,7 @@ cfMapEitherWithKey context parameters = do
 
 cfMapSplit :: CustardContext
            -> [CustardValue]
-           -> FruitTart CustardValue
+           -> FruitTart (CustardContext, CustardValue)
 cfMapSplit context parameters = do
   requireNParameters parameters 0 "mapSplit"
   error "Not yet implemented."
@@ -724,7 +725,7 @@ cfMapSplit context parameters = do
 
 cfMapSplitLookup :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfMapSplitLookup context parameters = do
   requireNParameters parameters 0 "mapSplitLookup"
   error "Not yet implemented."
@@ -733,7 +734,7 @@ cfMapSplitLookup context parameters = do
 
 cfMapIsSubmapOf :: CustardContext
                 -> [CustardValue]
-                -> FruitTart CustardValue
+                -> FruitTart (CustardContext, CustardValue)
 cfMapIsSubmapOf context parameters = do
   requireNParameters parameters 0 "mapIsSubmapOf"
   error "Not yet implemented."
@@ -742,7 +743,7 @@ cfMapIsSubmapOf context parameters = do
 
 cfMapIsSubmapOfBy :: CustardContext
                   -> [CustardValue]
-                  -> FruitTart CustardValue
+                  -> FruitTart (CustardContext, CustardValue)
 cfMapIsSubmapOfBy context parameters = do
   requireNParameters parameters 0 "mapIsSubmapOfBy"
   error "Not yet implemented."
@@ -751,7 +752,7 @@ cfMapIsSubmapOfBy context parameters = do
 
 cfMapIsProperSubmapOf :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapIsProperSubmapOf context parameters = do
   requireNParameters parameters 0 "mapIsProperSubmapOf"
   error "Not yet implemented."
@@ -760,7 +761,7 @@ cfMapIsProperSubmapOf context parameters = do
 
 cfMapIsProperSubmapOfBy :: CustardContext
                         -> [CustardValue]
-                        -> FruitTart CustardValue
+                        -> FruitTart (CustardContext, CustardValue)
 cfMapIsProperSubmapOfBy context parameters = do
   requireNParameters parameters 0 "mapIsProperSubmapOfBy"
   error "Not yet implemented."
@@ -769,7 +770,7 @@ cfMapIsProperSubmapOfBy context parameters = do
 
 cfMapLookupIndex :: CustardContext
                  -> [CustardValue]
-                 -> FruitTart CustardValue
+                 -> FruitTart (CustardContext, CustardValue)
 cfMapLookupIndex context parameters = do
   requireNParameters parameters 0 "mapLookupIndex"
   error "Not yet implemented."
@@ -778,7 +779,7 @@ cfMapLookupIndex context parameters = do
 
 cfMapFindIndex :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapFindIndex context parameters = do
   requireNParameters parameters 0 "mapFindIndex"
   error "Not yet implemented."
@@ -787,7 +788,7 @@ cfMapFindIndex context parameters = do
 
 cfMapElemAt :: CustardContext
             -> [CustardValue]
-            -> FruitTart CustardValue
+            -> FruitTart (CustardContext, CustardValue)
 cfMapElemAt context parameters = do
   requireNParameters parameters 0 "mapElemAt"
   error "Not yet implemented."
@@ -796,7 +797,7 @@ cfMapElemAt context parameters = do
 
 cfMapUpdateAt :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateAt context parameters = do
   requireNParameters parameters 0 "mapUpdateAt"
   error "Not yet implemented."
@@ -805,7 +806,7 @@ cfMapUpdateAt context parameters = do
 
 cfMapDeleteAt :: CustardContext
               -> [CustardValue]
-              -> FruitTart CustardValue
+              -> FruitTart (CustardContext, CustardValue)
 cfMapDeleteAt context parameters = do
   requireNParameters parameters 0 "mapDeleteAt"
   error "Not yet implemented."
@@ -814,7 +815,7 @@ cfMapDeleteAt context parameters = do
 
 cfMapFindMin :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapFindMin context parameters = do
   requireNParameters parameters 0 "mapFindMin"
   error "Not yet implemented."
@@ -823,7 +824,7 @@ cfMapFindMin context parameters = do
 
 cfMapFindMax :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapFindMax context parameters = do
   requireNParameters parameters 0 "mapFindMax"
   error "Not yet implemented."
@@ -832,7 +833,7 @@ cfMapFindMax context parameters = do
 
 cfMapDeleteMin :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapDeleteMin context parameters = do
   requireNParameters parameters 0 "mapDeleteMin"
   error "Not yet implemented."
@@ -841,7 +842,7 @@ cfMapDeleteMin context parameters = do
 
 cfMapDeleteMax :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapDeleteMax context parameters = do
   requireNParameters parameters 0 "mapDeleteMax"
   error "Not yet implemented."
@@ -850,7 +851,7 @@ cfMapDeleteMax context parameters = do
 
 cfMapDeleteFindMin :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapDeleteFindMin context parameters = do
   requireNParameters parameters 0 "mapDeleteFindMin"
   error "Not yet implemented."
@@ -859,7 +860,7 @@ cfMapDeleteFindMin context parameters = do
 
 cfMapDeleteFindMax :: CustardContext
                    -> [CustardValue]
-                   -> FruitTart CustardValue
+                   -> FruitTart (CustardContext, CustardValue)
 cfMapDeleteFindMax context parameters = do
   requireNParameters parameters 0 "mapDeleteFindMax"
   error "Not yet implemented."
@@ -868,7 +869,7 @@ cfMapDeleteFindMax context parameters = do
 
 cfMapUpdateMin :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateMin context parameters = do
   requireNParameters parameters 0 "mapUpdateMin"
   error "Not yet implemented."
@@ -877,7 +878,7 @@ cfMapUpdateMin context parameters = do
 
 cfMapUpdateMax :: CustardContext
                -> [CustardValue]
-               -> FruitTart CustardValue
+               -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateMax context parameters = do
   requireNParameters parameters 0 "mapUpdateMax"
   error "Not yet implemented."
@@ -886,7 +887,7 @@ cfMapUpdateMax context parameters = do
 
 cfMapUpdateMinWithKey :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateMinWithKey context parameters = do
   requireNParameters parameters 0 "mapUpdateMinWithKey"
   error "Not yet implemented."
@@ -895,7 +896,7 @@ cfMapUpdateMinWithKey context parameters = do
 
 cfMapUpdateMaxWithKey :: CustardContext
                       -> [CustardValue]
-                      -> FruitTart CustardValue
+                      -> FruitTart (CustardContext, CustardValue)
 cfMapUpdateMaxWithKey context parameters = do
   requireNParameters parameters 0 "mapUpdateMaxWithKey"
   error "Not yet implemented."
@@ -904,7 +905,7 @@ cfMapUpdateMaxWithKey context parameters = do
 
 cfMapMinView :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapMinView context parameters = do
   requireNParameters parameters 0 "mapMinView"
   error "Not yet implemented."
@@ -913,7 +914,7 @@ cfMapMinView context parameters = do
 
 cfMapMaxView :: CustardContext
              -> [CustardValue]
-             -> FruitTart CustardValue
+             -> FruitTart (CustardContext, CustardValue)
 cfMapMaxView context parameters = do
   requireNParameters parameters 0 "mapMaxView"
   error "Not yet implemented."
@@ -922,7 +923,7 @@ cfMapMaxView context parameters = do
 
 cfMapMinViewWithKey :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfMapMinViewWithKey context parameters = do
   requireNParameters parameters 0 "mapMinViewWithKey"
   error "Not yet implemented."
@@ -931,7 +932,7 @@ cfMapMinViewWithKey context parameters = do
 
 cfMapMaxViewWithKey :: CustardContext
                     -> [CustardValue]
-                    -> FruitTart CustardValue
+                    -> FruitTart (CustardContext, CustardValue)
 cfMapMaxViewWithKey context parameters = do
   requireNParameters parameters 0 "mapMaxViewWithKey"
   error "Not yet implemented."

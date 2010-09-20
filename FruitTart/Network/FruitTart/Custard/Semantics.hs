@@ -650,11 +650,9 @@ applyFunctionGivenContextAndValue context function actualParameters = do
           outputContext' = context { custardContextGlobalBindings = outputBindings }
       return (outputContext', result)
     CustardNativeLambda (moduleName, properName) body -> do
-      result <- fCatch (body context actualParameters)
-                       (\e -> error $ "In builtin "
-                                      ++ moduleName ++ "." ++ properName
-                                      ++ ": " ++ (show (e :: SomeException)))
-      return (context, result)
+      fCatch (body context actualParameters)
+             (\e -> error $ "In builtin " ++ moduleName ++ "." ++ properName
+                            ++ ": " ++ (show (e :: SomeException)))
     _ -> do
       error $ "Call to something not a function."
 

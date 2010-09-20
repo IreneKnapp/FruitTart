@@ -113,7 +113,8 @@ data CustardValue = CustardNull
                   | CustardNativeLambda (String, String)
                                         (CustardContext
                                          -> [CustardValue]
-                                         -> FruitTart CustardValue)
+                                         -> FruitTart (CustardContext,
+                                                       CustardValue))
                   | CustardHostAddress HostAddress
                   | CustardHTTPHeader Header
                   | CustardHTTPCookie Cookie
