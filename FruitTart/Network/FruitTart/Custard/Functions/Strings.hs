@@ -654,14 +654,15 @@ cfStringLines :: CustardContext
 cfStringLines context parameters = do
   requireNParameters parameters 1 "stringLines"
   bytestring <- valueToUTF8String $ parameters !! 0
-  (lastLine, linesSoFar)
-    <- foldM (\(bytestring, linesSoFar) index -> do
-                let before = UTF8.take index bytestring
-                    after = UTF8.drop (index + 1) bytestring
-                return (after, linesSoFar ++ [before]))
-             (bytestring, [])
-             $ elemIndices '\n' $ UTF8.toString bytestring
-  let lines = linesSoFar ++ [lastLine]
+  let (lastLine, _, linesSoFar)
+        = foldl (\(bytestring, offset, linesSoFar) index ->
+                   let index' = index - offset
+                       before = UTF8.take index' bytestring
+                       after = UTF8.drop (index' + 1) bytestring
+                   in (after, offset + index' + 1, linesSoFar ++ [before]))
+                (bytestring, 0, [])
+                $ elemIndices '\n' $ UTF8.toString bytestring
+      lines = linesSoFar ++ [lastLine]
   return (context, CustardList $ map CustardString lines)
 
 
@@ -671,15 +672,16 @@ cfStringWords :: CustardContext
 cfStringWords context parameters = do
   requireNParameters parameters 1 "stringWords"
   bytestring <- valueToUTF8String $ parameters !! 0
-  (lastWord, wordsSoFar)
-    <- foldM (\(bytestring, wordsSoFar) index -> do
-                let before = UTF8.take index bytestring
-                    after = UTF8.drop (index + 1) bytestring
-                return (after, wordsSoFar ++ [before]))
-             (bytestring, [])
-             $ findIndices isSpace $ UTF8.toString bytestring
-  let words = wordsSoFar ++ [lastWord]
-      words' = filter (\line -> not $ BS.null line) words
+  let (lastWord, _, wordsSoFar)
+        =  foldl (\(bytestring, offset, wordsSoFar) index ->
+                    let index' = index - offset
+                        before = UTF8.take index' bytestring
+                        after = UTF8.drop (index' + 1) bytestring
+                    in (after, offset + index' + 1, wordsSoFar ++ [before]))
+                 (bytestring, 0, [])
+                 $ findIndices isSpace $ UTF8.toString bytestring
+      words = wordsSoFar ++ [lastWord]
+      words' = filter (\word -> not $ BS.null word) words
   return (context, CustardList $ map CustardString words')
 
 

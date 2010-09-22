@@ -10,7 +10,9 @@ module Network.FruitTart.Custard.Functions.General (
                                                     cfByteSizeToString,
                                                     cfTimestampToString,
                                                     cfGetCurrentPage,
-                                                    cfGetController
+                                                    cfGetController,
+                                                    cfIdentity,
+                                                    cfEval
                                                    )
   where
 
@@ -25,6 +27,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Prelude hiding (catch)
 
+import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
 import Network.FruitTart.Types
@@ -158,3 +161,22 @@ cfGetController context parameters = do
     Just controllerName -> return (context,
                                    CustardString
                                     $ UTF8.fromString controllerName)
+
+
+cfIdentity :: CustardContext
+           -> [CustardValue]
+           -> FruitTart (CustardContext, CustardValue)
+cfIdentity context parameters = do
+  requireNParameters parameters 1 "identity"
+  return (context, parameters !! 0)
+
+
+cfEval :: CustardContext
+       -> [CustardValue]
+       -> FruitTart (CustardContext, CustardValue)
+cfEval context parameters = do
+  requireControllerContext context "eval"
+  requireNParameters parameters 1 "eval"
+  bytestring <- valueToUTF8String $ parameters !! 0
+  result <- eval "Base" (UTF8.toString bytestring)
+  return (context, result)

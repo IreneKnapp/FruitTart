@@ -115,7 +115,7 @@ valueToListOfUTF8Strings :: CustardValue
 valueToListOfUTF8Strings (CustardList []) = return []
 valueToListOfUTF8Strings (CustardList items@(CustardString _ : _)) =
   mapM (\(CustardString bytestring) -> return bytestring) items
-valueToListOfStrings value = errorNotAListOfStrings
+valueToListOfUTF8Strings value = errorNotAListOfStrings
 
 
 valueToListOfMaps :: CustardValue

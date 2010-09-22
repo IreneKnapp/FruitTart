@@ -165,8 +165,8 @@ cfMap :: CustardContext
       -> FruitTart (CustardContext, CustardValue)
 cfMap context parameters = do
   requireNParameters parameters 2 "map"
-  let function = head parameters
-  case head $ drop 1 parameters of
+  let function = parameters !! 0
+  case parameters !! 1 of
     CustardList items -> do
       (context, items) <- foldM (\(context, results) a -> do
                                    (context, result)
@@ -538,8 +538,22 @@ cfFilter :: CustardContext
          -> [CustardValue]
          -> FruitTart (CustardContext, CustardValue)
 cfFilter context parameters = do
-  error "Not implemented."
-  -- TODO
+  requireNParameters parameters 2 "filter"
+  let function = parameters !! 0
+  case parameters !! 1 of
+    CustardList items -> do
+      (context, items) <- foldM (\(context, results) a -> do
+                                   (context, shouldInclude)
+                                     <- applyFunctionGivenContextAndValue
+                                         context function [a]
+                                   shouldInclude <- valueToBoolean shouldInclude
+                                   if shouldInclude
+                                     then return (context, results ++ [a])
+                                     else return (context, results))
+                                (context, [])
+                                items
+      return (context, CustardList items)
+    _ -> errorNotAList
 
 
 cfPartition :: CustardContext

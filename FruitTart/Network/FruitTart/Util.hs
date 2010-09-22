@@ -16,14 +16,7 @@ module Network.FruitTart.Util (
                                query,
                                getTimestamp,
                                timestampToString,
-                               byteSizeToString,
-                               
-                               -- Lists
-                               merge,
-                               mergeBy,
-                               mergeByM,
-                               groupByM,
-                               split
+                               byteSizeToString
                               )
     where
 
@@ -33,4 +26,3 @@ import Network.FastCGI
 
 import Database.SQLite3 (SQLData(..))
 import Network.FruitTart.Util.Database
-import Network.FruitTart.Util.Lists

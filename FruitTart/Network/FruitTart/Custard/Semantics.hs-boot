@@ -1,5 +1,6 @@
 module Network.FruitTart.Custard.Semantics (
 					    getTemplateWithParameters,
+					    eval,
                                             applyFunctionGivenName,
                                             applyFunctionGivenContextAndValue,
 					    builtinBindings
@@ -24,6 +25,9 @@ getTemplateWithParameters :: String
 			  -> Map String String
                           -> [CustardValue]
                           -> FruitTart String
+
+
+eval :: String -> String -> FruitTart CustardValue
 
 
 applyFunctionGivenName :: CustardContextType

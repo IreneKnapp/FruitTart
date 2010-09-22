@@ -30,6 +30,7 @@ import Network.FruitTart.Util
 %error { parseError }
 
 %token
+        character           { TokenValue $$ }
         string              { TokenValue $$ }
         integer             { TokenValue $$ }
         symbol              { TokenSymbol _ _ }
@@ -75,7 +76,9 @@ import Network.FruitTart.Util
 
 %%
 
-PrimaryExpression     : string
+PrimaryExpression     : character
+		      { CustardLiteral $1 }
+		      | string
                       { CustardLiteral $1 }
                       | integer
                       { CustardLiteral $1 }
@@ -282,6 +285,10 @@ lexer database defaultPackage ('*':rest) = do
 lexer database defaultPackage ('/':rest) = do
   restTokens <- lexer database defaultPackage rest
   return $ TokenSlash : restTokens
+lexer database defaultPackage all@('\'':_) = do
+  let (character, rest) = readCharacter all
+  restTokens <- lexer database defaultPackage rest
+  return $ (TokenValue $ CustardCharacter character) : restTokens
 lexer database defaultPackage all@('"':_) = do
   let (string, rest) = readString all
   restTokens <- lexer database defaultPackage rest
@@ -320,6 +327,24 @@ lexer database defaultPackage all@(c:_)
                         ++ [c] ++ "'."
 
 
+readCharacter :: String -> (Char, String)
+readCharacter input
+    = readCharacter' $ drop 1 input
+      where readCharacter' ('\\':('\\':('\'':rest))) = ('\\', rest)
+            readCharacter' ('\\':('\'':('\'':rest))) = ('\'', rest)
+            readCharacter' ('\\':('n':('\'':rest))) = ('\n', rest)
+            readCharacter' ('\\':(c:_))
+              = error $ "Expression-lexing error: Unknown backslash escape \\"
+                        ++ [c] ++ "."
+            readCharacter' ('\'':rest)
+              = error $ "Expression-lexing error: Empty character literal."
+            readCharacter' (c:('\'':rest)) = (c, rest)
+            readCharacter' (c:_)
+              = error $ "Expression-lexing error: Character literal too long."
+            readCharacter' ""
+              = error $ "Expression-lexing error: Unterminated character literal."
+
+
 readString :: String -> (String, String)
 readString input
     = readString' $ drop 1 input
@@ -335,6 +360,8 @@ readString input
             readString' ('"':rest) = ("", rest)
             readString' (c:rest) = let (a, b) = readString' rest
                                    in ([c] ++ a, b)
+            readString' ""
+              = error $ "Expression-lexing error: Unterminated string literal."
 
 
 readSymbol :: String -> (Maybe String, String, String)

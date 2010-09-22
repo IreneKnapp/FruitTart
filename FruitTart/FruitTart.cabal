@@ -21,7 +21,6 @@ Executable FruitTart
                  Network.FruitTart.Types,
                  Network.FruitTart.Util,
                  Network.FruitTart.Util.Database,
-                 Network.FruitTart.Util.Lists,
                  Network.FruitTart.Custard.Semantics,
                  Network.FruitTart.Custard.Syntax,
                  Network.FruitTart.Custard.Functions.Util,

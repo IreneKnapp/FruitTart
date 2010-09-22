@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module Network.FruitTart.Custard.Semantics (
                                             getTemplateWithParameters,
+                                            eval,
                                             applyFunctionGivenName,
                                             applyFunctionGivenContextAndValue,
                                             builtinBindings
@@ -954,6 +955,12 @@ builtinBindings = Map.fromList
                 (("Base", "getController"),
                  CustardNativeLambda ("Base", "getController")
                                      General.cfGetController),
+                (("Base", "identity"),
+                 CustardNativeLambda ("Base", "identity")
+                                     General.cfIdentity),
+                (("Base", "eval"),
+                 CustardNativeLambda ("Base", "eval")
+                                     General.cfEval),
                 
                 -- Symbols
                 (("Base.Symbols", "symbolName"),
