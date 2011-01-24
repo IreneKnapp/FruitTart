@@ -53,3 +53,24 @@ Executable FruitTart
                  direct-sqlite >= 1.0,
                  hs-captcha >= 1.0
   extra-libraries: sqlite3
+
+Executable FruitTartUtility
+  main-is: StandaloneUtility.hs
+  other-modules: Network.FruitTart.Types
+                 Network.FruitTart.Util.Database
+  build-depends: base >= 4.1 && < 5,
+                 array >= 0.2.0.0,
+                 bytestring >= 0.9.1.4,
+                 containers >= 0.2.0.1,
+                 haskell98,
+                 mtl >= 1.1.0.2,
+                 network >= 2.2.1.7,
+                 time >= 1.1.4,
+                 old-time >= 1.0.0.4,
+                 old-locale >= 1.0.0.1,
+                 
+                 Crypto >= 4.2.0,
+                 utf8-string >= 0.3.5,
+                 
+                 direct-sqlite >= 1.0
+  extra-libraries: sqlite3
