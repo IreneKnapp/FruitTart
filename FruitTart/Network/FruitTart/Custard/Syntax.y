@@ -333,6 +333,10 @@ readCharacter input
       where readCharacter' ('\\':('\\':('\'':rest))) = ('\\', rest)
             readCharacter' ('\\':('\'':('\'':rest))) = ('\'', rest)
             readCharacter' ('\\':('n':('\'':rest))) = ('\n', rest)
+            readCharacter' ('\\':('r':('\'':rest))) = ('\r', rest)
+            readCharacter' ('\\':('t':('\'':rest))) = ('\t', rest)
+            readCharacter' ('\\':('f':('\'':rest))) = ('\f', rest)
+            readCharacter' ('\\':('v':('\'':rest))) = ('\v', rest)
             readCharacter' ('\\':(c:_))
               = error $ "Expression-lexing error: Unknown backslash escape \\"
                         ++ [c] ++ "."
@@ -354,6 +358,14 @@ readString input
                                             in ("\"" ++ a, b)
             readString' ('\\':('n':rest)) = let (a, b) = readString' rest
                                             in ("\n" ++ a, b)
+            readString' ('\\':('r':rest)) = let (a, b) = readString' rest
+                                            in ("\r" ++ a, b)
+            readString' ('\\':('t':rest)) = let (a, b) = readString' rest
+                                            in ("\t" ++ a, b)
+            readString' ('\\':('f':rest)) = let (a, b) = readString' rest
+                                            in ("\f" ++ a, b)
+            readString' ('\\':('v':rest)) = let (a, b) = readString' rest
+                                            in ("\v" ++ a, b)
             readString' ('\\':(c:_))
                 = error $ "Expression-lexing error: Unknown backslash escape \\"
                         ++ [c] ++ "."
