@@ -1297,6 +1297,7 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Lists", "permutations")
                                      Lists.cfPermutations),
                 -- Lists - Reducing lists (folds)
+                -- Lists - Reducing lists (folds) - General
                 (("Base.Lists", "fold"),
                  CustardNativeLambda ("Base.Lists", "fold")
                                      Lists.cfFold),
@@ -1560,6 +1561,7 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Strings", "stringPermutations")
                                      Strings.cfStringPermutations),
                 -- Strings - Reducing strings (folds)
+                -- Strings - Reducing strings (folds) - General
                 (("Base.Strings", "stringFold"),
                  CustardNativeLambda ("Base.Strings", "stringFold")
                                      Strings.cfStringFold),
@@ -1837,6 +1839,7 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Maps", "mapFoldlWithKey")
                                      Maps.cfMapFoldlWithKey),
                 -- Maps - Conversion
+                -- Maps - Conversion - General
                 (("Base.Maps", "mapElems"),
                  CustardNativeLambda ("Base.Maps", "mapElems")
                                      Maps.cfMapElems),
@@ -2050,6 +2053,7 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Data", "dataTranspose")
                                      Data.cfDataTranspose),
                 -- Data - Reducing data (folds)
+                -- Data - Reducing data (folds) - General
                 (("Base.Data", "dataFold"),
                  CustardNativeLambda ("Base.Data", "dataFold")
                                      Data.cfDataFold),
@@ -2158,6 +2162,7 @@ builtinBindings = Map.fromList
                  CustardNativeLambda ("Base.Data", "dataSplitWith")
                                      Data.cfDataSplitWith),
                 -- Data - Predicates
+                -- Data - Predicates - General
                 (("Base.Data", "dataIsPrefixOf"),
                  CustardNativeLambda ("Base.Data", "dataIsPrefixOf")
                                      Data.cfDataIsPrefixOf),
@@ -2231,10 +2236,6 @@ builtinBindings = Map.fromList
                 (("Base.Data", "dataSort"),
                  CustardNativeLambda ("Base.Data", "dataSort")
                                      Data.cfDataSort),
-                -- Data - Copying data
-                (("Base.Data", "dataCopy"),
-                 CustardNativeLambda ("Base.Data", "dataCopy")
-                                     Data.cfDataCopy),
                 -- Data - UTF8
                 (("Base.Data", "dataUTF8Decode"),
                  CustardNativeLambda ("Base.Data", "dataUTF8Decode")

@@ -74,7 +74,6 @@ module Network.FruitTart.Custard.Functions.Data (
                                                  cfDataZipWith,
                                                  cfDataUnzip,
                                                  cfDataSort,
-                                                 cfDataCopy,
                                                  cfDataUTF8Decode,
                                                  cfDataUTF8Uncons,
                                                  cfDataUTF8SplitAt,
@@ -791,15 +790,6 @@ cfDataSort :: CustardContext
            -> FruitTart (CustardContext, CustardValue)
 cfDataSort context parameters = do
   requireNParameters parameters 0 "dataSort"
-  error "Not yet implemented."
-  -- TODO
-
-
-cfDataCopy :: CustardContext
-           -> [CustardValue]
-           -> FruitTart (CustardContext, CustardValue)
-cfDataCopy context parameters = do
-  requireNParameters parameters 0 "dataCopy"
   error "Not yet implemented."
   -- TODO
 
