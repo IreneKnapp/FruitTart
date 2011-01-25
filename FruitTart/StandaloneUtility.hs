@@ -155,8 +155,11 @@ main = do
                         bodyLines = case lines body of
                                   [] -> [""]
                                   [line] -> [line]
-                                  bodyLines ->
-                                    reverse $ tail $ reverse bodyLines
+                                  bodyLines
+                                    | (head $ reverse bodyLines) == ""
+                                      -> reverse $ tail $ reverse bodyLines
+                                    | otherwise
+                                      -> bodyLines
                         markedLines = ([kindMarker] ++ head bodyLines)
                                       : (map (\line -> " " ++ line)
                                              $ tail bodyLines)
