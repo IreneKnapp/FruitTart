@@ -30,6 +30,7 @@ import qualified Network.FruitTart.Custard.Functions.Forms as Forms
 import qualified Network.FruitTart.Custard.Functions.Sessions as Sessions
 import qualified Network.FruitTart.Custard.Functions.Passwords as Passwords
 import qualified Network.FruitTart.Custard.Functions.Captchas as Captchas
+import qualified Network.FruitTart.Custard.Functions.Maybe as Maybe
 import qualified Network.FruitTart.Custard.Functions.Lists as Lists
 import qualified Network.FruitTart.Custard.Functions.Strings as Strings
 import qualified Network.FruitTart.Custard.Functions.Maps as Maps
@@ -906,11 +907,6 @@ builtinBindings = Map.fromList
                  CustardBool True),
                 (("Base", "False"),
                  CustardBool False),
-                (("Base", "Nothing"),
-                 CustardMaybe Nothing),
-                (("Base", "Just"),
-                 CustardNativeLambda ("Base", "Just")
-                                     General.cfJust),
                 (("Base", "LT"),
                  CustardOrdering LT),
                 (("Base", "GT"),
@@ -920,15 +916,6 @@ builtinBindings = Map.fromList
                 (("Base", "parameter"),
                  CustardNativeLambda ("Base", "parameter")
                                      General.cfParameter),
-                (("Base", "isNothing"),
-                 CustardNativeLambda ("Base", "isNothing")
-                                     General.cfIsNothing),
-                (("Base", "isJust"),
-                 CustardNativeLambda ("Base", "isJust")
-                                     General.cfIsJust),
-                (("Base", "fromJust"),
-                 CustardNativeLambda ("Base", "fromJust")
-                                     General.cfFromJust),
                 (("Base", "compareIntegers"),
                  CustardNativeLambda ("Base", "compareIntegers")
                                      General.cfCompareIntegers),
@@ -1248,6 +1235,40 @@ builtinBindings = Map.fromList
                 
                 -- Everything below here is based on a corresponding function
                 -- in Haskell, which may or may not have an identical name.
+                
+                -- Maybes
+                (("Base.Maybe", "Nothing"),
+                 CustardMaybe Nothing),
+                (("Base.Maybe", "Just"),
+                 CustardNativeLambda ("Base.Maybe", "Just")
+                                     Maybe.cfJust),
+                (("Base.Maybe", "maybe"),
+                 CustardNativeLambda ("Base.Maybe", "maybe")
+                                     Maybe.cfMaybe),
+                (("Base.Maybe", "isJust"),
+                 CustardNativeLambda ("Base.Maybe", "isJust")
+                                     Maybe.cfIsJust),
+                (("Base.Maybe", "isNothing"),
+                 CustardNativeLambda ("Base.Maybe", "isNothing")
+                                     Maybe.cfIsNothing),
+                (("Base.Maybe", "fromJust"),
+                 CustardNativeLambda ("Base.Maybe", "fromJust")
+                                     Maybe.cfFromJust),
+                (("Base.Maybe", "fromMaybe"),
+                 CustardNativeLambda ("Base.Maybe", "fromMaybe")
+                                     Maybe.cfFromMaybe),
+                (("Base.Maybe", "listToMaybe"),
+                 CustardNativeLambda ("Base.Maybe", "listToMaybe")
+                                     Maybe.cfListToMaybe),
+                (("Base.Maybe", "maybeToList"),
+                 CustardNativeLambda ("Base.Maybe", "maybeToList")
+                                     Maybe.cfMaybeToList),
+                (("Base.Maybe", "catMaybes"),
+                 CustardNativeLambda ("Base.Maybe", "catMaybes")
+                                     Maybe.cfCatMaybes),
+                (("Base.Maybe", "mapMaybe"),
+                 CustardNativeLambda ("Base.Maybe", "mapMaybe")
+                                     Maybe.cfMapMaybe),
                 
                 -- Lists
                 -- Lists - Basic functions

@@ -1,9 +1,5 @@
 module Network.FruitTart.Custard.Functions.General (
-                                                    cfJust,
                                                     cfParameter,
-                                                    cfIsNothing,
-                                                    cfIsJust,
-                                                    cfFromJust,
                                                     cfCompareIntegers,
                                                     cfShowInteger,
                                                     cfShowBool,
@@ -34,14 +30,6 @@ import Network.FruitTart.Types
 import Network.FruitTart.Util
 
 
-cfJust :: CustardContext
-       -> [CustardValue]
-       -> FruitTart (CustardContext, CustardValue)
-cfJust context parameters = do
-  requireNParameters parameters 1 "just"
-  return (context, CustardMaybe $ Just $ head parameters)
-
-
 cfParameter :: CustardContext
             -> [CustardValue]
             -> FruitTart (CustardContext, CustardValue)
@@ -52,43 +40,6 @@ cfParameter context parameters = do
   if n < (fromIntegral $ length contextParameters)
     then return (context, head $ drop (fromIntegral n) contextParameters)
     else error $ "Too few parameters for parameter(" ++ (show n) ++ ")."
-
-
-cfIsNothing :: CustardContext
-            -> [CustardValue]
-            -> FruitTart (CustardContext, CustardValue)
-cfIsNothing context parameters = do
-  requireNParameters parameters 1 "isNothing"
-  value <- return $ head parameters
-  case value of
-    CustardMaybe Nothing -> return (context, CustardBool True)
-    CustardMaybe (Just _) -> return (context, CustardBool False)
-    _ -> error $ "Parameter is not a Maybe in isNothing()."
-
-
-cfIsJust :: CustardContext
-         -> [CustardValue]
-         -> FruitTart (CustardContext, CustardValue)
-cfIsJust context parameters = do
-  requireNParameters parameters 1 "isJust"
-  value <- return $ head parameters
-  case value of
-    CustardMaybe Nothing -> return (context, CustardBool False)
-    CustardMaybe (Just _) -> return (context, CustardBool True)
-    _ -> error $ "Parameter is not a Maybe in isJust()."
-
-
-cfFromJust :: CustardContext
-           -> [CustardValue]
-           -> FruitTart (CustardContext, CustardValue)
-cfFromJust context parameters = do
-  requireNParameters parameters 1 "fromJust"
-  value <- return $ head parameters
-  case value of
-    CustardMaybe Nothing
-      -> error $ "Parameter is nothing in fromJust()."
-    CustardMaybe (Just result) -> return (context, result)
-    _ -> error $ "Parameter is not a Maybe in fromJust()."
 
 
 cfCompareIntegers :: CustardContext
