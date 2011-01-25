@@ -170,7 +170,9 @@ data CustardExpression = CustardLiteral CustardValue
                         | CustardOperationDivide CustardExpression
                                                  CustardExpression
                         | CustardQuoteExpression [CustardExpression]
-                        | CustardIfExpression [CustardExpression]
+                        | CustardIfExpression CustardExpression
+                                              CustardExpression
+                                              CustardExpression
                         | CustardCaseExpression [CustardExpression]
                         | CustardCallExpression [CustardExpression]
                         | CustardCallBySymbolExpression [CustardExpression]
@@ -190,7 +192,7 @@ data CustardExpression = CustardLiteral CustardValue
                         | CustardLetMapExpression [CustardExpression]
                         | CustardLetQuery1Expression [CustardExpression]
                         | CustardLetQueryNExpression [CustardExpression]
-                        | CustardSequence CustardExpression CustardExpression
+                        | CustardBlock [CustardExpression]
 
 data CustardContext = CustardContext {
     custardContextType :: CustardContextType,
@@ -206,6 +208,7 @@ data CustardToken = TokenValue CustardValue
                    | TokenSymbol String String
                    | TokenQuote
                    | TokenIf
+                   | TokenElse
                    | TokenCase
                    | TokenCall
                    | TokenCallBySymbol

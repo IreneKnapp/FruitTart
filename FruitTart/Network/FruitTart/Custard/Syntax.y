@@ -24,7 +24,7 @@ import Network.FruitTart.Util
 
 }
 
-%name parser Expression
+%name parser TopLevel
 %tokentype { CustardToken }
 %monad { IO }
 %error { parseError }
@@ -36,6 +36,7 @@ import Network.FruitTart.Util
         symbol              { TokenSymbol _ _ }
         quote               { TokenQuote }
         if                  { TokenIf }
+        else                { TokenElse }
         case                { TokenCase }
         call                { TokenCall }
         callBySymbol        { TokenCallBySymbol }
@@ -76,6 +77,7 @@ import Network.FruitTart.Util
 
 %%
 
+
 PrimaryExpression     : character
 		      { CustardLiteral $1 }
 		      | string
@@ -90,14 +92,14 @@ PrimaryExpression     : character
 		      { CustardLambdaExpression $2 $4 }
                       | '(' Expression ')'
                       { $2 }
+		      | StatementLikeExpression
+		      { $1 }
 
 FunctionCallExpression
                       : FunctionCallExpression '(' ExpressionList ')'
                       { CustardFunctionCall $1 $3 }
                       | quote '(' ExpressionList ')'
                       { CustardQuoteExpression $3 }
-                      | if '(' ExpressionList ')'
-                      { CustardIfExpression $3 }
                       | case '(' ExpressionList ')'
                       { CustardCaseExpression $3 }
                       | call '(' ExpressionList ')'
@@ -173,12 +175,34 @@ LogicalExpression     : LogicalExpression '&&' EqualityExpression
                       | EqualityExpression
                       { $1 }
 
-Expression	      : Expression ';' LogicalExpression
-		      { CustardSequence $1 $3 }
-		      | Expression ';'
+Expression	      : StatementLikeExpression
 		      { $1 }
 		      | LogicalExpression
 		      { $1 }
+
+ExpressionPlusSemicolon
+		      : StatementLikeExpression
+		      { $1 }
+		      | LogicalExpression ';'
+		      { $1 }
+
+StatementLikeExpression
+                      : if '(' Expression ')' ExpressionPlusSemicolon
+		        else ExpressionPlusSemicolon
+                      { CustardIfExpression $3 $5 $7 }
+		      | StatementBlock
+		      { CustardBlock $1 }
+
+StatementBlock        : '{' StatementList '}'
+		      { $2 }
+
+StatementList         : StatementList ExpressionPlusSemicolon
+                      { $1 ++ [$2] }
+                      | ExpressionPlusSemicolon
+		      { [$1] }
+
+TopLevel              : StatementList
+		      { CustardBlock $1 }
 
 ExpressionList        : ExpressionList1
                       { $1 }
@@ -304,6 +328,7 @@ lexer database defaultPackage all@(c:_)
       Nothing -> case symbol of
                    _ | symbol == "quote" -> return TokenQuote
                      | symbol == "if" -> return TokenIf
+                     | symbol == "else" -> return TokenElse
                      | symbol == "case" -> return TokenCase
                      | symbol == "call" -> return TokenCall
                      | symbol == "callBySymbol" -> return TokenCallBySymbol

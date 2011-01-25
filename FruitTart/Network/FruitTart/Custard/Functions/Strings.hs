@@ -412,7 +412,7 @@ cfStringDrop :: CustardContext
              -> [CustardValue]
              -> FruitTart (CustardContext, CustardValue)
 cfStringDrop context parameters = do
-  requireNParameters parameters 2 "stringTake"
+  requireNParameters parameters 2 "stringDrop"
   count <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   return (context,
@@ -424,7 +424,7 @@ cfStringSplitAt :: CustardContext
                 -> [CustardValue]
                 -> FruitTart (CustardContext, CustardValue)
 cfStringSplitAt context parameters = do
-  requireNParameters parameters 2 "stringTake"
+  requireNParameters parameters 2 "stringSplitAt"
   count <- valueToInteger $ parameters !! 0
   bytestring <- valueToUTF8String $ parameters !! 1
   let (before, after) = genericSplitAt count $ UTF8.toString bytestring

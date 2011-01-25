@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Control.Concurrent
+import Control.Exception
 import Control.Monad.State
 import Data.Dynamic
 import Data.Int
@@ -9,11 +10,13 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Network.FastCGI
+import Prelude hiding (catch)
 import System.Environment
 import System.Exit
 import System.IO
 
 import Database.SQLite3
+import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Types
 import Network.FruitTart.Util.Database
 
@@ -114,6 +117,14 @@ main = do
            hPutStrLn functionsFile ">>>>>"
            hPutStrLn functionsFile body
            hPutStrLn functionsFile "<<<<<"
+           catch (do
+                   _ <- readExpression database moduleName body
+                   return ())
+                 (\e -> do
+                    hPutStrLn functionsFile ""
+                    hPutStrLn functionsFile
+                              $ "ERROR while parsing: "
+                                ++ (show (e :: SomeException)))
            hPutStrLn functionsFile ""
            hPutStrLn functionsFile "")
         functions

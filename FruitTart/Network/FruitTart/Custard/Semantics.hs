@@ -226,13 +226,7 @@ evalExpression context expression = do
                  CustardVariable result -> return result
                  _ -> error $ "Parameter to quote() is not a symbol."
         return (context, CustardSymbol moduleName properName)
-      CustardIfExpression subexpressions -> do
-        if length subexpressions /= 3
-          then error $ "Invalid number of parameters to if()."
-          else return ()
-        let condition = head subexpressions
-            ifTrue = head $ drop 1 subexpressions
-            ifFalse = head $ drop 2 subexpressions
+      CustardIfExpression condition ifTrue ifFalse -> do
         (context, result) <- evalExpression context condition
         result <- valueToBoolean result
         if result
@@ -499,9 +493,10 @@ evalExpression context expression = do
                    $ drop 1 subexpressions
         context <- letQueryN context (moduleName, queryName) inputs
         return (context, CustardNull)
-      CustardSequence expressionA expressionB -> do
-        (context, _) <- evalExpression context expressionA
-        evalExpression context expressionB
+      CustardBlock expressions -> do
+        foldM (\(context, _) expression -> evalExpression context expression)
+              (context, undefined)
+              expressions
 
 
 custardEqual :: CustardValue
