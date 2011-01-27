@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, ExistentialQuantification #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
+             ExistentialQuantification #-}
 module Network.FruitTart.Types (
                                 -- General
                                 FruitTartState(..),
