@@ -659,40 +659,16 @@ applyFunctionGivenContextAndValue context function actualParameters = do
 
 
 getTopLevelBinding :: (String, String) -> FruitTart (Maybe CustardValue)
-getTopLevelBinding variableName@(moduleName, functionName) = do
+getTopLevelBinding variableName = do
   case Map.lookup variableName builtinBindings of
     Just result -> return $ Just result
     Nothing -> do
-      found <- query "SELECT id, body FROM functions WHERE module = ? AND name = ?"
-                     [SQLText moduleName, SQLText functionName]
-      case found of
-        [[SQLInteger functionID, SQLText functionBody]] -> do
-          FruitTartState { database = database } <- get
-          compiledBody
-            <- fCatch (liftIO $ readExpression database moduleName functionBody)
-                      (\e -> error $ "While reading expression "
-                                     ++ (show functionBody)
-                                     ++ " from body of function "
-                                     ++ moduleName ++ "." ++ functionName
-                                     ++ ": " ++ (show (e :: SomeException)))
-          parameterItems <- query ("SELECT name "
-                                   ++ "FROM function_parameters "
-                                   ++ "WHERE function = ? "
-                                   ++ "ORDER BY item")
-                                  [SQLInteger functionID]
-          FruitTartState { database = database } <- get
-          parameters <- mapM (\[SQLText parameterName] -> do
-                               TokenSymbol moduleName parameterName
-                                 <- liftIO
-                                    $ intern database moduleName parameterName
-                               return $ CustardParameter
-                                         (moduleName, parameterName))
-                             parameterItems
-          return $ Just $ CustardLambda (Just variableName)
-                                        parameters
-                                        Map.empty
-                                        compiledBody
-        _ -> return Nothing
+      Design { designFunctions = functions } <- getDesign
+      case Map.lookup variableName functions of
+        Nothing -> return Nothing
+        Just (Function {
+                functionLambdaExpression = custardValue
+              }) -> return $ Just custardValue
 
 
 bindQuery1 :: CustardContext

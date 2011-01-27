@@ -118,6 +118,7 @@ data Action = Action {
 
 
 data Function = Function {
+    functionLambdaExpression :: CustardValue
   }
 
 
