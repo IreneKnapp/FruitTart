@@ -12,6 +12,7 @@ module Network.FruitTart.Types (
                                 Function(..),
                                 Query(..),
                                 Template(..),
+                                TemplateItem(..),
                                 ParameterType(..),
                                 
                                 -- Custard language
@@ -129,7 +130,12 @@ data Query = Query {
 
 
 data Template = Template {
+    templateItems :: [TemplateItem]
   }
+
+
+data TemplateItem = ContentItem String
+                  | ExpressionItem CustardExpression
 
 
 data ParameterType = IntegerParameter

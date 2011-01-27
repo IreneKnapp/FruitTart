@@ -69,40 +69,39 @@ getTemplateWithContext :: String
                        -> CustardContext
                        -> FruitTart String
 getTemplateWithContext moduleName templateName context = do
-  items <- query ("SELECT template_items.kind, template_items.body "
-                  ++ "FROM templates LEFT JOIN template_items "
-                  ++ "ON templates.id = template_items.template "
-                  ++ "WHERE templates.module = ? AND templates.name = ? "
-                  ++ "ORDER BY template_items.item")
-                 [SQLText moduleName, SQLText templateName]
-  if items == []
-    then error $ "Template " ++ moduleName ++ "." ++ templateName ++ " not found."
-    else return ()
-  foldM (\(context, accumulator) ([SQLText kind, SQLText body], index) -> do
-          case kind of
-            "content" -> return (context, accumulator ++ body)
-            "expression" ->
-                fCatch (do
-                         FruitTartState { database = database } <- get
-                         expression <- liftIO $ readExpression database
-                                                               moduleName
-                                                               body
-                         (context, result)
-                           <- evalExpression context expression
-                         let resultString
-                               = case result of
-                                   CustardNull -> ""
-                                   CustardString bytestring
-                                     -> UTF8.toString bytestring
-                         return (context, accumulator ++ resultString))
-                       (\e -> error $ "While processing template "
-                                    ++ moduleName ++ "."
-                                    ++ templateName ++ ", item " ++ (show index)
-                                    ++ ": " ++ (show (e :: SomeException)))
-            _ -> error $ "Unknown template item type " ++ kind ++ ".")
-        (context, "")
-        (zip items [1..])
-        >>= return . snd
+  Design { designTemplates = templates } <- getDesign
+  case Map.lookup (moduleName, templateName) templates of
+    Nothing -> error $ "Template " ++ moduleName ++ "." ++ templateName
+                       ++ " not found."
+    Just (Template {
+            templateItems = items
+          }) -> do
+      foldM (\(context, accumulator) (item, index) -> do
+               case item of
+                 ContentItem body -> return (context, accumulator ++ body)
+                 ExpressionItem expression ->
+                   fCatch (do
+                            (context, result) <-
+                              evalExpression context expression
+                            resultString
+                              <- case result of
+                                   CustardNull -> return ""
+                                   CustardString bytestring ->
+                                     return $ UTF8.toString bytestring
+                                   _ -> error $ "Expression result is not "
+                                                ++ "a Null or a String."
+                            return (context, accumulator ++ resultString))
+                          (\e -> error $ "While processing template "
+                                         ++ moduleName
+                                         ++ "."
+                                         ++ templateName
+                                         ++ ", item "
+                                         ++ (show index)
+                                         ++ ": "
+                                         ++ (show (e :: SomeException))))
+            (context, "")
+            (zip items [1..])
+            >>= return . snd
 
 
 eval :: String -> String -> FruitTart CustardValue
