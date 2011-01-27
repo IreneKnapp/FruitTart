@@ -110,6 +110,10 @@ data Module = Module {
 
 
 data Action = Action {
+    actionFunctionName :: String,
+    actionMandatoryParameterTypes :: [ParameterType],
+    actionOptionalParameterTypes :: [ParameterType],
+    actionNamedParameterTypeMap :: Map String ParameterType
   }
 
 

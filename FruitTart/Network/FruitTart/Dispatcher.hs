@@ -93,9 +93,8 @@ processRequest' = do
         Just controllerModuleName
           -> do
            setControllerName controllerModuleName
-           maybeActionIDAndFunctionName
-             <- lookupAction controllerModuleName actionName method
-           case maybeActionIDAndFunctionName of
+           maybeAction <- lookupAction controllerModuleName actionName method
+           case maybeAction of
              Nothing -> do
                applyFunctionGivenName ControllerContext
                                       Map.empty
@@ -109,10 +108,12 @@ processRequest' = do
                                         $ UTF8.fromString method]
                fCloseOutput
                return ()
-             Just (actionID, functionName) -> do
-               (mandatoryParameterTypes,
-                optionalParameterTypes,
-                namedParameterTypes) <- lookupParameterTypes actionID
+             Just (Action {
+                     actionFunctionName = functionName,
+                     actionMandatoryParameterTypes = mandatoryParameterTypes,
+                     actionOptionalParameterTypes = optionalParameterTypes,
+                     actionNamedParameterTypeMap = namedParameterTypes
+                   }) -> do
                let maybeParameters = decodeParameters controllerModuleName
                                                       unnamedParameters
                                                       namedParameters
@@ -148,15 +149,10 @@ lookupController mappedName = do
   return $ Map.lookup mappedName controllers
 
 
-lookupAction :: String -> String -> String -> FruitTart (Maybe (Int64, String))
+lookupAction :: String -> String -> String -> FruitTart (Maybe Action)
 lookupAction moduleName actionName method = do
-  rows <- query ("SELECT id, function FROM controller_actions "
-                 ++ "WHERE controller = ? AND action = ? AND method = ?")
-                [SQLText moduleName, SQLText actionName, SQLText method]
-  case rows of
-    [] -> return Nothing
-    [[SQLInteger actionID, SQLText functionName]]
-      -> return $ Just (actionID, functionName)
+  Design { designActions = actions } <- getDesign
+  return $ Map.lookup (moduleName, actionName, method) actions
 
 
 lookupParameterTypes :: Int64
