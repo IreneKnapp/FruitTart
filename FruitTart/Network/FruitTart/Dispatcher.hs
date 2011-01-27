@@ -144,8 +144,8 @@ processRequest' = do
 
 lookupController :: String -> FruitTart (Maybe String)
 lookupController mappedName = do
-  Design { designControllerMappings = mappings } <- getDesign
-  return $ Map.lookup mappedName mappings
+  Design { designControllers = controllers } <- getDesign
+  return $ Map.lookup mappedName controllers
 
 
 lookupAction :: String -> String -> String -> FruitTart (Maybe (Int64, String))

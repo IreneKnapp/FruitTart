@@ -8,7 +8,7 @@ module Network.FruitTart.Types (
                                 -- Design
                                 Design(..),
                                 Module(..),
-                                Controller(..),
+                                Action(..),
                                 Function(..),
                                 Query(..),
                                 Template(..),
@@ -97,8 +97,8 @@ instance MonadFastCGI FruitTart where
 
 data Design = Design {
     designModules :: Set Module,
-    designControllerMappings :: Map String String,
-    designControllers :: Map String Controller,
+    designControllers :: Map String String,
+    designActions :: Map (String, String, String) Action,
     designFunctions :: Map (String, String) Function,
     designQueries :: Map (String, String) Query,
     designTemplates :: Map (String, String) Template
@@ -109,7 +109,7 @@ data Module = Module {
   }
 
 
-data Controller = Controller {
+data Action = Action {
   }
 
 
