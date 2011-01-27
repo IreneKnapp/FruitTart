@@ -17,10 +17,11 @@ description:
 
 Executable FruitTart
   main-is: Main.hs
-  other-modules: Network.FruitTart.Dispatcher,
+  other-modules: Network.FruitTart.Database,
+                 Network.FruitTart.Design,
+                 Network.FruitTart.Dispatcher,
                  Network.FruitTart.Types,
                  Network.FruitTart.Util,
-                 Network.FruitTart.Util.Database,
                  Network.FruitTart.Custard.Semantics,
                  Network.FruitTart.Custard.Syntax,
                  Network.FruitTart.Custard.Functions.Util,
@@ -58,8 +59,8 @@ Executable FruitTart
 Executable FruitTartUtility
   main-is: StandaloneUtility.hs
   other-modules: Network.FruitTart.Custard.Syntax,
-                 Network.FruitTart.Types,
-                 Network.FruitTart.Util.Database
+                 Network.FruitTart.Database,
+                 Network.FruitTart.Types
   build-depends: base >= 4.1 && < 5,
                  array >= 0.2.0.0,
                  bytestring >= 0.9.1.4,

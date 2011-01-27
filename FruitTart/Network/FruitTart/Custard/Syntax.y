@@ -19,8 +19,8 @@ import Numeric
 
 import Database.SQLite3
 import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
+import Network.FruitTart.Database
 import Network.FruitTart.Types
-import Network.FruitTart.Util
 
 }
 

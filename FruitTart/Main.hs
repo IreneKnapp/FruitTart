@@ -14,18 +14,22 @@ import System.Exit
 import System.IO.Unsafe
 
 import Database.SQLite3
-import Network.FruitTart.Types
-import Network.FruitTart.Util
+import Network.FruitTart.Database
+import Network.FruitTart.Design
 import Network.FruitTart.Dispatcher
+import Network.FruitTart.Types
 
 
 main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
+  design <- loadDesign database
+  designMVar <- newMVar design
   captchaCacheMVar <- newMVar $ Map.empty
   state <- return $ FruitTartState {
              database = database,
+             designMVar = designMVar,
              captchaCacheMVar = captchaCacheMVar,
              sessionID = Nothing,
              maybeCurrentPage = Nothing,

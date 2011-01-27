@@ -27,7 +27,6 @@ import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
 import Network.FruitTart.Types
-import Network.FruitTart.Util
 
 
 cfJust :: CustardContext

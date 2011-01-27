@@ -1,28 +1,37 @@
-module Network.FruitTart.Util (
-                               -- Data.Dynamic
-                               toDyn,
-                               
-                               -- Data.Int
-                               Int64,
-                               
-                               -- Network.FastCGI
-                               module Network.FastCGI,
-                               
-                               -- Data.SQLite3
-                               SQLData(..),
-                               
-                               -- Database
-                               earlyQuery,
-                               query,
-                               getTimestamp,
+module Network.FruitTart.Util (getTimestamp,
                                timestampToString,
-                               byteSizeToString
-                              )
-    where
+                               byteSizeToString)
+  where
 
-import Data.Dynamic
-import Data.Int
-import Network.FastCGI
 
-import Database.SQLite3 (SQLData(..))
-import Network.FruitTart.Util.Database
+import Control.Monad.State
+import Data.Time
+import Data.Time.Clock.POSIX
+import Foreign
+import Numeric
+import System.Locale
+
+import Database.SQLite3
+import Network.FruitTart.Types
+
+
+getTimestamp :: MonadIO m => m Int64
+getTimestamp = liftIO getPOSIXTime >>= return . floor
+
+
+timestampToString :: Int64 -> String
+timestampToString timestamp
+    = formatTime defaultTimeLocale
+                 "%Y-%m-%d %H:%M UTC"
+                 (posixSecondsToUTCTime $ realToFrac timestamp)
+
+
+byteSizeToString :: Int64 -> String
+byteSizeToString byteSize
+    = if fromIntegral byteSize < 2**10
+      then (show byteSize) ++ " bytes"
+      else if fromIntegral byteSize < 2**20
+           then (showFFloat (Just 2) (fromIntegral byteSize / 2**10) "") ++ " KiB"
+           else if fromIntegral byteSize < 2**30
+                then (showFFloat (Just 2) (fromIntegral byteSize / 2**20) "") ++ "MiB"
+                else (showFFloat (Just 2) (fromIntegral byteSize / 2**30) "") ++ "GiB"

@@ -4,6 +4,14 @@ module Network.FruitTart.Types (
                                 -- General
                                 FruitTartState(..),
                                 FruitTart,
+                                
+                                -- Design
+                                Design(..),
+                                Module(..),
+                                Controller(..),
+                                Function(..),
+                                Query(..),
+                                Template(..),
                                 ParameterType(..),
                                 
                                 -- Custard language
@@ -28,6 +36,8 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 import Network.Socket.Internal (HostAddress)
 
@@ -37,6 +47,7 @@ import Network.FastCGI
 
 data FruitTartState  = FruitTartState {
       database :: Database,
+      designMVar :: MVar Design,
       captchaCacheMVar :: MVar (Map Int64 (String, ByteString)),
       sessionID :: Maybe Int64,
       maybeCurrentPage :: Maybe String,
@@ -82,6 +93,37 @@ instance MonadFastCGI FruitTart where
                                                       state)
       put state'
       return result
+
+
+data Design = Design {
+    designModules :: Set Module,
+    designControllerMappings :: Map String String,
+    designControllers :: Map String Controller,
+    designFunctions :: Map (String, String) Function,
+    designQueries :: Map (String, String) Query,
+    designTemplates :: Map (String, String) Template
+  }
+
+
+data Module = Module {
+  }
+
+
+data Controller = Controller {
+  }
+
+
+data Function = Function {
+  }
+
+
+data Query = Query {
+  }
+
+
+data Template = Template {
+  }
+
 
 data ParameterType = IntegerParameter
                    | StringParameter

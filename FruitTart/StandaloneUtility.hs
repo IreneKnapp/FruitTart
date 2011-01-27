@@ -17,8 +17,8 @@ import System.IO
 
 import Database.SQLite3
 import Network.FruitTart.Custard.Syntax
+import Network.FruitTart.Database
 import Network.FruitTart.Types
-import Network.FruitTart.Util.Database
 
 
 main :: IO ()

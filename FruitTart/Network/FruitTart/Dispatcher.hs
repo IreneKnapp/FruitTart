@@ -19,8 +19,11 @@ import Prelude hiding (catch)
 import Random
 import System.Time
 
-import qualified Database.SQLite3 as SQL
+import Database.SQLite3 (SQLData(..))
+
 import Network.FruitTart.Custard.Semantics
+import Network.FruitTart.Database
+import Network.FruitTart.Design
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 
@@ -141,11 +144,8 @@ processRequest' = do
 
 lookupController :: String -> FruitTart (Maybe String)
 lookupController mappedName = do
-  rows <- query "SELECT module FROM controllers WHERE mapped_name = ?"
-                [SQLText mappedName]
-  case rows of
-    [] -> return Nothing
-    [[SQLText moduleName]] -> return $ Just moduleName
+  Design { designControllerMappings = mappings } <- getDesign
+  return $ Map.lookup mappedName mappings
 
 
 lookupAction :: String -> String -> String -> FruitTart (Maybe (Int64, String))

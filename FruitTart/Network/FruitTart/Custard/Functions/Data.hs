@@ -102,7 +102,6 @@ import Prelude hiding (catch)
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
 import Network.FruitTart.Types
-import Network.FruitTart.Util
 
 
 cfMakeEmptyData :: CustardContext

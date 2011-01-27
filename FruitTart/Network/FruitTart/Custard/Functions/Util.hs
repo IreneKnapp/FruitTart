@@ -54,7 +54,6 @@ import qualified Network.FastCGI as FCGI
 import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Types
-import Network.FruitTart.Util
 
 
 valueToSymbol :: CustardValue -> FruitTart (String, String)
