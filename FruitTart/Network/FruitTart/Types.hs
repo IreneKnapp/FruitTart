@@ -122,6 +122,8 @@ data Function = Function {
 
 
 data Query = Query {
+    queryPreparedStatement :: Statement,
+    queryValueNamesAndTypes :: [(String, CustardValueType)]
   }
 
 

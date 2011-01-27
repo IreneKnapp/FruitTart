@@ -1,4 +1,7 @@
-module Network.FruitTart.Database (earlyQuery, query) where
+module Network.FruitTart.Database (earlyQuery,
+                                   query,
+                                   preparedQuery)
+  where
 
 import Control.Monad.State
 import Data.Time
@@ -43,4 +46,20 @@ query text bindings = do
                    row <- liftIO $ columns statement
                    remainder <- query' statement
                    return $ [row] ++ remainder
+            Done -> return []
+
+
+preparedQuery :: Statement -> [SQLData] -> FruitTart [[SQLData]]
+preparedQuery statement bindings = do
+  liftIO $ bind statement bindings
+  result <- query' statement
+  liftIO $ reset statement
+  return result
+  where query' statement = do
+          stepResult <- liftIO $ step statement
+          case stepResult of
+            Row -> do
+              row <- liftIO $ columns statement
+              remainder <- query' statement
+              return $ [row] ++ remainder
             Done -> return []

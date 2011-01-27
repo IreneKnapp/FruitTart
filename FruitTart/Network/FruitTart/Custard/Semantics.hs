@@ -39,6 +39,7 @@ import qualified Network.FruitTart.Custard.Functions.Strings as Strings
 import qualified Network.FruitTart.Custard.Functions.Maps as Maps
 import qualified Network.FruitTart.Custard.Functions.Data as Data
 import Network.FruitTart.Database
+import Network.FruitTart.Design
 import Network.FruitTart.Types
 
 
@@ -754,19 +755,20 @@ namedQuery :: (String, String)
            -> [CustardValue]
            -> FruitTart [Map (String, String) CustardValue]
 namedQuery (moduleName, queryName) inputs = do
-  rows <- query ("SELECT id, body FROM queries "
-                 ++ " WHERE module = ? AND name = ?")
-                [SQLText moduleName, SQLText queryName]
-  case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
+  Design { designQueries = queries } <- getDesign
+  case Map.lookup (moduleName, queryName) queries of
+    Nothing -> error $ "Query " ++ moduleName ++ "." ++ queryName
+                       ++ " not found."
+    Just (Query {
+            queryPreparedStatement = preparedStatement,
+            queryValueNamesAndTypes = valueNamesAndTypes
+          }) -> do
       queryValues <- mapM convertQueryValue inputs
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      rows <- query queryText queryValues
+      rows <- preparedQuery preparedStatement queryValues
       return $ map (\row -> convertRowToBindings moduleName
                                                  valueNamesAndTypes
                                                  row)
                    rows
-    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
 
 
 convertQueryValue :: CustardValue -> FruitTart SQLData
@@ -782,23 +784,6 @@ convertQueryValue (CustardString string)
   = return $ SQLText $ UTF8.toString string
 convertQueryValue (CustardData bytestring) = return $ SQLBlob bytestring
 convertQueryValue _ = error "Invalid type for query parameter."
-
-
-getValueNamesAndTypes :: Int64 -> FruitTart [(String, CustardValueType)]
-getValueNamesAndTypes queryID = do
-  rows <- query ("SELECT name, type FROM query_results "
-                 ++ "WHERE query = ? ORDER BY item")
-                [SQLInteger queryID]
-  return $ map (\[SQLText name, SQLText typeName] ->
-                 (name,
-                  case typeName of
-                    "boolean" -> CBool
-                    "integer" -> CInt
-                    "string" -> CString
-                    "maybeInteger" -> CMaybeInt
-                    "maybeString" -> CMaybeString
-                    _ -> CInt))
-               rows
 
 
 convertRowToBindings :: String -> [(String, CustardValueType)] -> [SQLData]
