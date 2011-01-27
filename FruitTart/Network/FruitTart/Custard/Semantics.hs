@@ -845,63 +845,6 @@ convertRowToBindings moduleName valueNamesAndTypes row
                  $ zip valueNamesAndTypes row
 
 
-{-
-bindQuery :: String -> [(String, TemplateValueType)]
-          -> String -> [SQLData] -> FruitTart ()
-bindQuery moduleName valueNamesAndTypes queryText queryValues = do
-  [row] <- query queryText queryValues
-  bindingsMVar <- getBindingsMVar
-  oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings = convertRowToBindings moduleName valueNamesAndTypes row
-      bindings' = Map.union newBindings oldBindings
-  liftIO $ putMVar bindingsMVar bindings'
-
-
-bindQueryMultipleRows :: String -> String -> [(String, TemplateValueType)]
-                      -> String -> [SQLData] -> FruitTart ()
-bindQueryMultipleRows moduleName overallValueName valueNamesAndTypes
-                      queryText queryValues = do
-  rows <- query queryText queryValues
-  bindingsMVar <- getBindingsMVar
-  oldBindings <- liftIO $ takeMVar bindingsMVar
-  let newBindings
-          = Map.fromList [((moduleName, overallValueName),
-                           CustardList
-                           $ map (\row -> CustardMap
-                                          $ convertRowToBindings moduleName
-                                                                 valueNamesAndTypes
-                                                                 row)
-                                 rows)]
-      bindings' = Map.union newBindings oldBindings
-  liftIO $ putMVar bindingsMVar bindings'
-
-
-bindNamedQuery :: String -> String -> [SQLData] -> FruitTart ()
-bindNamedQuery moduleName queryName queryValues = do
-  rows <- query ("SELECT id, body FROM queries "
-                ++ "WHERE module = ? AND name = ?")
-                [SQLText moduleName, SQLText queryName]
-  case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      bindQuery moduleName valueNamesAndTypes queryText queryValues
-    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
-
-
-bindNamedQueryMultipleRows :: String -> String -> [SQLData] -> FruitTart ()
-bindNamedQueryMultipleRows moduleName queryName queryValues = do
-  rows <- query ("SELECT id, body FROM queries "
-                ++ "WHERE module = ? AND name = ?")
-                [SQLText moduleName, SQLText queryName]
-  case rows of
-    [[SQLInteger queryID, SQLText queryText]] -> do
-      valueNamesAndTypes <- getValueNamesAndTypes queryID
-      bindQueryMultipleRows moduleName queryName valueNamesAndTypes queryText
-                            queryValues
-    _ -> error $ "Query " ++ moduleName ++ "." ++ queryName ++ " not found."
- -}
-
-
 builtinBindings :: Map (String, String) CustardValue
 builtinBindings = Map.fromList
                [(("Base", "Null"),

@@ -155,39 +155,6 @@ lookupAction moduleName actionName method = do
   return $ Map.lookup (moduleName, actionName, method) actions
 
 
-lookupParameterTypes :: Int64
-                     -> FruitTart ([ParameterType],
-                                   [ParameterType],
-                                   Map String ParameterType)
-lookupParameterTypes actionID = do
-  mandatoryParameterRows
-    <- query ("SELECT type FROM action_mandatory_parameters "
-              ++ "WHERE action = ? ORDER BY item")
-             [SQLInteger actionID]
-  optionalParameterRows
-    <- query ("SELECT type FROM action_optional_parameters "
-              ++ "WHERE action = ? ORDER BY item")
-             [SQLInteger actionID]
-  namedParameterRows
-    <- query ("SELECT name, type FROM action_named_parameters "
-              ++ "WHERE action = ?")
-             [SQLInteger actionID]
-  let decodeType "integer" = IntegerParameter
-      decodeType "string" = StringParameter
-      decodeType _ = StringParameter
-      mandatoryParameterTypes = map (\[SQLText theType] -> decodeType theType)
-                                    mandatoryParameterRows
-      optionalParameterTypes = map (\[SQLText theType] -> decodeType theType)
-                                   optionalParameterRows
-      namedParameterTypeMap = Map.fromList
-                              $ map (\[SQLText name, SQLText theType] ->
-                                      (name, decodeType theType))
-                                    namedParameterRows
-  return (mandatoryParameterTypes,
-          optionalParameterTypes,
-          namedParameterTypeMap)
-
-
 decodeParameters :: String
                  -> [String]
                  -> Map String String
