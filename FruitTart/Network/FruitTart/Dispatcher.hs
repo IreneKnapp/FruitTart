@@ -27,7 +27,11 @@ import Network.FruitTart.Util
 
 processRequest :: FruitTart ()
 processRequest  = do
-  fCatch processRequest'
+  fCatch (do
+           query "SAVEPOINT request" []
+           processRequest'
+           query "RELEASE SAVEPOINT request" []
+           return ())
          (\e -> do
                   fLog $ "FruitTart: " ++ show (e :: SomeException)
                   fCatch (do
@@ -50,7 +54,10 @@ processRequest  = do
                                      ++ "FruitTart encountered an error while "
                                      ++ "processing this request.  The logfile "
                                      ++ "has more details.</p></body></html>"
-                           fCloseOutput))
+                           fCloseOutput)
+                  query "ROLLBACK TO SAVEPOINT request" []
+                  query "RELEASE SAVEPOINT request" []
+                  return ())
 
 
 processRequest' :: FruitTart ()
