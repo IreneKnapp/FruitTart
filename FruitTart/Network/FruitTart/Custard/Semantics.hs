@@ -113,8 +113,8 @@ eval moduleName body = do
                   custardContextLexicalBindings = Map.empty,
                   custardContextGlobalBindings = Map.empty
                 }
-  FruitTartState { database = database } <- get
-  expression <- fCatch (liftIO $ readExpression database moduleName body)
+  design <- getDesign
+  expression <- fCatch (liftIO $ readExpression design moduleName body)
                        (\e -> error $ "While evaluating expression "
                                       ++ (show body)
                                       ++ ": " ++ (show (e :: SomeException)))

@@ -97,7 +97,7 @@ instance MonadFastCGI FruitTart where
 
 
 data Design = Design {
-    designModules :: Set Module,
+    designModules :: Map String Module,
     designControllers :: Map String String,
     designActions :: Map (String, String, String) Action,
     designFunctions :: Map (String, String) Function,
@@ -107,6 +107,10 @@ data Design = Design {
 
 
 data Module = Module {
+    moduleParent :: Maybe String,
+    moduleImports :: Set String,
+    moduleExports :: Set String,
+    moduleDefined :: Set String
   }
 
 

@@ -18,6 +18,7 @@ import System.IO
 import Database.SQLite3
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Database
+import Network.FruitTart.Design
 import Network.FruitTart.Types
 
 
@@ -25,6 +26,8 @@ main :: IO ()
 main = do
   databasePath <- getEnv "FRUITTART_DB"
   database <- open databasePath
+  
+  design <- loadDesign database
   
   functionsFile <- openFile "functions.txt" WriteMode
   functions
@@ -118,7 +121,7 @@ main = do
            hPutStrLn functionsFile body
            hPutStrLn functionsFile "<<<<<"
            catch (do
-                   _ <- readExpression database moduleName body
+                   _ <- readExpression design moduleName body
                    return ())
                  (\e -> do
                     hPutStrLn functionsFile ""
