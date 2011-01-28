@@ -179,7 +179,7 @@ decodeParameters moduleName
       unknownNamedParameters
         = Map.difference namedParameterInputs namedParameterTypes
   in if (nActualMandatoryParameters /= nFormalMandatoryParameters)
-        || (nActualOptionalParameters > nActualOptionalParameters)
+        || (nActualOptionalParameters > nFormalOptionalParameters)
         || (not $ Map.null unknownNamedParameters)
     then Nothing
     else let mandatoryZipped
