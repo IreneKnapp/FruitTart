@@ -628,7 +628,7 @@ applyFunctionGivenContextAndValue context function actualParameters = do
                               Just (moduleName, properName)
                                 -> moduleName ++ "." ++ properName
           error $ "Expected " ++ (show $ length formalParameters)
-                   ++ " parameters to " ++ displayName
+                   ++ " parameter(s) to " ++ displayName
                    ++ ", but got " ++ (show $ length actualParameters) ++ "."
         else return ()
       let newBindings = Map.fromList $ zip (map (\(CustardParameter key) -> key)
