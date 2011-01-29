@@ -279,7 +279,7 @@ evalExpression context expression = do
         return (context, CustardString $ UTF8.fromString result)
       CustardCallBySymbolExpression subexpressions -> do
         if length subexpressions < 1
-           then error $ "Invalid number of parameters to callBySYmbol()."
+           then error $ "Invalid number of parameters to callBySymbol()."
            else return ()
         (context, symbol) <- evalExpression context $ head subexpressions
         (moduleName, templateName)
