@@ -54,12 +54,13 @@ getTemplateWithParameters moduleName
                           contextType
                           formInputMap
                           parameters = do
+  Design { designGlobalBindings = globalBindings } <- getDesign
   let context = CustardContext {
                   custardContextType = contextType,
                   custardContextFormInputMap = formInputMap,
                   custardContextParameters = parameters,
                   custardContextLexicalBindings = Map.empty,
-                  custardContextGlobalBindings = Map.empty
+                  custardContextGlobalBindings = globalBindings
                 }
   getTemplateWithContext moduleName templateName context
 
@@ -106,12 +107,13 @@ getTemplateWithContext moduleName templateName context = do
 
 eval :: String -> String -> FruitTart CustardValue
 eval moduleName body = do
+  Design { designGlobalBindings = globalBindings } <- getDesign
   let context = CustardContext {
                   custardContextType = TemplateContext,
                   custardContextFormInputMap = Map.empty,
                   custardContextParameters = [],
                   custardContextLexicalBindings = Map.empty,
-                  custardContextGlobalBindings = Map.empty
+                  custardContextGlobalBindings = globalBindings
                 }
   design <- getDesign
   expression <- fCatch (liftIO $ readExpression design moduleName body)
@@ -380,7 +382,8 @@ evalExpression context expression = do
               = context
         return (context, CustardLambda Nothing formalParameters bindings body)
       CustardVariable name -> do
-        findSymbol context name
+        value <- symbolValue context name
+        return (context, value)
       CustardBindExpression subexpressions -> do
         if length subexpressions /= 2
           then error $ "Invalid number of parameters to bind()."
@@ -560,33 +563,20 @@ custardArithmetic (CustardInteger a) (CustardInteger b) operation
 custardArithmetic _ _ _ = error "Values in arithmetic are not both Integers."
 
 
-findSymbol :: CustardContext
-           -> (String, String)
-           -> FruitTart (CustardContext, CustardValue)
-findSymbol context name@(packageName, properName) = do
+symbolValue :: CustardContext
+            -> (String, String)
+            -> FruitTart CustardValue
+symbolValue context name@(packageName, properName) = do
   let CustardContext {
           custardContextLexicalBindings = lexicalBindings,
           custardContextGlobalBindings = globalBindings
         } = context
       bindings = Map.union lexicalBindings globalBindings
   case Map.lookup name bindings of
-    Nothing -> do
-      maybeValue <- getTopLevelBinding name
-      case maybeValue of
-        Just value -> do
-          let CustardContext {
-                        custardContextGlobalBindings = oldBindings
-                      } = context
-              newBindings = Map.union (Map.fromList [(name, value)])
-                                      oldBindings
-              context' = context {
-                                  custardContextGlobalBindings = newBindings
-                                }
-          return (context', value)
-        Nothing -> error $ "Undefined variable "
-                           ++ packageName ++ "."
-                           ++ properName ++ "."
-    Just value -> return (context, value)
+    Nothing -> error $ "Undefined variable "
+                       ++ packageName ++ "."
+                       ++ properName ++ "."
+    Just value -> return value
 
 
 applyFunctionGivenName :: CustardContextType
@@ -600,14 +590,15 @@ applyFunctionGivenName contextType
                        moduleName
                        functionName
                        parameters = do
+  Design { designGlobalBindings = globalBindings } <- getDesign
   let context = CustardContext {
                   custardContextType = contextType,
                   custardContextFormInputMap = formInputMap,
                   custardContextParameters = [],
                   custardContextLexicalBindings = Map.empty,
-                  custardContextGlobalBindings = Map.empty
+                  custardContextGlobalBindings = globalBindings
                 }
-  (context, function) <- findSymbol context (moduleName, functionName)
+  function <- symbolValue context (moduleName, functionName)
   applyFunctionGivenContextAndValue context function parameters
 
 
@@ -655,19 +646,6 @@ applyFunctionGivenContextAndValue context function actualParameters = do
                             ++ ": " ++ (show (e :: SomeException)))
     _ -> do
       error $ "Call to something not a function."
-
-
-getTopLevelBinding :: (String, String) -> FruitTart (Maybe CustardValue)
-getTopLevelBinding variableName = do
-  case Map.lookup variableName builtinBindings of
-    Just result -> return $ Just result
-    Nothing -> do
-      Design { designFunctions = functions } <- getDesign
-      case Map.lookup variableName functions of
-        Nothing -> return Nothing
-        Just (Function {
-                functionLambdaExpression = custardValue
-              }) -> return $ Just custardValue
 
 
 bindQuery1 :: CustardContext

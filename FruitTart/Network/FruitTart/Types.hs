@@ -102,7 +102,8 @@ data Design = Design {
     designActions :: Map (String, String, String) Action,
     designFunctions :: Map (String, String) Function,
     designQueries :: Map (String, String) Query,
-    designTemplates :: Map (String, String) Template
+    designTemplates :: Map (String, String) Template,
+    designGlobalBindings :: Map (String, String) CustardValue
   }
 
 

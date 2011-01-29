@@ -40,13 +40,15 @@ loadDesign database = do
   functions <- loadFunctions database modules
   queries <- loadQueries database
   templates <- loadTemplates database modules
+  let globalBindings = computeGlobalBindings functions
   return $ Design {
              designModules = modules,
              designControllers = controllers,
              designActions = actions,
              designFunctions = functions,
              designQueries = queries,
-             designTemplates = templates
+             designTemplates = templates,
+             designGlobalBindings = globalBindings
            }
 
 
@@ -188,7 +190,8 @@ loadFunctions database modules = do
                           designActions = undefined,
                           designFunctions = undefined,
                           designQueries = undefined,
-                          designTemplates = undefined
+                          designTemplates = undefined,
+                          designGlobalBindings = undefined
                         }
   rows <- earlyQuery database "SELECT module, name, body, id FROM functions" []
   functions <- mapM (\[SQLText moduleName,
@@ -281,7 +284,8 @@ loadTemplates database modules = do
                           designActions = undefined,
                           designFunctions = undefined,
                           designQueries = undefined,
-                          designTemplates = undefined
+                          designTemplates = undefined,
+                          designGlobalBindings = undefined
                         }
   rows <- earlyQuery database "SELECT module, name, id FROM templates" []
   templates <- mapM (\[SQLText moduleName,
@@ -328,3 +332,10 @@ loadTemplates database modules = do
                        return ((moduleName, templateName), template))
                     rows
   return $ Map.fromList templates
+
+
+computeGlobalBindings :: Map (String, String) Function
+                      -> Map (String, String) CustardValue
+computeGlobalBindings functions =
+  Map.union (Map.map functionLambdaExpression functions)
+            builtinBindings
