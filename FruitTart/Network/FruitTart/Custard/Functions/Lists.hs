@@ -7,6 +7,7 @@ module Network.FruitTart.Custard.Functions.Lists (
                                                   cfNull,
                                                   cfLength,
                                                   cfMap,
+                                                  cfMapWithoutResult,
                                                   cfReverse,
                                                   cfIntersperse,
                                                   cfIntercalate,
@@ -176,6 +177,25 @@ cfMap context parameters = do
                                 items
       typecheckList items
       return (context, CustardList items)
+    _ -> errorNotAList
+
+
+cfMapWithoutResult :: CustardContext
+                   -> [CustardValue]
+                   -> FruitTart (CustardContext, CustardValue)
+cfMapWithoutResult context parameters = do
+  requireNParameters parameters 2 "mapWithoutResult"
+  let function = parameters !! 0
+  case parameters !! 1 of
+    CustardList items -> do
+      context <- foldM (\context a -> do
+                          (context, _)
+                            <- applyFunctionGivenContextAndValue
+                                context function [a]
+                          return context)
+                       context
+                       items
+      return (context, CustardNull)
     _ -> errorNotAList
 
 

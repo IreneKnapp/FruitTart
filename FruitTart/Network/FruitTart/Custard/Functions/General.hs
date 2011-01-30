@@ -7,6 +7,7 @@ module Network.FruitTart.Custard.Functions.General (
                                                     cfTimestampToString,
                                                     cfGetCurrentPage,
                                                     cfGetController,
+                                                    cfLookupControllerMapping,
                                                     cfIdentity,
                                                     cfEval
                                                    )
@@ -26,6 +27,7 @@ import Prelude hiding (catch)
 import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Syntax
 import Network.FruitTart.Custard.Functions.Util
+import Network.FruitTart.Design
 import Network.FruitTart.Types
 import Network.FruitTart.Util
 
@@ -112,6 +114,25 @@ cfGetController context parameters = do
     Just controllerName -> return (context,
                                    CustardString
                                     $ UTF8.fromString controllerName)
+
+
+cfLookupControllerMapping :: CustardContext
+                       -> [CustardValue]
+                       -> FruitTart (CustardContext, CustardValue)
+cfLookupControllerMapping context parameters = do
+  requireControllerContext context "lookupControllerMapping"
+  requireNParameters parameters 1 "lookupControllerMapping"
+  controllerBytestring <- valueToUTF8String $ parameters !! 0
+  let controller = UTF8.toString controllerBytestring
+  Design { designControllers = controllerMap } <- getDesign
+  let controllerInverseMap =
+        Map.fromList $ map (\(key, value) -> (value, key))
+                           $ Map.toList controllerMap
+  return (context,
+          case Map.lookup controller controllerInverseMap of
+            Nothing -> CustardMaybe Nothing
+            Just mapping -> CustardMaybe
+                             $ Just $ CustardString $ UTF8.fromString mapping)
 
 
 cfIdentity :: CustardContext

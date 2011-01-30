@@ -821,6 +821,9 @@ builtinBindings = Map.fromList
                 (("Base", "getController"),
                  CustardNativeLambda ("Base", "getController")
                                      General.cfGetController),
+                (("Base", "lookupControllerMapping"),
+                 CustardNativeLambda ("Base", "lookupControllerMapping")
+                                     General.cfLookupControllerMapping),
                 (("Base", "identity"),
                  CustardNativeLambda ("Base", "identity")
                                      General.cfIdentity),
@@ -1178,6 +1181,9 @@ builtinBindings = Map.fromList
                 (("Base.Lists", "map"),
                  CustardNativeLambda ("Base.Lists", "map")
                                      Lists.cfMap),
+                (("Base.Lists", "mapWithoutResult"),
+                 CustardNativeLambda ("Base.Lists", "mapWithoutResult")
+                                     Lists.cfMapWithoutResult),
                 (("Base.Lists", "reverse"),
                  CustardNativeLambda ("Base.Lists", "reverse")
                                      Lists.cfReverse),
