@@ -299,7 +299,96 @@ readExpression design defaultPackage input = do
 
 
 parseError :: [CustardToken] -> IO a
-parseError _ = error $ "Expression-parsing error."
+parseError (token:_) = error $ "Expression-parsing error near "
+	                        ++ describeToken token ++ "."
+
+
+describeToken :: CustardToken -> String
+describeToken (TokenValue value)
+  = "literal " ++ show value
+describeToken (TokenSymbol moduleName properName)
+  = "symbol " ++ moduleName ++ "." ++ properName
+describeToken TokenQuote
+  = "keyword 'quote'"
+describeToken TokenIf
+  = "keyword 'if'"
+describeToken TokenElse
+  = "keyword 'else'"
+describeToken TokenCase
+  = "keyword 'case'"
+describeToken TokenCall
+  = "keyword 'call'"
+describeToken TokenCallBySymbol
+  = "keyword 'callBySymbol'"
+describeToken TokenIterate
+  = "keyword 'iterate'"
+describeToken TokenQuery
+  = "keyword 'query'"
+describeToken TokenBound
+  = "keyword 'bound'"
+describeToken TokenBind
+  = "keyword 'bind'"
+describeToken TokenBindMap
+  = "keyword 'bindMap'"
+describeToken TokenBindQuery1
+  = "keyword 'bindQuery1'"
+describeToken TokenBindQueryN
+  = "keyword 'bindQueryN'"
+describeToken TokenLet
+  = "keyword 'let'"
+describeToken TokenLetMap
+  = "keyword 'letMap'"
+describeToken TokenLetQuery1
+  = "keyword 'letQuery1'"
+describeToken TokenLetQueryN
+  = "keyword 'letQueryN'"
+describeToken TokenLeftParen
+  = "punctuator '('"
+describeToken TokenRightParen
+  = "punctuator ')'"
+describeToken TokenLeftSquareBracket
+  = "punctuator '['"
+describeToken TokenRightSquareBracket
+  = "punctuator ']'"
+describeToken TokenLeftCurlyBracket
+  = "punctuator '{'"
+describeToken TokenRightCurlyBracket
+  = "punctuator '}'"
+describeToken TokenMinusGreater
+  = "punctuator '->'"
+describeToken TokenSemicolon
+  = "punctuator ';'"
+describeToken TokenComma
+  = "punctuator ','"
+describeToken TokenPlusPlus
+  = "punctuator '++'"
+describeToken TokenEqualsEquals
+  = "punctuator '=='"
+describeToken TokenExclamationEquals
+  = "punctuator '!='"
+describeToken TokenExclamation
+  = "punctuator '!'"
+describeToken TokenAmpersandAmpersand
+  = "punctuator '&&'"
+describeToken TokenBarBar
+  = "punctuator '||'"
+describeToken TokenGreaterEquals
+  = "punctuator '>='"
+describeToken TokenGreater
+  = "punctuator '>'"
+describeToken TokenLessEquals
+  = "punctuator '<='"
+describeToken TokenLess
+  = "punctuator '<'"
+describeToken TokenPlus
+  = "punctuator '+'"
+describeToken TokenMinus
+  = "punctuator '-'"
+describeToken TokenStar
+  = "punctuator '*'"
+describeToken TokenSlash
+  = "punctuator '/'"
+
 
 
 lexer :: Design -> String -> String -> IO [CustardToken]
