@@ -89,7 +89,7 @@ PrimaryExpressionOnly : character
                       { CustardVariable (symbolTokenPackage $1, symbolTokenName $1) }
                       | '[' ExpressionList ']'
                       { CustardExpressionList $2 }
-		      | '{' LambdaList '->' Expression '}'
+		      | '{' LambdaList '->' StatementBlock1 '}'
 		      { CustardLambdaExpression $2 $4 }
                       | '(' Expression ')'
                       { $2 }
