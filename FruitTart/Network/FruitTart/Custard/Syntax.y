@@ -25,7 +25,7 @@ import Network.FruitTart.Types
 
 }
 
-%name parser TopLevel
+%name parser StatementBlock1
 %tokentype { CustardToken }
 %monad { IO }
 %error { parseError }
@@ -79,7 +79,7 @@ import Network.FruitTart.Types
 %%
 
 
-PrimaryExpression     : character
+PrimaryExpressionOnly : character
 		      { CustardLiteral $1 }
 		      | string
                       { CustardLiteral $1 }
@@ -93,10 +93,17 @@ PrimaryExpression     : character
 		      { CustardLambdaExpression $2 $4 }
                       | '(' Expression ')'
                       { $2 }
-		      | StatementLikeExpression
+
+PrimaryExpression     : PrimaryExpressionOnly
+		      { $1 }
+		      | ProperStatement
 		      { $1 }
 
-FunctionCallExpression
+ProperPrimaryExpression
+	              : PrimaryExpressionOnly
+		      { $1 }
+
+FunctionCallExpressionOnly
                       : FunctionCallExpression '(' ExpressionList ')'
                       { CustardFunctionCall $1 $3 }
                       | quote '(' ExpressionList ')'
@@ -129,32 +136,71 @@ FunctionCallExpression
                       { CustardLetQuery1Expression $3 }
                       | letQueryN '(' ExpressionList ')'
                       { CustardLetQueryNExpression $3 }
+
+FunctionCallExpression
+	              : FunctionCallExpressionOnly
+		      { $1 }
 		      | PrimaryExpression
 		      { $1 }
 
-UnaryExpression       : '!' UnaryExpression
+ProperFunctionCallExpression
+	              : FunctionCallExpressionOnly
+		      { $1 }
+		      | ProperPrimaryExpression
+		      { $1 }
+
+UnaryExpressionOnly   : '!' UnaryExpression
                       { CustardOperationNot $2 }
+
+UnaryExpression       : UnaryExpressionOnly
+		      { $1 }
 		      | FunctionCallExpression
 		      { $1 }
 
-MultiplicativeExpression
+ProperUnaryExpression : UnaryExpressionOnly
+		      { $1 }
+		      | ProperFunctionCallExpression
+		      { $1 }
+
+MultiplicativeExpressionOnly
                       : MultiplicativeExpression '*' UnaryExpression
                       { CustardOperationMultiply $1 $3 }
                       | MultiplicativeExpression '/' UnaryExpression
                       { CustardOperationDivide $1 $3 }
+
+MultiplicativeExpression
+	              : MultiplicativeExpressionOnly
+		      { $1 }
                       | UnaryExpression
                       { $1 }
 
-AdditiveExpression    : AdditiveExpression '++' MultiplicativeExpression
+ProperMultiplicativeExpression
+	              : MultiplicativeExpressionOnly
+		      { $1 }
+                      | ProperUnaryExpression
+                      { $1 }
+
+AdditiveExpressionOnly
+                      : AdditiveExpression '++' MultiplicativeExpression
                       { CustardOperationConcatenate $1 $3 }
                       | AdditiveExpression '+' MultiplicativeExpression
                       { CustardOperationAdd $1 $3 }
                       | AdditiveExpression '-' MultiplicativeExpression
                       { CustardOperationSubtract $1 $3 }
+
+AdditiveExpression    : AdditiveExpressionOnly
+		      { $1 }
 		      | MultiplicativeExpression
 		      { $1 }
 
-EqualityExpression    : EqualityExpression '==' AdditiveExpression
+ProperAdditiveExpression
+                      : AdditiveExpressionOnly
+		      { $1 }
+		      | ProperMultiplicativeExpression
+		      { $1 }
+
+EqualityExpressionOnly
+                      : EqualityExpression '==' AdditiveExpression
                       { CustardOperationEquals $1 $3 }
                       | EqualityExpression '!=' AdditiveExpression
                       { CustardOperationNotEquals $1 $3 }
@@ -166,44 +212,61 @@ EqualityExpression    : EqualityExpression '==' AdditiveExpression
                       { CustardOperationLessEquals $1 $3 }
                       | EqualityExpression '<' AdditiveExpression
                       { CustardOperationLess $1 $3 }
+
+EqualityExpression    : EqualityExpressionOnly
+		      { $1 }
                       | AdditiveExpression
                       { $1 }
 
-LogicalExpression     : LogicalExpression '&&' EqualityExpression
+ProperEqualityExpression
+                      : EqualityExpressionOnly
+		      { $1 }
+                      | ProperAdditiveExpression
+                      { $1 }
+
+LogicalExpressionOnly : LogicalExpression '&&' EqualityExpression
                       { CustardOperationAnd $1 $3 }
                       | LogicalExpression '||' EqualityExpression
                       { CustardOperationOr $1 $3 }
+
+LogicalExpression     : LogicalExpressionOnly
+                      { $1 }
                       | EqualityExpression
                       { $1 }
 
-Expression	      : StatementLikeExpression
-		      { $1 }
-		      | LogicalExpression
+ProperLogicalExpression
+                      : LogicalExpressionOnly
+                      { $1 }
+                      | ProperEqualityExpression
+                      { $1 }
+
+Expression	      : LogicalExpression
 		      { $1 }
 
-ExpressionPlusSemicolon
-		      : StatementLikeExpression
-		      { $1 }
-		      | LogicalExpression ';'
+ProperExpression      : ProperLogicalExpression
 		      { $1 }
 
-StatementLikeExpression
-                      : if '(' Expression ')' ExpressionPlusSemicolon
-		        else ExpressionPlusSemicolon
+ProperStatement       : if '(' Expression ')' Statement
+		        else Statement
                       { CustardIfExpression $3 $5 $7 }
 		      | StatementBlock
 		      { CustardBlock $1 }
 
+Statement             : ProperStatement
+                      { $1 }
+		      | ProperExpression ';'
+		      { $1 }
+
 StatementBlock        : '{' StatementList '}'
 		      { $2 }
 
-StatementList         : StatementList ExpressionPlusSemicolon
-                      { $1 ++ [$2] }
-                      | ExpressionPlusSemicolon
-		      { [$1] }
-
-TopLevel              : StatementList
+StatementBlock1       : StatementList
 		      { CustardBlock $1 }
+
+StatementList         : StatementList Statement
+                      { $1 ++ [$2] }
+                      | Statement
+		      { [$1] }
 
 ExpressionList        : ExpressionList1
                       { $1 }
