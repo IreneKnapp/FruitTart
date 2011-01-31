@@ -1159,6 +1159,9 @@ builtinBindings = Map.fromList
                 
                 -- Lists
                 -- Lists - Basic functions
+                (("Base.Lists", "cons"),
+                 CustardNativeLambda ("Base.Lists", "cons")
+                                     Lists.cfCons),
                 (("Base.Lists", "head"),
                  CustardNativeLambda ("Base.Lists", "head")
                                      Lists.cfHead),

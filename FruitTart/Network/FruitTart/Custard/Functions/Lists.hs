@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 module Network.FruitTart.Custard.Functions.Lists (
+                                                  cfCons,
                                                   cfHead,
                                                   cfLast,
                                                   cfTail,
@@ -93,6 +94,18 @@ import Network.FruitTart.Custard.Syntax
 import {-# SOURCE #-} Network.FruitTart.Custard.Semantics
 import Network.FruitTart.Custard.Functions.Util
 import Network.FruitTart.Types
+
+
+cfCons :: CustardContext
+       -> [CustardValue]
+       -> FruitTart (CustardContext, CustardValue)
+cfCons context parameters = do
+  requireNParameters parameters 2 "cons"
+  let headValue = parameters !! 0
+      restValue = parameters !! 1
+  case restValue of
+    CustardList rest -> return (context, CustardList $ headValue : rest)
+    _ -> errorNotAList
 
 
 cfHead :: CustardContext
